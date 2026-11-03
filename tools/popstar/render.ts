@@ -191,20 +191,20 @@ export function saveState(root: string, s: State): void {
 
 // ------------------------------------------------------------------ takes, looks
 
-/** hero-1 < hero-1-2 < hero-2 < hero-10 (digits compare as numbers). */
+/** hero-1 < hero-1-2 < hero-2 < hero-10: digits compare as numbers, the extension is ignored, a prefix sorts first. */
 export function naturalCompare(a: string, b: string): number {
-  const ax = a.split(/(\d+)/);
-  const bx = b.split(/(\d+)/);
-  for (let i = 0; i < Math.max(ax.length, bx.length); i++) {
-    const x = ax[i] ?? "";
-    const y = bx[i] ?? "";
+  const ax = a.replace(/\.[a-z0-9]+$/i, "").split(/(\d+)/).filter((s) => s !== "");
+  const bx = b.replace(/\.[a-z0-9]+$/i, "").split(/(\d+)/).filter((s) => s !== "");
+  for (let i = 0; i < Math.min(ax.length, bx.length); i++) {
+    const x = ax[i]!;
+    const y = bx[i]!;
     if (x === y) continue;
     const nx = /^\d+$/.test(x);
     const ny = /^\d+$/.test(y);
     if (nx && ny) return Number(x) - Number(y);
     return x < y ? -1 : 1;
   }
-  return 0;
+  return ax.length - bx.length;
 }
 
 export type Take = { id: string; file: string; offset: number; offsetSource: string };

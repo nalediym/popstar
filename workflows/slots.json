@@ -524,6 +524,85 @@
       }
     }
   },
+  "look-wardrobe-apache": {
+    "file": "look-wardrobe-apache.api.json",
+    "what": "License-swap candidate for look-wardrobe: Qwen-Image-Edit-2511 int8 (Apache-2.0) wardrobe + set edit of one frame. NOT the Reference Master default: its one test render (job 8cb83779, same prompt and seed as look-wardrobe) reshaped her face and recomposed the shot; see docs/LICENSES.md 'Apache-licensed wardrobe graph'. Pinned so the turbo=false (40-step, no Lightning LoRA) retry is a one-liner. Output follows the input via FluxKontextImageScale: 1280x720 in -> 1392x752 out (not 1280x704).",
+    "output": {
+      "node": "195",
+      "kind": "image"
+    },
+    "provenance": {
+      "source_job": "8cb83779-5725-49ee-a832-4f93ab108a38",
+      "source_run": "license-swap test: look-wardrobe's wardrobe prompt verbatim, seed 11, turbo mode on (build/license-swap/apache.png; sheet build/license-swap/compare3.png)",
+      "template": "image_qwen_image_edit_2511_int8",
+      "changes_from_template": "inputs only (41.image, 170:151.prompt, 170:169.seed, 170:168.value=true); subgraph 170 is flattened to 170:<inner> ids",
+      "cloud_workflow_id": "ad18abd3-bdee-4f80-8fae-d15d4f845b9d",
+      "pinned": "2026-11-02",
+      "license": "Apache-2.0 end to end: Qwen/Qwen-Image-Edit-2511 ('Qwen-Image is licensed under Apache 2.0.'), lightx2v Lightning LoRA, Qwen2.5-VL-7B text encoder, Qwen-Image VAE; details in docs/LICENSES.md",
+      "verdict": "2026-11-02: FAILED the identity gate (slimmer face, narrower nose, thinner lips, near-buzzed hair, wider framing with a foreground arm and the key lamp in frame). Skin tone, wardrobe and set were fine. Not promoted."
+    },
+    "slots": {
+      "image": {
+        "node": "41",
+        "input": "image",
+        "type": "string",
+        "default": "660bf887ec0c56650a8f7b35b720ab99669054611b973146f27dd032d393faf5.png",
+        "desc": "Source frame (upload_file name). Scaled to the nearest Kontext resolution before editing."
+      },
+      "prompt": {
+        "node": "170:151",
+        "input": "prompt",
+        "type": "string",
+        "default": "Keep the same young Black woman: her exact face, rich deep brown skin with warm undertones and a luminous dewy sheen, copper-red hair pulled back, small white earbuds, her exact pose, hand position and camera framing. Change only her wardrobe and the set. She now wears a burnt-orange silk slip dress with thin straps and small gold hoop earrings. The background becomes an intimate late-1990s R&B music video stage: warm amber fairy-light bokeh, soft haze, a candlelit glow, Tuscan brown velvet curtains. Lighting: a large soft warm key light from camera left, a gold bounce under her face and an amber rim light on her hair and shoulders.",
+        "desc": "Edit instruction (positive TextEncodeQwenImageEditPlus). Keep the identity + skin-tone lock in it."
+      },
+      "negative": {
+        "node": "170:149",
+        "input": "prompt",
+        "type": "string",
+        "default": "",
+        "desc": "Negative prompt. Only has an effect with turbo=false (turbo mode samples at CFG 1)."
+      },
+      "seed": {
+        "node": "170:169",
+        "input": "seed",
+        "type": "integer",
+        "min": 0,
+        "default": 11,
+        "desc": "KSampler seed."
+      },
+      "turbo": {
+        "node": "170:168",
+        "input": "value",
+        "type": "boolean",
+        "default": true,
+        "desc": "true = 4 steps at CFG 1 with the lightx2v Lightning LoRA (the tested path, ~20 s). false = steps x cfg below with no LoRA (the template default, untested here)."
+      },
+      "steps": {
+        "node": "170:166",
+        "input": "value",
+        "type": "integer",
+        "min": 1,
+        "default": 40,
+        "desc": "Sampling steps with turbo=false (Comfy's own table suggests 20)."
+      },
+      "cfg": {
+        "node": "170:154",
+        "input": "value",
+        "type": "number",
+        "min": 0,
+        "default": 4,
+        "desc": "CFG with turbo=false."
+      },
+      "output_prefix": {
+        "node": "195",
+        "input": "filename_prefix",
+        "type": "string",
+        "default": "Qwen_Edit_2511",
+        "desc": "Output filename prefix on Comfy Cloud."
+      }
+    }
+  },
   "look-expression": {
     "file": "look-expression.api.json",
     "what": "Expression edit of one image: LoadImage -> ExpressionEditor (AdvancedLivePortrait) -> SaveImage. Sliders for head, eyes and mouth.",

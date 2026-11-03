@@ -1,5 +1,5 @@
 // popstar doctor: environment drift (docs/architecture.md, R7). Every ✗ comes with the exact fix command.
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { BAD, OK, paint, table } from "./ansi.ts";
@@ -21,6 +21,7 @@ export type Check = {
 export type DoctorDeps = {
   run: (cmd: string[], timeoutMs?: number) => RunResult;
   exists: (path: string) => boolean;
+  list: (dir: string) => string[]; // file names in a folder ([] when it is missing)
   reach: (url: string, timeoutMs: number) => Promise<{ ok: boolean; status?: number; error?: string }>;
   env: Record<string, string | undefined>;
   home: string;
@@ -29,6 +30,13 @@ export type DoctorDeps = {
 export const realDeps = (): DoctorDeps => ({
   run: (cmd, timeoutMs) => run(cmd, { timeoutMs }),
   exists: existsSync,
+  list: (dir) => {
+    try {
+      return readdirSync(dir);
+    } catch {
+      return [];
+    }
+  },
   reach: async (url, timeoutMs) => {
     try {
       const r = await fetch(url, { method: "GET", redirect: "manual", signal: AbortSignal.timeout(timeoutMs) });
@@ -185,7 +193,7 @@ export async function runDoctor(root: string, m: Manifest, d: DoctorDeps, o: Doc
     const ok = d.exists(abs(root, x.rel));
     checks.push({ id: x.id, group: "data", label: x.label, required: x.required, ok, detail: ok ? x.rel : `${x.rel} missing`, fix: ok ? undefined : x.fix });
   }
-  const hero = heroClip(root, m, d.exists);
+  const hero = heroClip(root, m, d.list);
   checks.push({
     id: "hero-take",
     group: "data",
@@ -199,15 +207,9 @@ export async function runDoctor(root: string, m: Manifest, d: DoctorDeps, o: Doc
   return checks;
 }
 
-function heroClip(root: string, m: Manifest, exists: (p: string) => boolean): string | null {
-  const dir = abs(root, m.paths.clips);
-  if (!exists(dir)) return null;
-  try {
-    const names = Array.from(new Bun.Glob("hero-*.mp4").scanSync(dir)).sort();
-    return names.length ? `${m.paths.clips}/${names[0]}` : null;
-  } catch {
-    return null;
-  }
+function heroClip(root: string, m: Manifest, list: (dir: string) => string[]): string | null {
+  const names = list(abs(root, m.paths.clips)).filter((f) => /^hero-.*\.mp4$/.test(f)).sort();
+  return names.length ? `${m.paths.clips}/${names[0]}` : null;
 }
 
 export const requiredFailures = (checks: Check[]): Check[] => checks.filter((c) => c.required && !c.ok);

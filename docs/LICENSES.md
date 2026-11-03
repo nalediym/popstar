@@ -102,3 +102,58 @@ Pick **Apache-2.0** over MIT: its NOTICE file is the natural home for the Gemma 
 notice-retention duty, it adds an explicit patent grant, and the permissive dependencies here (DWPose, YOLOX, Wan,
 MediaPipe, uv) already use it. Add `LICENSE` (Apache-2.0, © 2026 Naledi) and `NOTICE` (the Credits block) before
 flipping the repo public.
+
+## Apache-licensed wardrobe graph (swap test)
+
+Tested 2026-11-02: can the §2 drop-in replace `look-wardrobe` (Qwen-Image 2.1 Turbo, research license) without losing
+her? One render, judged against the Turbo render made earlier tonight with the same prompt and seed.
+
+**Template and weights.** Comfy Cloud template `image_qwen_image_edit_2511_int8` (the sibling `image_qwen_image_edit_2509`
+is the same license). Every file in the executed graph is Apache-2.0, read on the cited pages 2026-11-02:
+
+| File (as loaded on Cloud) | License (verbatim) | Source |
+|---|---|---|
+| `qwen_image_edit_2511_int8_convrot` (UNETLoader) | "License: apache-2.0"; card: "Qwen-Image is licensed under Apache 2.0." | https://huggingface.co/Qwen/Qwen-Image-Edit-2511 · int8 repack (tag "License: apache-2.0"): https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI |
+| `Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16` (LoRA, turbo mode) | "License: apache-2.0"; base model listed as Qwen/Qwen-Image-Edit-2511 | https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning |
+| `qwen_2.5_vl_7b_fp8_scaled` (text encoder) | "License: apache-2.0" | https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct (file hosted in Comfy-Org/HunyuanVideo_1.5_repackaged) |
+| `qwen_image_vae` | Qwen-Image VAE, Apache-2.0 (same card sentence) | https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI |
+| for the record: `Qwen/Qwen-Image-Edit-2509` | "License: apache-2.0"; card: "Qwen-Image is licensed under Apache 2.0." | https://huggingface.co/Qwen/Qwen-Image-Edit-2509 |
+
+**Run.** Job `8cb83779-5725-49ee-a832-4f93ab108a38` (Cloud workflow `ad18abd3-bdee-4f80-8fae-d15d4f845b9d`): her frame
+`660bf887….png`, the `look-wardrobe` wardrobe prompt verbatim, seed 11, `enable_turbo_mode=true` (4 steps, CFG 1,
+Lightning LoRA, the analog of the 8-step Turbo path). Done inside the ~25 s one-shot window. Output 1392x752: the
+template's `FluxKontextImageScale` snaps a 1280x720 input to the nearest Kontext size, so it is not the 1280x704 the
+Turbo graph gives. Files: `build/license-swap/apache.png`, `turbo.png`, `compare.png` (face crops, Apache left),
+`compare3.png` (source | Apache | Turbo).
+
+**Verdict: FAIL on the identity gate.** Skin tone, wardrobe and set pass; the face, hair and framing do not.
+
+- Face: reshaped into a different woman. Slimmer oval face, sculpted cheekbones, narrower nose, thinner lips, mouth
+  relaxed and closed. The source and the Turbo render both keep her round face, full cheeks, broad nose and pursed lips.
+- Hair: slicked down to a near buzz cut with a copper tint. Turbo keeps the copper-red pulled-back hair with its volume.
+- Pose and framing: not kept. The shot is recomposed wider (her face about two-thirds the size), a large out-of-focus
+  forearm enters at the bottom, and "a large soft warm key light from camera left" was rendered as a visible fresnel lamp
+  in frame. Turbo keeps the close selfie framing.
+- Skin tone: kept, not lightened. Mean RGB of 40x40 cheek patches (both renders are under dim amber stage light, the
+  source under a bright atrium): viewer-right cheek source 102/61/42, Apache 77/34/16, Turbo 68/29/6; key-lit
+  viewer-left cheek source 157/104/77, Apache 178/117/63, Turbo 138/69/27. Apache keeps more blue in the skin than
+  Turbo's crushed orange; both read as rich deep brown.
+- Wardrobe and set: applied. Burnt-orange satin slip dress with thin straps, small gold hoops, earbuds kept; fairy-light
+  strings, Tuscan brown velvet curtains, candles and haze. If anything too literal (the lamp).
+- Per-pixel quality: sharper and more cinematic than Turbo (shallow depth of field, higher resolution), but fidelity to
+  the source is far worse. Quality is not equal, so it cannot be the Reference Master default on this evidence.
+
+**Recommendation.** Keep `look-wardrobe` (Qwen-Image 2.1 Turbo) for the hackathon demo, which stays research /
+non-commercial use (§2). Do not promote `look-wardrobe-apache`. The graph is pinned anyway
+(`workflows/look-wardrobe-apache.api.json`, slots in `slots.json`, every file Apache-2.0) so the next attempt is a
+one-liner. In order of promise, each one render:
+
+1. `bun tools/comfy_compile.ts look-wardrobe-apache --set turbo=false` (40 steps, CFG 4, no Lightning LoRA: the
+   template's own default, untested here). The 4-step distillation is the prime suspect for the identity drift, and at
+   CFG 4 a negative prompt ("different face, slim face, buzz cut, wide shot, lamp in frame") starts to work.
+2. Same, with a harder lock in the prompt: "Do not change her face shape, nose, lips, hair or the close selfie framing."
+3. If both drift, `image_qwen_image_edit_2509` (same license), or a structural edit that feeds the source frame as a
+   second reference image (`image2`) so the model has the face twice.
+
+If a pass comes, re-pin from that job, make it the default in the `reference-master` skill, and move the Qwen-Image 2.1
+Turbo row in §1 to "not used".

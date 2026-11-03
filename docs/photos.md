@@ -15,17 +15,20 @@ It reads the library through [osxphotos](https://github.com/RhetTbull/osxphotos)
 No install step. `uv` fetches osxphotos and Pillow into its cache on the first run (about 10 s), then runs take ~2 s.
 
 ```sh
-S='uv run --python 3.12 --with osxphotos --with pillow python -I tools/photos_scout.py'
+# a function, not a variable: zsh does not word-split unquoted $VARS
+scout() { uv run --python 3.12 --with osxphotos --with pillow python -I tools/photos_scout.py "$@"; }
 
-$S stats                                           # counts only: who, what, how many
-$S identity --person "Naledi Kekana"               # 12 portraits + build/photos/identity_naledi-kekana.png
-$S identity --person "Naledi Kekana" --n 8 --since 2025-01-01
-$S identity --person "Naledi Kekana" --export --size 1280     # copies into reference-master/refs/identity/
-$S inspire --favorites --n 12                      # build/photos/inspire.png with palettes
-$S inspire --album Pinterest                       # any album title from `stats`; --keyword works the same way
-$S inspire --album Pinterest --export              # copies into reference-master/refs/inspire/pinterest/
-$S selftest                                        # unit tests of the selection + palette logic, no library needed
+scout stats                                           # counts only: who, what, how many
+scout identity --person "Naledi Kekana"               # 12 portraits + build/photos/identity_naledi-kekana.png
+scout identity --person "Naledi Kekana" --n 8 --since 2025-01-01
+scout identity --person "Naledi Kekana" --export --size 1280     # copies into reference-master/refs/identity/
+scout inspire --favorites --n 12                      # build/photos/inspire.png with palettes
+scout inspire --album Pinterest                       # any album title from `stats`; --keyword works the same way
+scout inspire --album Pinterest --export              # copies into reference-master/refs/inspire/pinterest/
+scout selftest                                        # unit tests of the selection + palette logic, no library needed
 ```
+
+`build/photos/inspire.png` is one fixed file: each `inspire` run overwrites the previous sheet.
 
 Every subcommand takes `--json` (one JSON object on stdout, progress on stderr), `--library PATH` (another
 `.photoslibrary`; default is the library Photos opened last) and `--debug` (tracebacks).
@@ -153,6 +156,8 @@ images under `reference-master/refs/`:
   look's tray (or copy it to `reference-master/refs/<look_id>/` and add `{"path": …, "source_url": null,
   "role": "mood", "starred": false}` to the look's `refs`). The palette numbers tell you whether a set already
   matches the Tuscan-brown/burnt-orange/amber palette before you spend renders on it.
+- `reference-master/refs/pinterest/<group>/NN.jpg` (+ its own `manifest.json`) is a different thing: the Pinterest
+  scrape made by another tool, already wired into `looks.json`. This tool never writes there.
 
 Nothing in `looks.json` is edited by this tool.
 
