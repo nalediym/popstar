@@ -519,9 +519,14 @@ def label(d, x, y, text, size=12, color=DIM, bold=True, spacing=1):
 def place_labels(d, items, f, x_lo, x_hi, y0, row_h, rows=3, who="labels", note_font=None):
     """items: [(cx, text, color, note)]. Greedy rows so labels never overlap; notes go on the row below if free."""
     rows_right = [-1e9] * rows
-    for cx, text, color, note in items:
+    items = sorted(items, key=lambda it: it[0])
+    all_cx = [it[0] for it in items]
+    for i, (cx, text, color, note) in enumerate(items):
         tw = f.getlength(text)
         lx = clamp(cx - tw / 2, x_lo, max(x_lo, x_hi - tw))
+        nxt = all_cx[i + 1] if i + 1 < len(all_cx) else None
+        if nxt is not None and lx + tw > nxt - 3 and nxt - 3 - tw >= x_lo:
+            lx = nxt - 3 - tw  # end before the next cue's connector so no line crosses this label
         row = next((r for r in range(rows) if lx > rows_right[r] + 10), None)
         if row is None:
             row = min(range(rows), key=lambda r: rows_right[r])
@@ -533,7 +538,8 @@ def place_labels(d, items, f, x_lo, x_hi, y0, row_h, rows=3, who="labels", note_
         if note and note_font is not None and row + 1 < rows:
             nw = note_font.getlength(note)
             nx = clamp(lx, x_lo, max(x_lo, x_hi - nw))
-            if nx > rows_right[row + 1] + 10:
+            crossed = any(nx - 2 < ox < nx + nw + 2 for ox in all_cx if ox != cx)
+            if nx > rows_right[row + 1] + 10 and not crossed:
                 d.text((nx, y0 + (row + 1) * row_h), note, font=note_font, fill=DIM)
                 rows_right[row + 1] = nx + nw
 
@@ -859,7 +865,7 @@ def draw_legend_item(d, x, y, kind, text, size=13):
     return x + 28 + font(size).getlength(text) + 28
 
 
-def render_board(scenes: list[Scene], tm: Timing, frames_dir: Path, out_png: Path, out_pdf: Path, title: str, frame_notes: dict[str, str], cue_source: str):
+def render_board(scenes: list[Scene], tm: Timing, frames_dir: Path, out_png: Path, out_pdf: Path, title: str, frame_notes: dict[str, str], cue_source: str, frames_line: str):
     board = Image.new("RGBA", (BOARD_W, BOARD_H), BG)
     d = ImageDraw.Draw(board, "RGBA")
     tf = font(34, True)
@@ -907,8 +913,7 @@ def render_board(scenes: list[Scene], tm: Timing, frames_dir: Path, out_png: Pat
         lx = draw_legend_item(d, lx, ly2, kind, text)
     ly3 = ly2 + 22
     label(d, 30, ly3 + 2, "FRAMES", 11)
-    src = " · ".join(f"{k.split('-')[0].upper()}: {v}" for k, v in frame_notes.items())
-    ls, sf, _ = fit_text(src, 12, BOARD_W - 150, 1, min_size=10, what="frames line")
+    ls, sf, _ = fit_text(frames_line, 12, BOARD_W - 150, 1, min_size=10, what="frames line")
     d.text((120, ly3 + 1), ls[0], font=sf, fill=DIM)
     out = board.convert("RGB")
     out.save(out_png)
@@ -985,8 +990,16 @@ def render_beatboard(scenes: list[Scene], tm: Timing, out_png: Path, title: str)
     d.text((X(tm.duration) + 6, y_rule - 7), fmt_t(tm.duration), font=font(11), fill=DIM)
     d.text((X(0) + 6, y_rule + 4), "beats · taller = downbeat", font=font(10), fill=DIM)
 
-    # lyric lanes (two, alternating)
+    # scene boundaries, full height of the lanes (drawn first so the labels stay on top)
     y_lyr, lane_h = y_rule + 22, 60
+    base = y_lyr + 2 * lane_h + 4 + 12 + 38
+    fx_base = base + 56 + 30
+    for sc in scenes[1:]:
+        d.line([(X(sc.t0), y_bar - 6), (X(sc.t0), fx_base + 40)], fill=with_alpha(AMBER, 170), width=2)
+    for t in (0.0, tm.duration):
+        d.line([(X(t), y_bar - 6), (X(t), fx_base + 40)], fill=with_alpha(DIM, 160), width=1)
+
+    # lyric lanes (two, alternating)
     d.text((8, y_lyr + 2), "LYRICS", font=font(11, True), fill=DIM)
     lf = font(18, serif=True)
     for i, l in enumerate(tm.lines):
@@ -1000,13 +1013,12 @@ def render_beatboard(scenes: list[Scene], tm: Timing, out_png: Path, title: str)
         lf2 = lf
         if len(ls) > 2:
             ls, lf2, _ = fit_text(l.text, 18, wrap_w, 2, serif=True, min_size=14, what="beatboard lyric")
-        d.text((X(l.start) + 7, ly + 3), f"{'~' if l.approx else ''}{fmt_t(l.start)}–{fmt_t(l.end)}", font=font(10), fill=DIM)
+        d.text((X(l.start) + 7, ly + 3), f"{'~' if l.approx else ''}{fmt_t(l.start)}–{fmt_t(l.end)}", font=font(10), fill=with_alpha(CREAM, 190))
         for k, ln in enumerate(ls[:2]):
             d.text((X(l.start) + 7, ly + 15 + k * 22), ln, font=lf2, fill=CREAM)
 
     # cue lane
     y_cue = y_lyr + 2 * lane_h + 4 + 12
-    base = y_cue + 38
     d.text((8, y_cue), "MOVES", font=font(11, True), fill=DIM)
     d.line([(X(0), base), (X(tm.duration), base)], fill=with_alpha(DIM, 110), width=1)
     all_cues = sorted([c for sc in scenes for c in sc.cues], key=lambda c: c.t)
@@ -1020,8 +1032,7 @@ def render_beatboard(scenes: list[Scene], tm: Timing, out_png: Path, title: str)
 
     # FX lane: letterbox in/out, flash, punch-ins, transitions at the scene cuts
     y_fx = base + 56
-    fx_base = y_fx + 30
-    d.text((8, y_fx - 2), "FX · CUTS", font=font(11, True), fill=DIM)
+    d.text((8, y_fx - 2), "FX", font=font(11, True), fill=DIM)
     d.line([(X(0), fx_base), (X(tm.duration), fx_base)], fill=with_alpha(DIM, 110), width=1)
     fx_items: list[tuple[float, str, str]] = [(0.0, "lb_in", "letterbox wipe in"), (tm.beats[-1] if tm.beats else tm.duration, "lb_out", "letterbox wipe out")]
     for sc in scenes[1:]:
@@ -1042,12 +1053,6 @@ def render_beatboard(scenes: list[Scene], tm: Timing, out_png: Path, title: str)
         draw_icon(d, kind, X(t), fx_base - 18, 20, AMBER if kind in ("flash", "punch") else CREAM)
         items.append((X(t), f"{text} {fmt_t(t)}", TEXT, ""))
     place_labels(d, items, font(12), X(0), X(tm.duration), fx_base + 6, 16, rows=2, who="beatboard fx")
-
-    # scene boundaries, full height of the lanes
-    for sc in scenes[1:]:
-        d.line([(X(sc.t0), y_bar - 6), (X(sc.t0), fx_base + 40)], fill=with_alpha(AMBER, 200), width=2)
-    for t in (0.0, tm.duration):
-        d.line([(X(t), y_bar - 6), (X(t), fx_base + 40)], fill=with_alpha(DIM, 160), width=1)
 
     # legend
     y_leg = fx_base + 52
@@ -1079,6 +1084,8 @@ def main(argv=None):
     ap.add_argument("--song", default="in-the-loop-devagar", help="song slug (names the outputs and default inputs)")
     ap.add_argument("--take", default="hero-1", help="which shots take supplies the hand cues")
     ap.add_argument("--frame-notes", default=None, help="JSON {scene id: provenance text} printed under each frame")
+    ap.add_argument("--frames-line", default=None, help="one-line frame provenance for the board footer")
+    ap.add_argument("--camera-plan", default=None, help="previs/camera_plan.json (optional; supplies the post zooms)")
     a = ap.parse_args(argv)
 
     root = Path(__file__).resolve().parent.parent
@@ -1113,20 +1120,34 @@ def main(argv=None):
             warn(f"could not read {shots_p} ({e}); using the canonical plan")
     else:
         print(f"storyboard: {shots_p} not found; using the canonical plan from rnb-director/SKILL.md", file=sys.stderr)
+    # post zooms from the Blender previs, when it exists (it derives them from the dolly ratio)
+    plan_p = Path(a.camera_plan) if a.camera_plan else root / "previs" / "camera_plan.json"
+    if plan_p.exists():
+        try:
+            by_id = {s.get("id"): s for s in json.loads(plan_p.read_text()).get("scenes", [])}
+            for sc in scenes:
+                pz = (by_id.get(sc.id) or {}).get("post_zoom")
+                if isinstance(pz, dict) and pz.get("from") is not None and pz.get("to") is not None:
+                    zf, zt = float(pz["from"]), float(pz["to"])
+                    sc.post = (zf, zt) if abs(zt - zf) > 1e-6 else None
+            print(f"storyboard: post zooms from {plan_p.name}: " + ", ".join(f"{sc.id} {sc.post}" for sc in scenes), file=sys.stderr)
+        except (ValueError, KeyError, TypeError) as e:
+            warn(f"could not read {plan_p} ({e}); post zooms from the canonical plan")
 
     default_notes = {
-        "s1-intro": "Comfy Cloud look-wardrobe (Qwen-Image-2.1 edit) · job 5a19c16f · seed 11",
-        "s2-verse": "Comfy Cloud look-wardrobe (Qwen-Image-2.1 edit) · job 33b6e37b · seed 13",
+        "s1-intro": "Comfy Cloud look-wardrobe (Qwen-Image-2.1 edit) · job 5a19c16f · seed 11 · rendered wardrobe: cream knit + gold hoops (the brief)",
+        "s2-verse": "Comfy Cloud look-wardrobe (Qwen-Image-2.1 edit) · job 33b6e37b · seed 13 · rendered wardrobe: burnt-orange ribbed top (the brief)",
         "s3-chorus": "existing look render · reference-master/tests/wardrobe_chorus-stage.png (job eff061da)",
         "s4-harmony": "ffmpeg triptych from the s3 frame (clones: triptych fallback) · storyboards/frames/make_s4_triptych.sh",
     }
     notes = {**default_notes, **(json.loads(a.frame_notes) if a.frame_notes else {})}
+    frames_line = a.frames_line or "S1 + S2: Comfy Cloud look-wardrobe (Qwen-Image-2.1 edit), jobs 5a19c16f · 33b6e37b  ·  S3: existing look render (job eff061da)  ·  S4: ffmpeg triptych of S3 (clones: triptych fallback)  ·  all letterboxed 2.39:1"
     title = song_title(root, a.song)
 
     board_png = out_dir / f"{a.song}_board.png"
     board_pdf = out_dir / f"{a.song}_board.pdf"
     beat_png = out_dir / f"{a.song}_beatboard.png"
-    render_board(scenes, tm, frames_dir, board_png, board_pdf, title, notes, cue_source)
+    render_board(scenes, tm, frames_dir, board_png, board_pdf, title, notes, cue_source, frames_line)
     total = render_beatboard(scenes, tm, beat_png, title)
     print(f"storyboard: wrote {board_png}, {board_pdf}, {beat_png}; beatboard cells sum to {total:.2f}s", file=sys.stderr)
     for sc in scenes:

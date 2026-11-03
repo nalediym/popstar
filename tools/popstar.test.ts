@@ -262,8 +262,13 @@ describe("helpers", () => {
     expect(urlIn("\n  Reference Master → http://127.0.0.1:5010/\n  (Ctrl+C to stop)")).toBe("http://127.0.0.1:5010/");
     expect(urlIn("starting…")).toBeNull();
   });
-  test("parseWith lifts --with deps from a script header", () => {
+  test("parseWith lifts --python and --with deps from a script header", () => {
     expect(parseWith("# Usage:\n#   uv run --with librosa --with soundfile python -I x.py\n")).toEqual(["--with", "librosa", "--with", "soundfile"]);
+    const qaHeader =
+      'Usage:\n  uv run --python 3.12 --with "opencv-python-headless<5" --with numpy --with pillow \\\n' +
+      "      python -I tools/qa_render.py <source.mp4|png> <render.mp4|png> \\\n      [--out build/qa/<name>] [--json]\n\n" +
+      "  MediaPipe is optional: add `--with mediapipe` and `--detector mediapipe`.\n";
+    expect(parseWith(qaHeader)).toEqual(["--python", "3.12", "--with", "opencv-python-headless<5", "--with", "numpy", "--with", "pillow"]);
     expect(parseWith("no deps")).toEqual([]);
   });
 });
@@ -295,18 +300,22 @@ describe.skipIf(!haveFfmpeg)("render end to end (ffmpeg)", () => {
     for (const d of ["clips", "shots", "songs", "reference-master/renders/s1.lead", "outputs/scenes"]) mkdirSync(join(root, d), { recursive: true });
     m = defaultManifest("test", { song: "songs/test.mp3" });
     writeManifest(root, m);
-    // a 12 s synthetic take at 24 fps (288 frames), 1280x720 like the recorder's output
-    const take = Bun.spawnSync(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=size=1280x720:rate=24", "-t", "12", "-pix_fmt", "yuv420p", join(root, "clips", "hero-1.mp4")]);
-    expect(take.exitCode).toBe(0);
     writeFileSync(join(root, "clips", "hero-1.json"), JSON.stringify({ song: "songs/test.mp3", song_offset_s: 0.5 }));
-    const png = Bun.spawnSync(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=orange:size=1280x704", "-frames:v", "1", join(root, "reference-master", "renders", "s1.lead", "wardrobe.png")]);
-    expect(png.exitCode).toBe(0);
     writeFileSync(join(root, "reference-master", "looks.json"), JSON.stringify({ looks: [{ id: "s1.lead", renders: { wardrobe: "reference-master/renders/s1.lead/wardrobe.png", expression: null } }] }));
     writeFileSync(join(root, "shots", "test.json"), JSON.stringify(shots()));
   });
   afterAll(() => {
     if (root) rmSync(root, { recursive: true, force: true });
   });
+
+  // The fixture is a test of its own (long timeout): a 12 s synthetic take at 24 fps (288 frames), 1280x720 like the recorder's output.
+  test("fixture: a synthetic take and a look render", () => {
+    const take = Bun.spawnSync(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=size=1280x720:rate=24", "-t", "12", "-pix_fmt", "yuv420p", "-c:v", "libx264", "-preset", "ultrafast", join(root, "clips", "hero-1.mp4")]);
+    expect(take.exitCode).toBe(0);
+    const png = Bun.spawnSync(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=orange:size=1280x704", "-frames:v", "1", join(root, "reference-master", "renders", "s1.lead", "wardrobe.png")]);
+    expect(png.exitCode).toBe(0);
+    expect(probe(join(root, "clips", "hero-1.mp4"))).toMatchObject({ frames: 288, fps: 24 });
+  }, 120_000);
 
   const manifest = () => JSON.parse(readFileSync(join(root, "build", "render-manifest.json"), "utf8")) as RenderManifest;
   const state = () => JSON.parse(readFileSync(join(root, "build", "state.json"), "utf8")) as State;
@@ -319,7 +328,7 @@ describe.skipIf(!haveFfmpeg)("render end to end (ffmpeg)", () => {
     const text = lines.join("\n");
     expect(text).toContain("sync offset +0.5s from clips/hero-1.json");
     expect(text).toContain("dry run");
-  });
+  }, 60_000);
 
   test("cuts 8n+1 frames at the offset, tiles the harmony scene, compiles the graphs", async () => {
     expect(await render(root, m, quiet)).toBe(0);
@@ -354,7 +363,7 @@ describe.skipIf(!haveFfmpeg)("render end to end (ffmpeg)", () => {
     expect(s2!.first_frame).toBeNull();
     expect(man.pending_uploads.map((u) => u.file).sort()).toEqual(["build/scenes/s1.mp4", "build/scenes/s2.mp4", "build/scenes/s3.mp4", "reference-master/renders/s1.lead/wardrobe.png"]);
     expect(state().cuts.s1).toBeDefined();
-  });
+  }, 120_000);
 
   test("recorded uploads land in the graph; a marked render is fresh until its inputs change", async () => {
     expect(await render(root, m, { ...quiet, uploaded: ["build/scenes/s1.mp4=abc123.mp4", "reference-master/renders/s1.lead/wardrobe.png=def456.png"] })).toBe(0);
@@ -389,5 +398,5 @@ describe.skipIf(!haveFfmpeg)("render end to end (ffmpeg)", () => {
     expect(man.scenes.map((s) => s.id)).toEqual(["s2"]);
     expect(man.scenes[0]!.stale_because).toBe("forced (--force)");
     expect(await render(root, m, { ...quiet, scenes: ["nope"] })).toBe(2);
-  });
+  }, 120_000);
 });

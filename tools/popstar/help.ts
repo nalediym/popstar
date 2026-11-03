@@ -29,7 +29,7 @@ export function helpText(): string {
     ["studio", "[--no-open]", "start every tool server on a free port + a hub page"],
     ["render", "[--scene <id> ...] [--dry-run] [--submit] [--take <id>] [--fit pad|crop] [--force]", "cut 8n+1 clips, compile pose-restyle graphs, write the manifest"],
     ["", "[--uploaded <file>=<name> ...] [--mark <id> --job <prompt_id>]", "record Comfy Cloud upload names / a finished render"],
-    ["qa", "<source.mp4> <render.mp4>", "run tools/qa_render.py via uv"],
+    ["qa", "<source.mp4> <render.mp4> [-- <args>]", "skin, identity and motion checks (tools/qa_render.py via uv)"],
     ["open", "<recorder|looks|cut|storyboard|previs>", "open the tool or artifact that exists"],
   ];
   for (const line of table(cmds.map(([c, a, d]) => [c ? p.bold(c) : "", p.dim(a), d]), "    ")) L.push(line);

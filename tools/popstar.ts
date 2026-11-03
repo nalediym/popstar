@@ -177,8 +177,8 @@ export async function main(argv: string[]): Promise<number> {
     }
     case "qa": {
       const [source, rendered] = args.pos;
-      if (!source || !rendered) return fail("usage: popstar qa <source.mp4> <render.mp4>");
-      return qa(root, source, rendered);
+      if (!source || !rendered) return fail("usage: popstar qa <source.mp4> <render.mp4> [-- <qa_render.py args>]");
+      return qa(root, source, rendered, args.rest);
     }
     case "open": {
       const which = args.pos[0];
