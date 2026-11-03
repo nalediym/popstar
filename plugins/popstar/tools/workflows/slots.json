@@ -1,0 +1,736 @@
+{
+  "_about": "Named inputs for each pinned graph in this folder. tools/comfy_compile.ts writes slot values into <file> by node id + input name. 'default' mirrors the pinned graph (the graph wins; drift prints a warning). 'invert': a boolean written negated. 'also': more inputs that get the same value. Pinned 2026-11-02 from completed Comfy Cloud jobs; see README.md.",
+  "pose-restyle": {
+    "file": "pose-restyle.api.json",
+    "what": "Main renderer. Restyles a performance clip into a new scene while following her motion: LTX-2.3 22B distilled + IC-LoRA union control, guided by a DWPose skeleton of the clip, with an optional hero first frame.",
+    "output": {
+      "node": "68",
+      "kind": "video"
+    },
+    "provenance": {
+      "source_job": "650120d9-3e42-4fbb-8ebc-19e1629c4832",
+      "source_run": "chunk-01 restyle smoke test, anime neon, seed 42 (outputs/chunk-01_anime-neon_pose.mp4)",
+      "template": "video_ltx2_3_ic_lora",
+      "changes_from_template": "MoGe depth subgraph 697 replaced by GetVideoComponents 900 + DWPreprocessor 901 (pose guide); subgraph 129 is flattened to 129:<inner> ids",
+      "pinned": "2026-11-02",
+      "equivalence_receipt": "2026-11-02: compiled with chunk-02 values (source_video, prompt, negative, seed=7), the graph deep-equals job ce7dccfd-40f7-4325-b4f7-134541a46f9b (chunk-02 claymation): 35/35 nodes, 0 differences, canonical sha256 378d2b538cbd28ca…"
+    },
+    "slots": {
+      "source_video": {
+        "node": "199",
+        "input": "file",
+        "type": "string",
+        "default": "461682d839b03867f84440c9749bf91ed194bfd21102b12be3ce3bd56fea6eb8.mp4",
+        "desc": "Performer clip: upload_file it, pass the returned name. Its DWPose skeleton drives the motion. Cut it at 24 fps (= fps)."
+      },
+      "trim_start": {
+        "node": "692",
+        "input": "start_time",
+        "type": "number",
+        "default": 0,
+        "desc": "Seconds into the clip where the render starts."
+      },
+      "trim_duration": {
+        "node": "692",
+        "input": "duration",
+        "type": "number",
+        "min": 0,
+        "default": 5,
+        "desc": "Seconds of clip to render; 0 = the whole clip. The pinned 5 caps renders at 5 s: fine for the 73-frame test chunks, too short for 8 s scenes. Use 0 with a clip pre-cut to 8n+1 frames."
+      },
+      "first_frame": {
+        "node": "200",
+        "input": "image",
+        "type": "string",
+        "default": "660bf887ec0c56650a8f7b35b720ab99669054611b973146f27dd032d393faf5.png",
+        "desc": "Hero/look frame (upload_file name). Used only when use_first_frame=true."
+      },
+      "use_first_frame": {
+        "node": "129:198",
+        "input": "bypass",
+        "type": "boolean",
+        "invert": true,
+        "default": false,
+        "desc": "true = hold frame 0 to first_frame (writes bypass=false on LTXVImgToVideoInplace 129:198)."
+      },
+      "first_frame_strength": {
+        "node": "129:198",
+        "input": "strength",
+        "type": "number",
+        "min": 0,
+        "max": 1,
+        "default": 1,
+        "desc": "How hard frame 0 follows first_frame (0.7-1.0 used)."
+      },
+      "prompt": {
+        "node": "129:211",
+        "input": "on_false",
+        "type": "string",
+        "default": "A young Black woman with deep brown skin and copper-red hair pulled back, small white earbuds, faces the camera and lip-syncs to a song, nodding her head and sweeping one hand toward the lens. The whole scene is a bold cel-shaded anime music video: thick black ink outlines, flat hyper-saturated colors, her rich dark-brown skin glowing with hot magenta and electric cyan neon rim light, a glowing synthwave city at night behind her with rain streaks and drifting light particles. Her striped shirt becomes a glossy holographic jacket. Hard comic-book shadows, high contrast, vivid and energetic. A pulsing synth bass beat plays.",
+        "desc": "Scene prompt (the If/Else branch used while prompt enhance is off). Keep the identity + skin-tone lock in it."
+      },
+      "negative": {
+        "node": "129:112",
+        "input": "text",
+        "type": "string",
+        "default": "blurry, out of focus, low contrast, washed out colors, excessive noise, flickering, distorted proportions, unnatural skin tones, lightened skin, pale skin, incorrect ethnicity, deformed facial features, missing facial features, extra limbs, disfigured hands, wrong hand count, jittery movement, photorealistic, live-action footage, AI artifacts",
+        "desc": "Negative prompt."
+      },
+      "seed": {
+        "node": "129:704",
+        "input": "seed",
+        "type": "integer",
+        "min": 0,
+        "default": 42,
+        "desc": "KSampler seed."
+      },
+      "pose_strength": {
+        "node": "129:115",
+        "input": "strength",
+        "type": "number",
+        "min": 0,
+        "max": 10,
+        "default": 1,
+        "desc": "IC-LoRA pose guide strength (union control is built for 1.0)."
+      },
+      "pose_resolution": {
+        "node": "901",
+        "input": "resolution",
+        "type": "integer",
+        "min": 64,
+        "max": 16384,
+        "default": 704,
+        "desc": "DWPose detection resolution in px."
+      },
+      "fps": {
+        "node": "129:114",
+        "input": "value",
+        "type": "integer",
+        "min": 1,
+        "default": 24,
+        "desc": "Frame rate of the latent, audio and output. Match the clip."
+      },
+      "width": {
+        "node": "129:113",
+        "input": "value",
+        "type": "integer",
+        "min": 64,
+        "default": 1280,
+        "desc": "Output width. Keep it a multiple of 32."
+      },
+      "height": {
+        "node": "129:98",
+        "input": "value",
+        "type": "integer",
+        "min": 64,
+        "default": 704,
+        "desc": "Output height. Keep it a multiple of 32."
+      },
+      "output_prefix": {
+        "node": "68",
+        "input": "filename_prefix",
+        "type": "string",
+        "default": "video/ltx2.3_ic_lora",
+        "desc": "Output filename prefix on Comfy Cloud."
+      }
+    }
+  },
+  "lipsync-ia2v": {
+    "file": "lipsync-ia2v.api.json",
+    "what": "Lip-sync from one still: LTX-2.3 22B dev + distilled LoRA, two stages with a 2x latent upscale. Image + a section of the song in, singing video out; the song is the audio latent, so the mouth follows it.",
+    "output": {
+      "node": "341",
+      "kind": "video"
+    },
+    "provenance": {
+      "source_job": "ec3ea736-497d-4e79-a33b-243fde61b18a",
+      "source_run": "chorus lip-sync test, song 17-25 s, seed 11 (outputs/chorus_lipsync_ia2v.mp4)",
+      "template": "video_ltx2_3_ia2v",
+      "changes_from_template": "inputs only; subgraph 340 is flattened to 340:<inner> ids",
+      "cloud_workflow_id": "07824bbb-6672-4bb0-ac36-4313a519e35b",
+      "pinned": "2026-11-02"
+    },
+    "slots": {
+      "image": {
+        "node": "269",
+        "input": "image",
+        "type": "string",
+        "default": "660bf887ec0c56650a8f7b35b720ab99669054611b973146f27dd032d393faf5.png",
+        "desc": "Performer/look still (upload_file name)."
+      },
+      "audio": {
+        "node": "276",
+        "input": "audio",
+        "type": "string",
+        "default": "ebedfcc863a0877e7bf1287d3e16099c3d42eea4f4361cfcedf955583c74d935.mp3",
+        "desc": "The song (upload_file name). audio_start + duration pick the section."
+      },
+      "audio_start": {
+        "node": "340:332",
+        "input": "start_index",
+        "type": "number",
+        "default": 17,
+        "desc": "Seconds into the song where the clip starts."
+      },
+      "duration": {
+        "node": "340:331",
+        "input": "value",
+        "type": "number",
+        "min": 0,
+        "default": 8,
+        "desc": "Clip length in seconds. Frames = duration*fps + 1, so keep duration*fps a multiple of 8 (8 s at 24 fps = 193 frames)."
+      },
+      "prompt": {
+        "node": "340:319",
+        "input": "value",
+        "type": "string",
+        "default": "A young Black woman with deep brown skin and copper-red hair pulled back, small white earbuds, sings directly to the camera with clear, expressive mouth movements matching every word of the song, lips forming each syllable. She sways gently with the groove, small head nods, one hand drifting near her chest. Static handheld selfie framing in a bright modern atrium with a concrete pillar and potted palms.",
+        "desc": "Prompt. Keep the identity + skin-tone lock in it."
+      },
+      "negative": {
+        "node": "340:314",
+        "input": "text",
+        "type": "string",
+        "default": "pc game, console game, video game, cartoon, childish, ugly",
+        "desc": "Negative prompt."
+      },
+      "prompt_enhance": {
+        "node": "340:349",
+        "input": "value",
+        "type": "boolean",
+        "default": false,
+        "desc": "true = rewrite the prompt with the Gemma enhancer first."
+      },
+      "image_strength": {
+        "node": "340:325",
+        "input": "strength",
+        "type": "number",
+        "min": 0,
+        "max": 1,
+        "default": 0.7,
+        "desc": "Stage-1 strength of the still on frame 0 (stage 2 stays at 1.0)."
+      },
+      "seed": {
+        "node": "340:286",
+        "input": "noise_seed",
+        "type": "integer",
+        "min": 0,
+        "default": 11,
+        "desc": "Stage-1 noise seed."
+      },
+      "refine_seed": {
+        "node": "340:285",
+        "input": "noise_seed",
+        "type": "integer",
+        "min": 0,
+        "default": 42,
+        "desc": "Stage-2 (upscaled refine) noise seed."
+      },
+      "fps": {
+        "node": "340:323",
+        "input": "value",
+        "type": "integer",
+        "min": 1,
+        "default": 24,
+        "desc": "Frame rate."
+      },
+      "width": {
+        "node": "340:330",
+        "input": "value",
+        "type": "integer",
+        "min": 64,
+        "default": 1280,
+        "desc": "Output width. Stage 1 samples at half size."
+      },
+      "height": {
+        "node": "340:324",
+        "input": "value",
+        "type": "integer",
+        "min": 64,
+        "default": 720,
+        "desc": "Output height. Stage 1 samples at half size."
+      },
+      "output_prefix": {
+        "node": "341",
+        "input": "filename_prefix",
+        "type": "string",
+        "default": "video/LTX_2.3_ia2v",
+        "desc": "Output filename prefix on Comfy Cloud."
+      }
+    }
+  },
+  "lipsync-infinitetalk": {
+    "file": "lipsync-infinitetalk.api.json",
+    "what": "Lip-sync from one still with Wan2.1 InfiniteTalk (I2V 14B 480p + lightx2v distill LoRA, 7 steps): vocals are separated from the music and wav2vec embeds drive the mouth. 848x480 at 25 fps.",
+    "output": {
+      "node": "325",
+      "kind": "video"
+    },
+    "provenance": {
+      "source_job": "05f64513-3008-4cda-89ed-254fd645b46f",
+      "source_run": "chorus lip-sync comparison, seed 11 (outputs/chorus_lipsync_infinitetalk.mp4)",
+      "template": "templates-wan2_1_infinitetalk_music",
+      "changes_from_template": "inputs only; subgraph 330 is flattened to 330:<inner> ids",
+      "cloud_workflow_id": "c57fa5ad-6762-4b18-b16f-2bfd272ac865",
+      "pinned": "2026-11-02"
+    },
+    "slots": {
+      "image": {
+        "node": "284",
+        "input": "image",
+        "type": "string",
+        "default": "660bf887ec0c56650a8f7b35b720ab99669054611b973146f27dd032d393faf5.png",
+        "desc": "Performer/look still (upload_file name). Center-cropped to width x height."
+      },
+      "audio": {
+        "node": "125",
+        "input": "audio",
+        "type": "string",
+        "default": "2ec664ca8b8b6cccb8b600b97e2803c42180775b338d936bbf0527db00467d70.mp3",
+        "desc": "Exactly the section to sing (upload_file name). This graph does not trim the audio: cut it first."
+      },
+      "num_frames": {
+        "node": "330:337",
+        "input": "num_frames",
+        "type": "integer",
+        "min": 1,
+        "max": 10000,
+        "default": 200,
+        "desc": "Frames requested at 25 fps. Output rounds up to whole 81-frame windows (9 overlap): 200 gave 225 frames = 9 s, so trim in stitch."
+      },
+      "prompt": {
+        "node": "330:332",
+        "input": "positive_prompt",
+        "type": "string",
+        "default": "A young Black woman with deep brown skin and copper-red hair pulled back, small white earbuds, sings directly to the camera with clear, expressive mouth movements matching every word of the song. She sways gently with the groove, small head nods. Static selfie camera in a bright modern atrium with a concrete pillar and potted palms.",
+        "desc": "Prompt. Keep the identity + skin-tone lock in it."
+      },
+      "negative": {
+        "node": "330:332",
+        "input": "negative_prompt",
+        "type": "string",
+        "default": "bright tones, overexposed, static, blurred details, subtitles, static, overall gray, worst quality, low quality, JPEG compression residue, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, fused fingers, still picture, messy background, walking backwards",
+        "desc": "Negative prompt."
+      },
+      "seed": {
+        "node": "330:333",
+        "input": "seed",
+        "type": "integer",
+        "min": 0,
+        "default": 11,
+        "desc": "Sampler seed."
+      },
+      "width": {
+        "node": "330:340",
+        "input": "width",
+        "type": "integer",
+        "min": 16,
+        "max": 16384,
+        "default": 848,
+        "desc": "Video width (divisible by 16)."
+      },
+      "height": {
+        "node": "330:340",
+        "input": "height",
+        "type": "integer",
+        "min": 16,
+        "max": 16384,
+        "default": 480,
+        "desc": "Video height (divisible by 16)."
+      },
+      "output_prefix": {
+        "node": "325",
+        "input": "filename_prefix",
+        "type": "string",
+        "default": "video/ComfyUI",
+        "desc": "Output filename prefix on Comfy Cloud."
+      }
+    }
+  },
+  "song-acestep": {
+    "file": "song-acestep.api.json",
+    "what": "Song from tags + lyrics: ACE-Step 1.5 XL Turbo, 8 steps, mp3 out. Made songs/in-the-loop-devagar.mp3.",
+    "output": {
+      "node": "111",
+      "kind": "audio"
+    },
+    "provenance": {
+      "source_job": "408b363c-5d8c-4ed2-b49a-ea4f3d8b8597",
+      "source_run": "In the Loop (Devagar), locked draft 1: 32 s, 92 BPM, Bb major, seed 11 (songs/in-the-loop-devagar.mp3)",
+      "template": "audio_ace_step1_5_xl_turbo",
+      "changes_from_template": "inputs only",
+      "cloud_workflow_id": "88ac5dad-efd7-40bb-84fe-fbaefdee1fa9",
+      "pinned": "2026-11-02"
+    },
+    "slots": {
+      "tags": {
+        "node": "94",
+        "input": "tags",
+        "type": "string",
+        "default": "Brazilian pagode meets 1990s R&B, cavaquinho strums, pandeiro, tantan, surdo, warm Rhodes electric piano, smooth round bassline, soulful female lead vocal, lush stacked R&B harmonies, cozy intimate holiday warmth, sunset living-room jam, 92 BPM",
+        "desc": "Style tags: genre, instruments, vocal, mood, BPM."
+      },
+      "lyrics": {
+        "node": "94",
+        "input": "lyrics",
+        "type": "string",
+        "default": "[Intro]\n(Devagar, devagar)\n\n[Verse]\nTea is warm, the logs are scrolling slow\nGave my agent tools and let it go\nHooks before the commit, tests before the run\nLittle harness holding everything I've done\n\n[Chorus]\nI'm in the loop, devagar\nEvery step, eu sei onde está\nPlan it, run it, check it, back again\nKeep me in the loop, meu bem",
+        "desc": "Lyrics with [Intro] / [Verse] / [Chorus] section tags."
+      },
+      "duration": {
+        "node": "94",
+        "input": "duration",
+        "type": "number",
+        "also": [
+          {
+            "node": "98",
+            "input": "seconds"
+          }
+        ],
+        "min": 1,
+        "max": 1000,
+        "default": 32,
+        "desc": "Song length in seconds (written to the text encoder and the empty latent)."
+      },
+      "bpm": {
+        "node": "94",
+        "input": "bpm",
+        "type": "integer",
+        "min": 10,
+        "max": 300,
+        "default": 92,
+        "desc": "Tempo."
+      },
+      "keyscale": {
+        "node": "94",
+        "input": "keyscale",
+        "type": "string",
+        "enum": ["C major", "C# major", "Db major", "D major", "D# major", "Eb major", "E major", "F major", "F# major", "Gb major", "G major", "G# major", "Ab major", "A major", "A# major", "Bb major", "B major", "C minor", "C# minor", "Db minor", "D minor", "D# minor", "Eb minor", "E minor", "F minor", "F# minor", "Gb minor", "G minor", "G# minor", "Ab minor", "A minor", "A# minor", "Bb minor", "B minor"],
+        "default": "Bb major",
+        "desc": "Key."
+      },
+      "timesignature": {
+        "node": "94",
+        "input": "timesignature",
+        "type": "string",
+        "enum": ["2", "3", "4", "6"],
+        "default": "4",
+        "desc": "Beats per bar."
+      },
+      "language": {
+        "node": "94",
+        "input": "language",
+        "type": "string",
+        "default": "en",
+        "desc": "Lyrics language code (en, pt, ...)."
+      },
+      "seed": {
+        "node": "109",
+        "input": "value",
+        "type": "integer",
+        "min": 0,
+        "default": 11,
+        "desc": "Seed. One Int node feeds both the sampler and the encoder."
+      },
+      "output_prefix": {
+        "node": "111",
+        "input": "filename_prefix",
+        "type": "string",
+        "default": "audio/ACE_Step1.5_xl_turbo",
+        "desc": "Output filename prefix on Comfy Cloud."
+      }
+    }
+  },
+  "look-wardrobe": {
+    "file": "look-wardrobe.api.json",
+    "what": "Wardrobe + set edit of one frame: Qwen Image 2.1 Turbo edit, 8 steps. Keeps her face, pose and framing; changes outfit, background and light.",
+    "output": {
+      "node": "461",
+      "kind": "image"
+    },
+    "provenance": {
+      "source_job": "eff061da-91b0-4e5b-ab16-b8f6680b0647",
+      "source_run": "Reference Master wardrobe test: burnt-orange slip dress on an R&B stage, seed 11 (reference-master/tests/wardrobe_chorus-stage.png)",
+      "template": "image_qwen_image_2_1_turbo_image_edit",
+      "changes_from_template": "inputs only; subgraph 459 is flattened to 459:<inner> ids",
+      "cloud_workflow_id": "54bb395d-3e60-4c94-b525-85523901575b",
+      "pinned": "2026-11-02"
+    },
+    "slots": {
+      "image": {
+        "node": "470",
+        "input": "image",
+        "type": "string",
+        "default": "660bf887ec0c56650a8f7b35b720ab99669054611b973146f27dd032d393faf5.png",
+        "desc": "Source frame (upload_file name). A neutral, lips-closed frame works best."
+      },
+      "prompt": {
+        "node": "459:484",
+        "input": "on_false",
+        "type": "string",
+        "also": [
+          {
+            "node": "459:500",
+            "input": "prompt"
+          }
+        ],
+        "default": "Keep the same young Black woman: her exact face, rich deep brown skin with warm undertones and a luminous dewy sheen, copper-red hair pulled back, small white earbuds, her exact pose, hand position and camera framing. Change only her wardrobe and the set. She now wears a burnt-orange silk slip dress with thin straps and small gold hoop earrings. The background becomes an intimate late-1990s R&B music video stage: warm amber fairy-light bokeh, soft haze, a candlelit glow, Tuscan brown velvet curtains. Lighting: a large soft warm key light from camera left, a gold bounce under her face and an amber rim light on her hair and shoulders.",
+        "desc": "Edit instruction: keep identity, pose and framing; change wardrobe, set and light. Also written to the enhancer input 459:500.prompt, as the template expects. Keep the identity + skin-tone lock in it."
+      },
+      "prompt_enhance": {
+        "node": "459:484",
+        "input": "switch",
+        "type": "boolean",
+        "default": false,
+        "desc": "true = rewrite the instruction with the Qwen3.5 enhancer first."
+      },
+      "seed": {
+        "node": "459:504",
+        "input": "noise_seed",
+        "type": "integer",
+        "min": 0,
+        "default": 11,
+        "desc": "Noise seed."
+      },
+      "custom_size": {
+        "node": "459:468",
+        "input": "switch",
+        "type": "boolean",
+        "default": false,
+        "desc": "false = output size follows the input image, rounded to /32 (1280x720 in, 1280x704 out); true = use width x height."
+      },
+      "width": {
+        "node": "459:456",
+        "input": "width",
+        "type": "integer",
+        "min": 16,
+        "default": 1280,
+        "desc": "Used only with custom_size=true."
+      },
+      "height": {
+        "node": "459:456",
+        "input": "height",
+        "type": "integer",
+        "min": 16,
+        "default": 720,
+        "desc": "Used only with custom_size=true."
+      },
+      "output_prefix": {
+        "node": "461",
+        "input": "filename_prefix",
+        "type": "string",
+        "default": "Qwen_image_2.1",
+        "desc": "Output filename prefix on Comfy Cloud."
+      }
+    }
+  },
+  "look-expression": {
+    "file": "look-expression.api.json",
+    "what": "Expression edit of one image: LoadImage -> ExpressionEditor (AdvancedLivePortrait) -> SaveImage. Sliders for head, eyes and mouth.",
+    "output": {
+      "node": "3",
+      "kind": "image"
+    },
+    "provenance": {
+      "source_job": "39a4709f-4948-4ff5-805a-9ceade1a6b71",
+      "source_run": "chorus look expressions (reference-master/tests/chorus_{soft-smile,devagar,sultry-gaze,playful-wink}.png)",
+      "template": "none (hand-built API graph)",
+      "changes_from_job": "The job ran 4 ExpressionEditor + SaveImage pairs off one LoadImage. Pinned as one chain 1 -> 2 -> 3 with editor 2's values (soft-smile) as defaults; titles and filename_prefix made generic. All 4 editors' values are kept as presets.",
+      "pinned": "2026-11-02"
+    },
+    "slots": {
+      "image": {
+        "node": "1",
+        "input": "image",
+        "type": "string",
+        "default": "958a28e5cffc83dc6aab92ab3721f0e1921838c920cc95bd47b0f7691ee837df.png",
+        "desc": "Image to edit (upload_file name), e.g. a look-wardrobe output."
+      },
+      "rotate_pitch": {
+        "node": "2",
+        "input": "rotate_pitch",
+        "type": "number",
+        "min": -20,
+        "max": 20,
+        "default": 0,
+        "desc": "Head pitch (nod)."
+      },
+      "rotate_yaw": {
+        "node": "2",
+        "input": "rotate_yaw",
+        "type": "number",
+        "min": -20,
+        "max": 20,
+        "default": 0,
+        "desc": "Head yaw (turn)."
+      },
+      "rotate_roll": {
+        "node": "2",
+        "input": "rotate_roll",
+        "type": "number",
+        "min": -20,
+        "max": 20,
+        "default": 0,
+        "desc": "Head roll (tilt)."
+      },
+      "blink": {
+        "node": "2",
+        "input": "blink",
+        "type": "number",
+        "min": -20,
+        "max": 5,
+        "default": 0,
+        "desc": "Eyelids."
+      },
+      "eyebrow": {
+        "node": "2",
+        "input": "eyebrow",
+        "type": "number",
+        "min": -10,
+        "max": 15,
+        "default": 4,
+        "desc": "Eyebrows."
+      },
+      "wink": {
+        "node": "2",
+        "input": "wink",
+        "type": "number",
+        "min": 0,
+        "max": 25,
+        "default": 0,
+        "desc": "Wink."
+      },
+      "pupil_x": {
+        "node": "2",
+        "input": "pupil_x",
+        "type": "number",
+        "min": -15,
+        "max": 15,
+        "default": 0,
+        "desc": "Gaze left/right."
+      },
+      "pupil_y": {
+        "node": "2",
+        "input": "pupil_y",
+        "type": "number",
+        "min": -15,
+        "max": 15,
+        "default": 0,
+        "desc": "Gaze up/down."
+      },
+      "aaa": {
+        "node": "2",
+        "input": "aaa",
+        "type": "number",
+        "min": -30,
+        "max": 120,
+        "default": 0,
+        "desc": "Mouth open ('aaa')."
+      },
+      "eee": {
+        "node": "2",
+        "input": "eee",
+        "type": "number",
+        "min": -20,
+        "max": 15,
+        "default": 0,
+        "desc": "Mouth wide ('eee')."
+      },
+      "woo": {
+        "node": "2",
+        "input": "woo",
+        "type": "number",
+        "min": -20,
+        "max": 15,
+        "default": 0,
+        "desc": "Mouth round ('woo')."
+      },
+      "smile": {
+        "node": "2",
+        "input": "smile",
+        "type": "number",
+        "min": -0.3,
+        "max": 1.3,
+        "default": 1.2,
+        "desc": "Smile. Strong values read best (1.0-1.2)."
+      },
+      "sample_parts": {
+        "node": "2",
+        "input": "sample_parts",
+        "type": "string",
+        "enum": ["OnlyExpression", "OnlyRotation", "OnlyMouth", "OnlyEyes", "All"],
+        "default": "OnlyExpression",
+        "desc": "What moves. Use All whenever a rotate_* is non-zero, or the head won't turn."
+      },
+      "output_prefix": {
+        "node": "3",
+        "input": "filename_prefix",
+        "type": "string",
+        "default": "reference-master/expression",
+        "desc": "Output filename prefix, e.g. reference-master/<look_id>_<preset>."
+      }
+    },
+    "presets": {
+      "soft-smile": {
+        "rotate_pitch": 0,
+        "rotate_yaw": 0,
+        "rotate_roll": 0,
+        "blink": 0,
+        "eyebrow": 4,
+        "wink": 0,
+        "pupil_x": 0,
+        "pupil_y": 0,
+        "aaa": 0,
+        "eee": 0,
+        "woo": 0,
+        "smile": 1.2,
+        "sample_parts": "OnlyExpression"
+      },
+      "devagar": {
+        "rotate_pitch": -4,
+        "rotate_yaw": 0,
+        "rotate_roll": 6,
+        "blink": 4,
+        "eyebrow": 0,
+        "wink": 0,
+        "pupil_x": 0,
+        "pupil_y": -6,
+        "aaa": 0,
+        "eee": 0,
+        "woo": 0,
+        "smile": 0.6,
+        "sample_parts": "All"
+      },
+      "sultry-gaze": {
+        "rotate_pitch": 0,
+        "rotate_yaw": 8,
+        "rotate_roll": 0,
+        "blink": 0,
+        "eyebrow": -3,
+        "wink": 0,
+        "pupil_x": 8,
+        "pupil_y": -3,
+        "aaa": 0,
+        "eee": 0,
+        "woo": 0,
+        "smile": 0.4,
+        "sample_parts": "All"
+      },
+      "playful-wink": {
+        "rotate_pitch": 0,
+        "rotate_yaw": 0,
+        "rotate_roll": 0,
+        "blink": 0,
+        "eyebrow": 2,
+        "wink": 18,
+        "pupil_x": 0,
+        "pupil_y": 0,
+        "aaa": 0,
+        "eee": 0,
+        "woo": 0,
+        "smile": 1,
+        "sample_parts": "OnlyExpression"
+      }
+    }
+  }
+}

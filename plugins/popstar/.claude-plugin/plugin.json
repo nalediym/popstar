@@ -1,0 +1,10 @@
+{
+  "name": "popstar",
+  "version": "0.1.0",
+  "description": "Make anyone a pop star in a '90s R&B music video: the director, looks and pipeline skills, the popstar CLI, the pinned open-weights Comfy Cloud graphs and a render-verify workflow.",
+  "author": { "name": "Naledi" },
+  "homepage": "https://github.com/nalediym/popstar",
+  "repository": "https://github.com/nalediym/popstar",
+  "license": "Apache-2.0",
+  "keywords": ["music-video", "comfyui", "comfy-cloud", "ltx-2", "open-weights", "rnb", "video", "pipeline"]
+}

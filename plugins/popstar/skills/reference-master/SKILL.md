@@ -16,6 +16,9 @@ and an emotion stored as 12 Expression Editor slider values. The rendered look b
 and first frame for the LTX video pass.
 
 ## Files
+The project is `${CLAUDE_PROJECT_DIR}`, the directory with `popstar.json`; every path below is relative to it. The tool
+(`reference-master/server.ts`) ships with the repo (https://github.com/nalediym/popstar), not with this plugin; the two
+pinned look graphs do ship here (see "Portable graphs" below).
 - `reference-master/looks.json`: scenes, looks, emotion presets, `identity_lock`. The source of truth. Naledi edits it in the tool.
 - `reference-master/queue.json`: render requests from the tool (`{look_id, what: wardrobe|expression|both}`).
 - `reference-master/refs/<look_id>/`: reference images (pasted Pinterest pins, drag-and-drop). A starred `role: "wardrobe"` ref is THE outfit reference.
@@ -40,6 +43,8 @@ and first frame for the LTX video pass.
    **Wardrobe reference image (Pinterest ref): NOT verified yet.** The template exposes `images.image_2` with no
    loader wired. It needs a structural edit (get_template → add LoadImage → submit_workflow) plus "dress her in the
    outfit from image 2" in the prompt. Test it once before promising it.
+   Portable alternative (works on any account, same inputs): compile the pinned `look-wardrobe` graph and `submit_workflow` it:
+   `bun ${CLAUDE_PLUGIN_ROOT}/tools/comfy_compile.ts look-wardrobe --set image=<uploaded name> --set prompt="<PROMPT>" --set seed=11 --out build/looks/<look_id>.wardrobe.json`
 3. **Expression.** Upload the wardrobe render, then `submit_workflow` with an API graph per look:
    `LoadImage → ExpressionEditor → SaveImage`. Several looks can share one graph (one Editor + SaveImage pair each).
    ExpressionEditor inputs: the 12 sliders, plus `src_ratio 1`, `sample_ratio 1`, `crop_factor 1.7`, `src_image ["<load id>", 0]`,
@@ -49,6 +54,8 @@ and first frame for the LTX video pass.
    **Use strong values.** smile 0.7 on a pursed mouth barely shows; smile 1.2 + eyebrow 4 reads clearly.
    Verified presets: soft-smile (smile 1.2, eyebrow 4) · devagar (blink 4, smile 0.6, roll 6, pitch −4, pupil_y −6, All) ·
    sultry-gaze (pupil_x 8, pupil_y −3, eyebrow −3, smile 0.4, yaw 8, All) · playful-wink (wink 18, smile 1.0, eyebrow 2).
+   The same presets are `--preset` names of the pinned `look-expression` graph:
+   `bun ${CLAUDE_PLUGIN_ROOT}/tools/comfy_compile.ts look-expression --preset devagar --set image=<uploaded name> --set output_prefix=reference-master/<look_id>_devagar --out build/looks/<look_id>.devagar.json`
 4. **Write back.** Download each output (`get_output` gives `/api/s/<id>?raw=1` shortlinks; curl them) into
    `reference-master/renders/<look_id>/`. Re-read `looks.json` fresh, change ONLY that look's `renders` and `status`
    (`wardrobe-done` / `done`), and write it back. Never overwrite her text or slider edits. Remove the handled entries from `queue.json`.
@@ -63,6 +70,12 @@ and first frame for the LTX video pass.
   matching girl-group satin sets for the clones, a shade darker than the lead's.
 - Emotion per section: intro = still, eyes down; verse = soft smile at line ends, devagar blink; chorus = eyes to lens,
   soft smile or sultry gaze; harmony = playful wink for the clones, the lead holds the gaze.
+
+## Portable graphs
+`${CLAUDE_PLUGIN_ROOT}/tools/workflows/` holds `look-wardrobe.api.json` and `look-expression.api.json` with their slot map
+(`slots.json`); `bun ${CLAUDE_PLUGIN_ROOT}/tools/comfy_compile.ts <graph> --list` prints every slot, range and pinned default.
+In a checkout of the repo without the plugin the same files are `workflows/` and `bun tools/comfy_compile.ts`.
+Always `submit_workflow({workflow: <compiled JSON>, dry_run: true})` first (free), then without `dry_run` (spends credits).
 
 ## Pinterest
 There is no connector that reads boards. Checked 2026-11-02: the plugin directory only has pin-creation tools

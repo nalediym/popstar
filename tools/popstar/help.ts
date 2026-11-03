@@ -18,11 +18,12 @@ export function helpText(): string {
   L.push("");
   L.push(`  ${p.amber(p.bold("popstar"))} ${p.dim("· make me a pop star in an R&B music video")}`);
   L.push("");
-  L.push(`  ${p.dim("usage:")} popstar <command> [options]        ${p.dim("(bin/popstar, or bun tools/popstar.ts)")}`);
+  L.push(`  ${p.dim("usage:")} popstar [--project <dir>] <command> [options]        ${p.dim("(bin/popstar, bun tools/popstar.ts, or the plugin's copy)")}`);
   L.push("");
   L.push(`  ${p.amber("commands")}`);
   const cmds: string[][] = [
     ["status", "[--json] [--song <slug>]", "every stage, its receipts, and the ONE next step"],
+    ["next", "[--json] [--song <slug>]", "only the ONE next step"],
     ["doctor", "[--json] [--fast]", "ffmpeg/bun/uv/python/Blender, models, Comfy Cloud, fonts, data; exact fixes"],
     ["new <slug>", "--song <mp3> [--title ..] [--performer ..] [--identity ..] [--negative ..] [--force]", "write popstar.json, the project manifest"],
     ["timing", "[-- <song_timing.py args>]", "beats, downbeats, lyric lines via uv"],
@@ -37,7 +38,8 @@ export function helpText(): string {
   L.push(`  ${p.amber("stages")} ${p.dim("(popstar status shows where you are)")}`);
   for (const line of table([["#", "stage", "tool", "receipt"].map((h) => p.dim(h)), ...STAGES.map(([n, s, t, r]) => [n, p.bold(s), t, p.dim(r)])], "    ")) L.push(line);
   L.push("");
-  L.push(`  ${p.dim("manifest: popstar.json · graphs: workflows/ · contract: build/render-manifest.json · cache: build/state.json · docs/cli.md")}`);
+  L.push(`  ${p.dim("project: --project <dir>, else POPSTAR_ROOT, else the nearest popstar.json above the working directory")}`);
+  L.push(`  ${p.dim("manifest: popstar.json · graphs: workflows/ (the bundled copy first) · contract: build/render-manifest.json · cache: build/state.json · docs/cli.md")}`);
   L.push("");
   return L.join("\n");
 }
