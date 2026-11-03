@@ -1,132 +1,195 @@
-// Pop-star pipeline status: which stages are done, what each produced, and the ONE next action.
-// Run: bun tools/popstar.ts [status] [--song in-the-loop-devagar] [--json]
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+#!/usr/bin/env bun
+// popstar: the one command that runs the "make me a pop star in an R&B music video" pipeline.
+//   bin/popstar status [--json] [--song <slug>]     stages, receipts, the ONE next step (bun tools/popstar.ts works too)
+//   bin/popstar doctor | new | timing | studio | render | qa | open | --help      (docs/cli.md)
+// Every command reads popstar.json (the project manifest); without one it falls back to the built-in defaults and says so.
+import { existsSync } from "node:fs";
+import { paint } from "./popstar/ansi.ts";
+import { printDoctor, realDeps, requiredFailures, runDoctor } from "./popstar/doctor.ts";
+import { helpText } from "./popstar/help.ts";
+import { openTool } from "./popstar/open.ts";
+import { abs, defaultManifest, loadManifest, MANIFEST_FILE, pinnedNegative, REPO_ROOT, slugOk, writeManifest, type LoadedManifest } from "./popstar/project.ts";
+import { qa } from "./popstar/qa.ts";
+import { render, type Fit } from "./popstar/render.ts";
+import { computeStatus, printStatus } from "./popstar/status.ts";
+import { studio } from "./popstar/studio.ts";
+import { timing } from "./popstar/timing.ts";
 
-const root = join(import.meta.dir, "..");
-const args = process.argv.slice(2);
-const flag = (name: string) => {
-  const i = args.indexOf(name);
-  return i >= 0 ? args[i + 1] : undefined;
-};
-const song = flag("--song") ?? "in-the-loop-devagar";
-const asJson = args.includes("--json");
+export type Args = { cmd: string; pos: string[]; flags: Record<string, string | string[] | true>; rest: string[] };
+const LIST_FLAGS = new Set(["scene", "uploaded"]);
+const BOOL_FLAGS = new Set(["json", "fast", "dry-run", "submit", "no-open", "force", "help"]);
 
-const p = (...parts: string[]) => join(root, ...parts);
-const has = (rel: string) => existsSync(p(rel));
-const readJson = (rel: string): any => {
-  try {
-    return JSON.parse(readFileSync(p(rel), "utf8"));
-  } catch {
-    return null;
+/** `popstar [cmd] [--flag [value]] [positional] [-- rest]`. --scene/--uploaded take every value up to the next flag. */
+export function parseArgs(argv: string[]): Args {
+  const flags: Args["flags"] = {};
+  const pos: string[] = [];
+  let rest: string[] = [];
+  const set = (key: string, v: string) => {
+    if (LIST_FLAGS.has(key)) {
+      const cur = flags[key];
+      flags[key] = Array.isArray(cur) ? [...cur, v] : [v];
+    } else flags[key] = v;
+  };
+  let cmd = "status";
+  let i = 0;
+  if (argv.length && !argv[0]!.startsWith("-")) {
+    cmd = argv[0]!;
+    i = 1;
   }
-};
-const list = (rel: string, re: RegExp) => {
-  try {
-    return readdirSync(p(rel)).filter((f) => re.test(f)).sort();
-  } catch {
-    return [];
+  for (; i < argv.length; i++) {
+    const a = argv[i]!;
+    if (a === "--") {
+      rest = argv.slice(i + 1);
+      break;
+    }
+    if (a === "-h") {
+      flags.help = true;
+      continue;
+    }
+    if (!a.startsWith("--")) {
+      pos.push(a);
+      continue;
+    }
+    const eq = a.indexOf("=");
+    const key = eq > 0 ? a.slice(2, eq) : a.slice(2);
+    if (eq > 0) {
+      set(key, a.slice(eq + 1));
+      continue;
+    }
+    if (BOOL_FLAGS.has(key)) {
+      flags[key] = true;
+      continue;
+    }
+    if (LIST_FLAGS.has(key)) {
+      let n = 0;
+      while (i + 1 < argv.length && !argv[i + 1]!.startsWith("-")) {
+        set(key, argv[++i]!);
+        n++;
+      }
+      if (!n) flags[key] ??= [];
+      continue;
+    }
+    const next = argv[i + 1];
+    if (next !== undefined && !next.startsWith("-")) {
+      set(key, next);
+      i++;
+    } else flags[key] = true;
   }
-};
-const age = (rel: string) => {
-  try {
-    const mins = Math.round((Date.now() - statSync(p(rel)).mtimeMs) / 60000);
-    return mins < 60 ? `${mins}m ago` : `${Math.round(mins / 60)}h ago`;
-  } catch {
-    return "";
-  }
-};
-
-type Stage = { n: number; name: string; done: boolean; detail: string; next: string };
-const stages: Stage[] = [];
-const add = (s: Stage) => stages.push(s);
-
-// 0 SONG
-const recipe = has(`songs/${song}.md`) ? readFileSync(p(`songs/${song}.md`), "utf8") : "";
-add({
-  n: 0, name: "SONG", done: has(`songs/${song}.mp3`) && /LOCKED/.test(recipe),
-  detail: has(`songs/${song}.mp3`) ? `songs/${song}.mp3${/LOCKED/.test(recipe) ? " (locked)" : " (not locked)"}` : "no song yet",
-  next: "Make a song with ACE-Step 1.5 on Comfy Cloud, listen, and lock it.",
-});
-
-// 1 TIMING
-const timing = readJson(`songs/${song}.timing.json`);
-const lowLines = timing?.lines?.filter((l: any) => l.confidence === "low").length ?? 0;
-add({
-  n: 1, name: "TIMING", done: !!timing?.beats?.length && !!timing?.lines?.length,
-  detail: timing
-    ? `${timing.beats?.length ?? 0} beats · ${timing.downbeats?.length ?? 0} downbeats · ${timing.lines?.length ?? 0} lines (${lowLines} low-confidence) · ${timing.bpm ?? "?"} BPM`
-    : "no timing file",
-  next: `uv run --with librosa --with soundfile --with mlx-whisper python -I tools/song_timing.py songs/${song}.mp3 songs/${song}.md -o songs/${song}.timing.json`,
-});
-
-// 2 DIRECT
-const shots = readJson(`shots/${song}.json`);
-let validator = "validator not found";
-if (shots && has("tools/validate_shots.py")) {
-  const v = Bun.spawnSync(["python3", "-I", p("tools/validate_shots.py"), p(`shots/${song}.json`), p(`songs/${song}.timing.json`)]);
-  validator = v.exitCode === 0 ? "valid" : `INVALID: ${v.stdout.toString().trim().split("\n")[0] || v.stderr.toString().trim().split("\n")[0]}`;
+  return { cmd, pos, flags, rest };
 }
-const scenes: any[] = shots?.scenes ?? [];
-add({
-  n: 2, name: "DIRECT", done: !!shots && scenes.length > 0 && validator === "valid",
-  detail: shots ? `${shots.takes?.length ?? 0} takes · ${scenes.length} scenes · ${validator}` : "no shot list",
-  next: scenes.length ? "Fix the shot list until tools/validate_shots.py passes." : "Ask Claude to direct it (skill rnb-director): fill scenes[] in the shot list.",
-});
 
-// 3 PREVIS
-add({
-  n: 3, name: "PREVIS", done: has("outputs/previs/animatic.mp4") && has("previs/camera_plan.json"),
-  detail: has("outputs/previs/animatic.mp4") ? `outputs/previs/animatic.mp4 (${age("outputs/previs/animatic.mp4")})` : "no animatic",
-  next: "Block it: /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P previs/build_previs.py -- (see previs/README.md)",
-});
+const fitOf = (s: string | undefined): Fit => {
+  if (s === undefined || s === "pad") return "pad";
+  if (s === "crop") return "crop";
+  throw new Error(`--fit expects pad or crop, got "${s}"`);
+};
 
-// 4 LOOKS
-const looks = readJson("reference-master/looks.json");
-const lookList: any[] = looks?.looks ?? [];
-const doneLooks = lookList.filter((l) => l.status === "done").length;
-add({
-  n: 4, name: "LOOKS", done: lookList.length > 0 && doneLooks === lookList.length,
-  detail: looks ? `${doneLooks}/${lookList.length} looks rendered · queue: ${(readJson("reference-master/queue.json") ?? []).length ?? 0}` : "no looks file",
-  next: "Open Reference Master (bun reference-master/server.ts), design the looks, queue them, then ask Claude to \"render the queue\".",
-});
+export async function main(argv: string[]): Promise<number> {
+  const p = paint;
+  const args = parseArgs(argv);
+  const root = REPO_ROOT;
+  const str = (k: string): string | undefined => (typeof args.flags[k] === "string" ? (args.flags[k] as string) : undefined);
+  const list = (k: string): string[] => (Array.isArray(args.flags[k]) ? (args.flags[k] as string[]) : typeof args.flags[k] === "string" ? [args.flags[k] as string] : []);
+  const bool = (k: string): boolean => args.flags[k] === true;
+  const fail = (msg: string, code = 2): number => {
+    console.error(`${p.red("✗")} ${msg}`);
+    return code;
+  };
 
-// 5 SHOOT
-const takeIds: string[] = (shots?.takes ?? []).map((t: any) => t.id);
-const clips = list("clips", /\.mp4$/);
-const recorded = takeIds.filter((id) => clips.some((c) => c === `${id}.mp4` || c.startsWith(`${id}-`)));
-const heroes = recorded.filter((id) => id.startsWith("hero"));
-add({
-  n: 5, name: "SHOOT", done: heroes.length > 0,
-  detail: takeIds.length ? `${recorded.length}/${takeIds.length} takes recorded${recorded.length ? ` (${recorded.join(", ")})` : ""}` : `${clips.length} clips in clips/`,
-  next: "Open the coach recorder (bun recorder/server.ts), pick take hero-1, press R to rehearse, then Space to record.",
-});
-
-// 6 RENDER
-const rendered = scenes.filter((s) => has(`outputs/scenes/${s.id}.mp4`)).map((s) => s.id);
-add({
-  n: 6, name: "RENDER", done: scenes.length > 0 && rendered.length === scenes.length,
-  detail: scenes.length ? `${rendered.length}/${scenes.length} scenes rendered` : "needs scenes[] first",
-  next: "Ask Claude to render the scenes (skill popstar-pipeline, stage 6).",
-});
-
-// 7 STITCH
-add({
-  n: 7, name: "STITCH", done: has("outputs/final.mp4"),
-  detail: has("outputs/final.mp4") ? `outputs/final.mp4 (${age("outputs/final.mp4")})` : "no final video",
-  next: "Ask Claude to stitch the final cut (skill popstar-pipeline, stage 7).",
-});
-
-const firstOpen = stages.find((s) => !s.done);
-if (asJson) {
-  console.log(JSON.stringify({ song, stages, next: firstOpen ?? null }, null, 2));
-} else {
-  const amber = (s: string) => `\x1b[38;5;215m${s}\x1b[0m`;
-  const dim = (s: string) => `\x1b[2m${s}\x1b[0m`;
-  console.log(amber(`\n  POP-STAR PIPELINE · ${song}\n`));
-  for (const s of stages) {
-    const mark = s.done ? "\x1b[32m✓\x1b[0m" : s === firstOpen ? amber("▶") : dim("·");
-    console.log(`  ${mark} ${String(s.n)} ${s.name.padEnd(7)} ${s.done ? s.detail : dim(s.detail)}`);
+  if (bool("help") || args.cmd === "help" || args.cmd === "--help") {
+    console.log(helpText());
+    return 0;
   }
-  console.log(firstOpen ? `\n  ${amber("NEXT:")} ${firstOpen.next}\n` : `\n  ${amber("DONE.")} Watch outputs/final.mp4 🎤\n`);
+
+  if (args.cmd === "new") {
+    const slug = args.pos[0];
+    if (!slug) return fail("usage: popstar new <slug> --song <mp3> [--title ..] [--performer ..] [--identity ..] [--negative ..] [--force]");
+    if (!slugOk(slug)) return fail(`slug "${slug}" must be lowercase letters, digits and dashes (e.g. in-the-loop-devagar)`);
+    const song = str("song");
+    if (!song) return fail("--song <mp3> is required (the locked song, repo-relative, e.g. songs/<slug>.mp3)");
+    if (existsSync(abs(root, MANIFEST_FILE)) && !bool("force")) return fail(`${MANIFEST_FILE} already exists; pass --force to overwrite it`);
+    const identity = str("identity");
+    const m = defaultManifest(slug, {
+      song,
+      title: str("title"),
+      performer: str("performer"),
+      identity_lock: identity,
+      negative: str("negative") ?? pinnedNegative(root),
+    });
+    const file = writeManifest(root, m);
+    console.log(p.amber(`\n  NEW PROJECT · ${m.slug}\n`));
+    console.log(`  ${p.green("✓")} wrote ${MANIFEST_FILE} (${file})`);
+    console.log(`    title      ${m.title}`);
+    console.log(`    song       ${m.song.file}${existsSync(abs(root, m.song.file)) ? "" : p.amber("  (not there yet: stage 0)")}`);
+    console.log(`    recipe     ${m.song.recipe_md}${existsSync(abs(root, m.song.recipe_md)) ? "" : p.dim("  (write it when the song is locked)")}`);
+    console.log(`    performer  ${m.performer.name} · identity lock ${identity ? "set" : p.amber("defaulted to the current performer (pass --identity for someone else)")}`);
+    console.log(`    palette    ${m.palette.join(" ")}`);
+    console.log(`    paths      timing ${m.paths.timing} · shots ${m.paths.shots} · looks ${m.paths.looks} · clips ${m.paths.clips}/ · outputs ${m.paths.outputs}/`);
+    console.log(`    frame      ${m.size[0]}×${m.size[1]} @ ${m.fps} fps`);
+    console.log(`\n  ${p.dim("next: popstar doctor · popstar status")}\n`);
+    return 0;
+  }
+
+  let loaded: LoadedManifest;
+  try {
+    loaded = loadManifest(root);
+  } catch (e) {
+    return fail((e as Error).message, 1);
+  }
+  const m = loaded.manifest;
+  if (loaded.warning) console.error(`${p.amber("!")} ${loaded.warning}`);
+
+  switch (args.cmd) {
+    case "status": {
+      const song = str("song") ?? m.slug;
+      printStatus(computeStatus(root, song, m), bool("json"));
+      return 0;
+    }
+    case "doctor": {
+      const checks = await runDoctor(root, m, realDeps(), { fast: bool("fast") });
+      const bad = requiredFailures(checks);
+      if (bool("json")) console.log(JSON.stringify({ ok: bad.length === 0, required_failures: bad.map((c) => c.id), checks }, null, 2));
+      else printDoctor(checks, m);
+      return bad.length ? 1 : 0;
+    }
+    case "timing":
+      return timing(root, m, args.rest);
+    case "studio":
+      return studio(root, m, { open: !bool("no-open") });
+    case "render": {
+      let fit: Fit;
+      try {
+        fit = fitOf(str("fit"));
+      } catch (e) {
+        return fail((e as Error).message);
+      }
+      const markId = str("mark");
+      return render(root, m, {
+        scenes: list("scene"),
+        dryRun: bool("dry-run"),
+        submit: bool("submit"),
+        take: str("take"),
+        fit,
+        force: bool("force"),
+        uploaded: list("uploaded"),
+        mark: markId ? { id: markId, job: str("job") } : undefined,
+      });
+    }
+    case "qa": {
+      const [source, rendered] = args.pos;
+      if (!source || !rendered) return fail("usage: popstar qa <source.mp4> <render.mp4>");
+      return qa(root, source, rendered);
+    }
+    case "open": {
+      const which = args.pos[0];
+      if (!which) return fail("usage: popstar open <recorder|looks|cut|storyboard|previs>");
+      return openTool(root, m, which);
+    }
+    default:
+      console.error(`${p.red("✗")} unknown command "${args.cmd}"`);
+      console.log(helpText());
+      return 2;
+  }
 }
+
+if (import.meta.main) process.exit(await main(process.argv.slice(2)));

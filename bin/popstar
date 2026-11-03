@@ -1,0 +1,5 @@
+#!/usr/bin/env bun
+// popstar: shim for tools/popstar.ts. Usage: bin/popstar <command> [options]  (bin/popstar --help)
+import { main } from "../tools/popstar.ts";
+
+process.exit(await main(process.argv.slice(2)));

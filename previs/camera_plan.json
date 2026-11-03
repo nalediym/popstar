@@ -21,9 +21,9 @@
   ],
   "sources": {
     "scene_plan": "director defaults (PLAN.md Vision v2)",
-    "hand_cues": "director canonical plan (fallback)",
+    "hand_cues": "shots file takes[].cues",
     "timing": "/Users/naledi/Projects/comfy-ui-higgs-hack-a-thon/songs/in-the-loop-devagar.timing.json",
-    "shots": null,
+    "shots": "/Users/naledi/Projects/comfy-ui-higgs-hack-a-thon/shots/in-the-loop-devagar.json",
     "looks": "/Users/naledi/Projects/comfy-ui-higgs-hack-a-thon/reference-master/looks.json"
   },
   "post_zoom_note": "post_zoom = scale-and-crop push for the 2D stitch (scale eval=frame + crop, never zoompan); it matches the previs dolly ratio dolly_start_m/dolly_end_m for push-ins.",
@@ -31,7 +31,7 @@
     "engine": "BLENDER_EEVEE",
     "blender": "5.2.2 LTS"
   },
-  "generated_at": "2026-11-02T22:00:59",
+  "generated_at": "2026-11-02T22:10:22",
   "scenes": [
     {
       "id": "s1-intro",
@@ -63,12 +63,17 @@
       "hand_cues": [
         {
           "t": 1.69,
-          "move": "heart_press",
-          "label": "Heart Press"
+          "move": "palm_roll",
+          "label": "Palm Roll"
+        },
+        {
+          "t": 4.3,
+          "move": "backbeat_snap",
+          "label": "Backbeat Snaps"
         }
       ],
       "wardrobe": {
-        "lead": "an oversized cream cable-knit sweater slipping off one shoulder and small gold hoop earrings",
+        "lead": "an oversized rust-brown chunky knit sweater with the sleeves pushed up, small gold hoops, bare feet tucked under her, a steaming mug in both hands",
         "backup": "",
         "source": "looks.json"
       }
@@ -102,18 +107,28 @@
       },
       "hand_cues": [
         {
+          "t": 7.56,
+          "move": "jaw_trace",
+          "label": "Jaw Trace"
+        },
+        {
           "t": 9.52,
           "move": "backbeat_snap",
           "label": "Backbeat Snaps"
         },
         {
-          "t": 15.33,
-          "move": "jaw_trace",
-          "label": "Jaw Trace"
+          "t": 12.13,
+          "move": "palm_roll",
+          "label": "Palm Roll"
+        },
+        {
+          "t": 14.74,
+          "move": "backbeat_snap",
+          "label": "Backbeat Snaps"
         }
       ],
       "wardrobe": {
-        "lead": "a fitted burnt-orange ribbed long-sleeve top and low-slung Tuscan-brown satin cargos, a thin gold chain",
+        "lead": "a tucked-in vintage brown sweatshirt and high-waist light-wash denim, small gold hoops, a long camel wool coat draped over the couch arm",
         "backup": "",
         "source": "looks.json"
       },
@@ -155,13 +170,23 @@
       },
       "hand_cues": [
         {
-          "t": 22.24,
+          "t": 18.65,
+          "move": "heart_press",
+          "label": "Heart Press"
+        },
+        {
+          "t": 21.26,
+          "move": "hair_comb",
+          "label": "Hair Comb"
+        },
+        {
+          "t": 22.57,
           "move": "loop_circle",
           "label": "Loop circle"
         }
       ],
       "wardrobe": {
-        "lead": "a burnt-orange silk slip dress with thin straps and small gold hoop earrings",
+        "lead": "a burnt-orange satin slip dress with thin straps, big gold hoop earrings, a glossy brown-nude lip with a bronze sheen, voluminous '90s curls",
         "backup": "",
         "source": "looks.json"
       }
@@ -195,9 +220,14 @@
       },
       "hand_cues": [
         {
-          "t": 26.25,
+          "t": 25.83,
           "move": "heart_press",
           "label": "Heart Press"
+        },
+        {
+          "t": 27.79,
+          "move": "loop_circle",
+          "label": "Loop circle"
         },
         {
           "t": 29.74,
@@ -205,14 +235,19 @@
           "label": "Reach to Lens"
         },
         {
-          "t": 30.55,
+          "t": 30.4,
+          "move": "pull_back",
+          "label": "Pull Back"
+        },
+        {
+          "t": 31.05,
           "move": "come_here",
           "label": "Come Here"
         }
       ],
       "wardrobe": {
-        "lead": "a warm amber satin two-piece, a cropped halter top and matching wide-leg trousers, with gold hoop earrings",
-        "backup": "a matching satin two-piece in deeper burnt amber, one shade darker than the lead's: cropped halter top, wide-leg trousers, small gold hoops, girl-group styling",
+        "lead": "a burnt-orange satin slip dress with thin straps, big gold hoop earrings, a glossy brown-nude lip with a bronze sheen, voluminous '90s curls",
+        "backup": "a matching amber-and-brown wax-print (ankara) wrap top with a coordinated headwrap, a shade darker than the lead, small gold hoops",
         "source": "looks.json"
       },
       "post_pan_x": {

@@ -45,6 +45,16 @@ From the repo root:
 | shots (`scenes[]`, `takes[].cues[]`, `moves`) | scene times, camera move + focal, `camera.post` slow-push → `post_zoom`, hand moves (`kind: "move"`) mapped to gestures. **Not present at build time**, so the director's canonical plan was used (below) |
 | looks (`looks[].wardrobe` per `scene` + `character`) | outfit shape/colour/fabric on each stand-in (slip dress vs. knit vs. two-piece, cropped, wide-leg; the clones a shade darker) |
 
+### Verify a render like a director
+```sh
+ffprobe -v error -show_entries format=duration -show_entries stream=codec_type,avg_frame_rate outputs/previs/animatic.mp4
+# contact sheet, one frame every 2 s
+ffmpeg -y -i outputs/previs/animatic.mp4 -vf "fps=1/2:start_time=1,scale=427:-2,tile=4x4:padding=4" -frames:v 1 /tmp/previs_sheet.png
+# the frame on each side of every cut (last of S1 | first of S2, ...)
+ffmpeg -y -i outputs/previs/animatic.mp4 -vf "select='eq(n\,164)+eq(n\,165)+eq(n\,414)+eq(n\,415)+eq(n\,602)+eq(n\,603)',scale=427:-2,tile=2x3:padding=4" -fps_mode vfr -frames:v 1 /tmp/previs_cuts.png
+```
+Expected: 32.0 s, a 24 fps video stream and an audio stream; the cuts at frames 165, 415 and 603.
+
 ## Open the .blend and adjust the cameras
 
 Open `previs/in-the-loop-devagar_previs.blend` in Blender 5.2. Scrub the timeline: the **markers** `S1 couch · slow

@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "slug": "in-the-loop-devagar",
+  "title": "In the Loop (Devagar)",
+  "song": {
+    "file": "songs/in-the-loop-devagar.mp3",
+    "recipe_md": "songs/in-the-loop-devagar.md"
+  },
+  "performer": {
+    "name": "Naledi",
+    "identity_lock": "a young Black woman with rich deep brown skin, warm undertones and a luminous dewy sheen, copper-red hair pulled back, small white earbuds",
+    "negative": "blurry, out of focus, low contrast, washed out colors, excessive noise, flickering, distorted proportions, unnatural skin tones, lightened skin, pale skin, incorrect ethnicity, deformed facial features, missing facial features, extra limbs, disfigured hands, wrong hand count, jittery movement, photorealistic, live-action footage, AI artifacts"
+  },
+  "palette": [
+    "#7a4a2a",
+    "#d9622b",
+    "#ff9f43",
+    "#ffb347"
+  ],
+  "paths": {
+    "timing": "songs/in-the-loop-devagar.timing.json",
+    "shots": "shots/in-the-loop-devagar.json",
+    "looks": "reference-master/looks.json",
+    "clips": "clips",
+    "outputs": "outputs",
+    "previs": "previs",
+    "storyboards": "storyboards"
+  },
+  "fps": 24,
+  "size": [
+    1280,
+    704
+  ]
+}

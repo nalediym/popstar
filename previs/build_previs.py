@@ -2389,6 +2389,10 @@ def main():
     sc.render.resolution_x, sc.render.resolution_y, sc.render.resolution_percentage = w, h, 100
     stamp(sc, True, font=max(11, int(h / 36)))
     sc.render.stamp_note_text = "PREVIS  In the Loop (Devagar)  (lyric + cue burn-in: re-run build_previs.py)"
+    try:
+        bpy.context.preferences.filepaths.save_version = 0   # no .blend1 backups next to the deliverable
+    except Exception:
+        pass
     bpy.ops.wm.save_as_mainfile(filepath=args.out_blend, compress=True)
     try:
         bpy.ops.file.make_paths_relative()

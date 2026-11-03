@@ -50,10 +50,7 @@ export function parseVersion(text: string): Version | null {
   return { major: Number(m[1]), minor: Number(m[2]), patch: Number(m[3] ?? 0), raw: m[0] };
 }
 
-export const BLENDER = "/applications/blender.app/contents/macos/blender".replace(
-  /^.*$/,
-  "/Applications/Blender.app/Contents/MacOS/Blender",
-);
+export const BLENDER = "/Applications/Blender.app/Contents/MacOS/Blender";
 export const WHISPER_CACHE = ["hub", "models--mlx-community--whisper-small-mlx"];
 export const FONTS = [
   { name: "Menlo.ttc", paths: ["/System/Library/Fonts/Menlo.ttc"] },

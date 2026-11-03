@@ -1,4 +1,11 @@
-# HANDOFF — pop-star music video (written 2026-11-02 ~22:40 ET, model switched to Fable 5.1)
+# HANDOFF — pop-star music video (updated 2026-11-03 ~00:10 ET; model Fable 5.1)
+
+## Resume in 60 seconds
+1. Repo: **https://github.com/nalediym/popstar** (public, Apache-2.0). `git pull` first; background builds kept landing after 00:10 and were pushed as they finished.
+2. `bun tools/popstar.ts status` → the eight stages and the one next step. `bun tools/popstar.ts doctor` if anything looks off.
+3. Read the "In flight" table below: every row marked LANDED is on disk and committed; the rest may have landed after this was written (check `git log`).
+4. The next real step is the **shoot**: `bun recorder/server.ts`, take `hero-1`, R to rehearse, Space to record (earbuds in, warm light in front, hands off the mouth). Then one anchored render of s3, then all four scenes, then stitch v1 in `cut/`.
+5. Open questions she still owes: Q3 seated or standing performance · Q4 Fable on director/QA agents only or everywhere.
 
 Deadline: **2026-11-03 12:00 ET** (Open Source Higgsfield hackathon). Open weights only. Compute = Comfy Cloud via the `comfy-cloud` MCP.
 First command in any new session: `bun tools/popstar.ts status` (stages + the one next step).
@@ -24,7 +31,8 @@ Comfy Cloud input names already uploaded (reusable): clip-01 `461682d8…mp4`, h
 | Build | Produces | Verify by |
 |---|---|---|
 | Coach recorder workflow | `songs/*.timing.json`, `shots/in-the-loop-devagar.json`, `recorder/index.html` overlay (karaoke, beat HUD, move cards, pose warnings), `tools/song_timing.py`, `tools/validate_shots.py` | open the recorder in the browser pane with `?demo=test-clip`, watch cues fire on beats; `python3 -I tools/validate_shots.py …` |
-| Reference Master | `reference-master/{server.ts,index.html,looks.json}` + refs tray (Pinterest links), intensity slider, presets | run it, paste a pin link, queue a render, "Copy for Claude" |
+| ~~Reference Master~~ **LANDED** | `reference-master/{server.ts,index.html,looks.json,README.md}`: refs tray, intensity slider, 8 emotion presets, undo, copy-for-Claude; 49/49 UI tests. 25 Pinterest refs wired into `looks.json` with her wardrobe lines; launch entry `reference-master` (port 56110) | `bun reference-master/server.ts`. Note: `blink` must be NEGATIVE to close eyes (−10 heavy lids, −20 shut); the devagar preset's blink 4 does not close them |
+| ~~Reuse inventory~~ **LANDED** | `docs/research/reuse-inventory.md`: nWave practices to borrow (expectation charter per scene, examiner after render, walking skeleton first) and top reuse from `~/Projects/claude-music-video` (songmap, skia caption overlays, lipsync envelope) | read it before building captions or the hybrid spike |
 | Blender previs | `previs/build_previs.py`, `outputs/previs/animatic.mp4`, `previs/camera_plan.json` | watch the animatic; cuts on downbeats |
 | ~~Comfy graph pinning (R1)~~ **LANDED** | `workflows/*.api.json` (6 graphs), `workflows/slots.json`, `tools/comfy_compile.ts` (`--list`, `--set`, `--preset`) | equivalence test vs job `ce7dccfd…` passed (0 diffs); all 6 dry-run validated. **Always pass `trim_duration=0` to pose-restyle** (pinned default 5 s caps scenes). InfiniteTalk rounds up to 81-frame windows; trim in stitch. Wardrobe width/height only apply with `custom_size=true`. |
 | Storyboards | `storyboards/*_board.png`, `*_beatboard.png`, `.pdf`, `tools/storyboard.py` | look at the boards; s1/s2 frames rendered on Cloud, s4 is a triptych composite |
