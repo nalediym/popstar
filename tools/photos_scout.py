@@ -151,6 +151,7 @@ class Cand:
     preview_path: str | None = None  # a JPEG Photos keeps locally (thumbnails, palettes)
     source_kind: str = "none"  # original | edited | preview | none
     has_original: bool = False  # original file is on this Mac (not iCloud-only)
+    preview_long_edge: int = 0  # pixels of the best local file's long edge (0 = unknown)
     score: float = 0.0  # identity composite, filled by rank_identity
 
 
@@ -176,6 +177,15 @@ def cand_from_photo(p, person: str | None = None, want_faces: bool = True) -> Ca
     face = next((f for f in faces if person and f.name == person), faces[0]) if faces else None
     local, kind = best_local_file(p)
     preview = next((d for d in (p.path_derivatives or []) if os.path.exists(d)), None) or local
+    long_edge = 0
+    if local and kind != "original":  # a header read only; originals are full-res by definition
+        try:
+            from PIL import Image
+
+            with Image.open(local) as im:
+                long_edge = max(im.size)
+        except Exception:
+            long_edge = 0
     return Cand(
         uuid=p.uuid,
         date=p.date,
@@ -199,6 +209,7 @@ def cand_from_photo(p, person: str | None = None, want_faces: bool = True) -> Ca
         preview_path=preview,
         source_kind=kind,
         has_original=bool(p.path),
+        preview_long_edge=long_edge,
     )
 
 
@@ -219,6 +230,8 @@ def identity_score(c: Cand, now: dt.datetime) -> float:
     s += 0.6 * min(c.face_size, 0.5)
     s += 0.3 if c.favorite else 0.0
     s += 0.2 * recency
+    if not c.has_original and 0 < c.preview_long_edge < 600:
+        s -= 0.4  # only a small thumbnail is on this Mac: useless as a face reference
     return round(s, 3)
 
 
@@ -340,7 +353,8 @@ def warm_share(im, hue_deg=(10.0, 50.0), min_s: float = 0.25, min_v: float = 0.1
     from PIL import Image
 
     hsv = im.convert("RGB").resize((96, 96), Image.Resampling.BILINEAR).convert("HSV")
-    px = list(hsv.getdata())
+    raw = hsv.tobytes()  # H,S,V interleaved bytes (version-agnostic; getdata is deprecated in Pillow 13)
+    px = [(raw[i], raw[i + 1], raw[i + 2]) for i in range(0, len(raw), 3)]
     lo, hi = hue_deg[0] / 360 * 255, hue_deg[1] / 360 * 255
     warm = sum(1 for h, s, v in px if lo <= h <= hi and s >= min_s * 255 and v >= min_v * 255)
     return round(warm / len(px), 3)
@@ -483,19 +497,17 @@ def palette_footer(agg: list[tuple[str, float]], match: dict, warm: float) -> Ca
         f, f2 = font(12), font(13)
         d.text((pad, y), f"set palette: warm share {warm:.0%}, similarity to the project palette {match['mean_similarity']:.2f}", fill=FG, font=f2)
         y += 24
-        x = pad
+        x, pitch = pad, 104
         for hx, share in agg:
-            d.rectangle([x, y, x + 72, y + 30], fill=rgb_of(hx))
+            d.rectangle([x, y, x + pitch - 12, y + 30], fill=rgb_of(hx))
             d.text((x, y + 34), f"{hx} {share:.0%}", fill=DIM, font=f)
-            x += 84
+            x += pitch
         x += 24
-        px = x
         for row in match["per_color"]:
-            d.rectangle([x, y, x + 72, y + 30], fill=rgb_of(row["project"]))
+            d.rectangle([x, y, x + pitch - 12, y + 30], fill=rgb_of(row["project"]))
             d.text((x, y + 34), f"{row['project']} {row['similarity']:.2f}", fill=DIM, font=f)
-            x += 84
+            x += pitch
         d.text((pad, y + 52), "left: this set (share)   right: project palette from looks.json (similarity to nearest set color)", fill=DIM, font=f)
-        del px
 
     return draw
 
@@ -644,9 +656,10 @@ def cmd_identity(db, lib: Path, args) -> dict:
         why = ", ".join(f"{k} {v}" for k, v in rejected.most_common())
         raise ScoutError(f"no usable portrait of {person} (rejected: {why or 'nothing tagged'})", EXIT_USAGE)
 
-    cells, rows = [], []
+    cells, rows, local_px = [], [], []
     for i, c in enumerate(chosen):
         im = load_image(c.preview_path or c.local_path)
+        local_px.append(f"{im.width}x{im.height}")
         alb = c.albums[0] if c.albums else "-"
         cells.append(
             {
@@ -684,7 +697,7 @@ def cmd_identity(db, lib: Path, args) -> dict:
         "selected": [
             {"n": i + 1, "uuid": c.uuid, "date": c.date.isoformat(), "score": c.score, "overall": c.overall, "lighting": c.lighting,
              "face_quality": c.face_quality, "face_size": c.face_size, "favorite": c.favorite, "source": c.source_kind,
-             "has_original": c.has_original, "pixels": f"{c.width}x{c.height}", "albums": c.albums}
+             "has_original": c.has_original, "pixels": f"{c.width}x{c.height}", "local_pixels": local_px[i], "albums": c.albums}
             for i, c in enumerate(chosen)
         ],
         "sheet": rel(sheet),
@@ -728,12 +741,13 @@ def cmd_inspire(db, lib: Path, args) -> dict:
             say("no filter given: using --favorites")
         photos = [p for p in photos if p.favorite]
         filters.append("favorites")
+    n_hidden = sum(1 for p in photos if p.hidden or p.shared)
     cands = [cand_from_photo(p, want_faces=False) for p in photos if not p.hidden and not p.shared]
     cands = [c for c in cands if c.preview_path]
     cands.sort(key=lambda c: (-int(c.favorite), -c.date.timestamp()))  # newest first
     chosen = cands[: args.n]
     if not chosen:
-        raise ScoutError(f"no photos match {' + '.join(filters)}", EXIT_USAGE)
+        raise ScoutError(f"no photos match {' + '.join(filters)}" + (f" ({n_hidden} hidden/shared skipped)" if n_hidden else ""), EXIT_USAGE)
 
     images, cells, rows, items = [], [], [], []
     for i, c in enumerate(chosen):
@@ -769,6 +783,7 @@ def cmd_inspire(db, lib: Path, args) -> dict:
     out = {
         "filters": filters,
         "matched": len(cands),
+        "hidden_skipped": n_hidden,
         "shown": len(chosen),
         "items": items,
         "aggregate_palette": [{"hex": h, "share": s} for h, s in agg],
@@ -780,7 +795,8 @@ def cmd_inspire(db, lib: Path, args) -> dict:
         "notes": notes,
     }
     if not args.json:
-        print(f"inspire {' + '.join(filters)}: {len(cands)} photos, showing {len(chosen)} (newest first)")
+        skipped = f", {n_hidden} hidden/shared skipped" if n_hidden else ""
+        print(f"inspire {' + '.join(filters)}: {len(cands)} photos{skipped}, showing {len(chosen)} (newest first)")
         print(table(["#", "date", "fav", "album", "dominant colors"], rows, right={0}))
         print("set palette:     " + "  ".join(f"{h} {s:.0%}" for h, s in agg) + f"   warm share {warm:.0%}")
         print("project palette: " + "  ".join(f"{r['project']}->{r['nearest']} {r['similarity']:.2f}" for r in match["per_color"]) + f"   mean similarity {match['mean_similarity']:.2f}")
@@ -827,8 +843,10 @@ def run_selftest(args) -> int:
         lit, dark = mk("lit", 100, lighting=0.4), mk("dark", 100, lighting=-0.4)
         new, old = mk("new", 30), mk("old", 1000)
         big, small = mk("big", 100, face_size=0.4), mk("small", 100, face_size=0.05)
-        for a, b in ((fav, plain), (lit, dark), (new, old), (big, small)):
+        hires, thumb = mk("hires", 100, preview_long_edge=1024), mk("thumb", 100, preview_long_edge=360)
+        for a, b in ((fav, plain), (lit, dark), (new, old), (big, small), (hires, thumb)):
             assert identity_score(a, base) > identity_score(b, base), (a.uuid, b.uuid)
+        assert identity_score(mk("local", 100, preview_long_edge=360, has_original=True), base) == identity_score(hires, base)
 
     def t_diversity():
         burst = [mk(f"b{i}", 10 + i / 86400, overall=0.9 - i * 0.01) for i in range(3)]  # seconds apart
@@ -874,6 +892,22 @@ def run_selftest(args) -> int:
         assert write_jpeg(str(src), tmp / "out.jpg", 1280) == (1280, 640)
         assert write_jpeg(str(src), tmp / "out2.jpg", None) == (2000, 1000)
         assert write_jpeg(str(src), tmp / "out3.jpg", 4000) == (2000, 1000)  # never upscales
+        # export_items end to end on synthetic rows (the real --export is never run by tests)
+        a, b = tmp / "a.png", tmp / "b.png"
+        Image.new("RGB", (1600, 1200), (200, 120, 60)).save(a)
+        Image.new("RGB", (300, 300), (60, 120, 200)).save(b)
+        items = [mk("AAAA1111-1", 5, local_path=str(a), source_kind="original", has_original=True, score=1.5),
+                 mk("BBBB2222-2", 6, local_path=str(b), source_kind="preview", favorite=True),
+                 mk("CCCC3333-3", 7, local_path=None, source_kind="none")]
+        manifest, notes = export_items(items, tmp / "identity", 640, {"kind": "identity", "person": "Ada"})
+        assert [m["path"].rsplit("/", 1)[-1] for m in manifest] == ["aaaa1111.jpg", "bbbb2222.jpg"], manifest
+        assert manifest[0]["pixels"] == "640x480" and manifest[1]["pixels"] == "300x300", manifest
+        assert manifest[0]["score"] == 1.5 and manifest[1]["favorite"] is True and manifest[0]["source"] == "original"
+        assert len(notes) == 1 and "CCCC3333" in notes[0], notes
+        doc = json.loads((tmp / "identity" / "manifest.json").read_text())
+        assert doc["person"] == "Ada" and doc["size"] == 640 and len(doc["items"]) == 2 and {"uuid", "date", "score", "path"} <= set(doc["items"][0])
+        manifest2, _ = export_items(items[:1], tmp / "identity", None, {"kind": "identity", "person": "Ada"})  # idempotent re-run
+        assert manifest2[0]["pixels"] == "1600x1200" and sorted(p.name for p in (tmp / "identity").iterdir()) == ["aaaa1111.jpg", "bbbb2222.jpg", "manifest.json"]
 
     def t_access_message():
         if os.geteuid() == 0:
