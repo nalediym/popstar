@@ -42,7 +42,7 @@
         "Something fitted, in a solid color"
       ],
       "cues": [
-        {"t": 0.381, "dur": 3.915, "kind": "direction", "text": "Be still. Eyes down. Breathe.", "detail": "let the song come to you"},
+        {"t": 0.381, "dur": 3.915, "kind": "direction", "text": "Still. Eyes down. Breathe.", "detail": "let the song come to you"},
         {"t": 1.686, "dur": 1.305, "kind": "move", "move": "heart-press", "text": "slow, as the song starts"},
         {"t": 4.296, "dur": 7.177, "kind": "direction", "text": "Eyes down. Sing it close.", "detail": "small smile at the line ends"},
         {"t": 4.296, "dur": 2.61, "kind": "move", "move": "backbeat-snaps", "text": "the groove starts: small and low"},
@@ -52,15 +52,15 @@
         {"t": 11.473, "dur": 5.873, "kind": "direction", "text": "Lift your eyes to the lens", "detail": "slowly, like you just found someone"},
         {"t": 12.126, "dur": 1.305, "kind": "move", "move": "shoulder-roll", "text": "left shoulder, as your eyes lift"},
         {"t": 14.736, "dur": 2.61, "kind": "move", "move": "backbeat-snaps", "text": "through the quiet part"},
-        {"t": 17.346, "dur": 5.22, "kind": "direction", "text": "Stay on the lens. Let it build.", "detail": "your chest opens toward the chorus"},
+        {"t": 17.346, "dur": 5.22, "kind": "direction", "text": "Stay on the lens", "detail": "let it build; your chest opens"},
         {"t": 17.346, "dur": 1.305, "kind": "move", "move": "body-roll", "text": "slow and small as it gets louder"},
         {"t": 21.261, "dur": 0.979, "kind": "move", "move": "hair-comb", "text": "in the breath before the chorus"},
-        {"t": 22.566, "dur": 7.83, "kind": "direction", "text": "Eyes to the lens. Sing to one person.", "detail": "open your chest; bigger, slower hands"},
+        {"t": 22.566, "dur": 7.83, "kind": "direction", "text": "Sing to one person", "detail": "eyes in the lens, chest open, bigger hands"},
         {"t": 22.566, "dur": 1.305, "kind": "move", "move": "loop-circle", "text": "right hand, on “I'm in the loop”"},
         {"t": 24.523, "dur": 1.305, "kind": "emote", "text": "slow blink on “devagar”", "detail": "timing approximate"},
         {"t": 25.828, "dur": 1.305, "kind": "move", "move": "heart-press", "text": "on “eu sei onde está”", "detail": "timing approximate"},
         {"t": 29.743, "dur": 0.653, "kind": "move", "move": "reach-to-lens", "text": "right hand, on “Keep me in the loop”", "detail": "timing approximate"},
-        {"t": 30.396, "dur": 1.604, "kind": "direction", "text": "Hold the look… then Come Here", "detail": "keep the eye contact past the last note"},
+        {"t": 30.396, "dur": 1.604, "kind": "direction", "text": "Hold… then Come Here", "detail": "keep the eye contact past the last note"},
         {"t": 30.396, "dur": 0.652, "kind": "move", "move": "pull-back", "text": "back to your chest on “meu bem”", "detail": "timing approximate"},
         {"t": 31.048, "dur": 0.952, "kind": "move", "move": "come-here", "text": "right hand, on the last beat"},
         {"t": 31.048, "dur": 0.952, "kind": "emote", "text": "small smile, hold the look"}
@@ -80,7 +80,7 @@
         "Hands off your mouth while you sing"
       ],
       "cues": [
-        {"t": 0.381, "dur": 3.915, "kind": "direction", "text": "Be still. Eyes down. Breathe.", "detail": "let the song come to you"},
+        {"t": 0.381, "dur": 3.915, "kind": "direction", "text": "Still. Eyes down. Breathe.", "detail": "let the song come to you"},
         {"t": 1.686, "dur": 1.305, "kind": "move", "move": "palm-roll", "text": "slow, on “devagar”", "detail": "timing approximate"},
         {"t": 4.296, "dur": 7.177, "kind": "direction", "text": "Eyes down. Sing it close.", "detail": "small smile at the line ends"},
         {"t": 4.296, "dur": 2.61, "kind": "move", "move": "backbeat-snaps", "text": "the groove starts: small and low"},
@@ -90,16 +90,16 @@
         {"t": 11.473, "dur": 5.873, "kind": "direction", "text": "Lift your eyes to the lens", "detail": "slowly, like you just found someone"},
         {"t": 12.126, "dur": 1.305, "kind": "move", "move": "shoulder-roll", "text": "right shoulder this time, as your eyes lift"},
         {"t": 14.736, "dur": 2.61, "kind": "move", "move": "backbeat-snaps", "text": "through the quiet part"},
-        {"t": 17.346, "dur": 5.22, "kind": "direction", "text": "Stay on the lens. Let it build.", "detail": "your chest opens toward the chorus"},
+        {"t": 17.346, "dur": 5.22, "kind": "direction", "text": "Stay on the lens", "detail": "let it build; your chest opens"},
         {"t": 18.651, "dur": 1.305, "kind": "move", "move": "heart-press", "text": "both hands, on “holding everything”"},
         {"t": 21.261, "dur": 0.979, "kind": "move", "move": "hair-comb", "text": "in the breath before the chorus"},
-        {"t": 22.566, "dur": 7.83, "kind": "direction", "text": "Eyes to the lens. Sing to one person.", "detail": "open your chest; bigger, slower hands"},
+        {"t": 22.566, "dur": 7.83, "kind": "direction", "text": "Sing to one person", "detail": "eyes in the lens, chest open, bigger hands"},
         {"t": 22.566, "dur": 1.305, "kind": "move", "move": "loop-circle", "text": "bigger this time, on “I'm in the loop”"},
         {"t": 24.523, "dur": 1.305, "kind": "emote", "text": "slow blink on “devagar”", "detail": "timing approximate"},
         {"t": 25.828, "dur": 1.305, "kind": "move", "move": "heart-press", "text": "both hands stacked, on “eu sei onde está”", "detail": "timing approximate"},
         {"t": 27.786, "dur": 1.305, "kind": "move", "move": "loop-circle", "text": "the loop again, through “Plan it, run it, check it, back again”", "detail": "timing approximate"},
         {"t": 29.743, "dur": 0.653, "kind": "move", "move": "reach-to-lens", "text": "right hand, on “Keep me in the loop”", "detail": "timing approximate"},
-        {"t": 30.396, "dur": 1.604, "kind": "direction", "text": "Hold the look… then Come Here", "detail": "keep the eye contact past the last note"},
+        {"t": 30.396, "dur": 1.604, "kind": "direction", "text": "Hold… then Come Here", "detail": "keep the eye contact past the last note"},
         {"t": 30.396, "dur": 0.652, "kind": "move", "move": "pull-back", "text": "back to your chest on “meu bem”", "detail": "timing approximate"},
         {"t": 31.048, "dur": 0.952, "kind": "move", "move": "come-here", "text": "right hand, on the last beat"},
         {"t": 31.048, "dur": 0.952, "kind": "emote", "text": "small smile, hold the look"}
@@ -119,13 +119,13 @@
         "Hands off your mouth"
       ],
       "cues": [
-        {"t": 0.381, "dur": 3.915, "kind": "direction", "text": "Still. Eyes down. Sing the intro softly.", "detail": "you're the voice behind the lead"},
+        {"t": 0.381, "dur": 3.915, "kind": "direction", "text": "Sing the intro softly", "detail": "still, eyes down: the voice behind the lead"},
         {"t": 2.991, "dur": 1.305, "kind": "emote", "text": "slow blink on “devagar”", "detail": "timing approximate"},
-        {"t": 4.296, "dur": 18.27, "kind": "direction", "text": "Sway on 1 and 3. Eyes soft and low.", "detail": "hum along; stay smaller than the lead"},
+        {"t": 4.296, "dur": 18.27, "kind": "direction", "text": "Sway on 1 and 3", "detail": "eyes soft and low; hum along, smaller than the lead"},
         {"t": 4.296, "dur": 10.44, "kind": "move", "move": "sway", "text": "left on 1, right on 3, small"},
         {"t": 14.736, "dur": 5.22, "kind": "move", "move": "backbeat-snaps", "text": "keep the sway; snap small on 2 and 4"},
         {"t": 20.608, "dur": 1.305, "kind": "move", "move": "ooh-face", "text": "“ooh” under “done”, into the chorus"},
-        {"t": 22.566, "dur": 7.83, "kind": "direction", "text": "Chorus: soft “ooh”s, eyes to the lens", "detail": "keep swaying; left hand, half the lead's size"},
+        {"t": 22.566, "dur": 7.83, "kind": "direction", "text": "Soft “ooh”s to the lens", "detail": "keep swaying; left hand, half the lead's size"},
         {"t": 22.566, "dur": 1.305, "kind": "move", "move": "loop-circle", "text": "left hand, small: mirror the lead"},
         {"t": 24.523, "dur": 1.305, "kind": "move", "move": "ooh-face", "text": "“ooh” on “devagar”", "detail": "timing approximate"},
         {"t": 25.828, "dur": 1.305, "kind": "move", "move": "heart-press", "text": "left palm, with the lead, on “eu sei onde está”", "detail": "timing approximate"},
@@ -148,7 +148,7 @@
         "Turn the same way every time"
       ],
       "cues": [
-        {"t": 0.0, "dur": 8.5, "kind": "direction", "text": "Slow quarter turns, about 2 seconds each", "detail": "arms soft, turn the same way every time"},
+        {"t": 0.0, "dur": 8.5, "kind": "direction", "text": "Slow quarter turns", "detail": "about 2 seconds each, the same way every time"},
         {"t": 1.0, "dur": 2.0, "kind": "move", "move": "turn-left", "text": "Face left"},
         {"t": 3.0, "dur": 2.0, "kind": "move", "move": "turn-back", "text": "Show your back"},
         {"t": 5.0, "dur": 2.0, "kind": "move", "move": "turn-right", "text": "Face right"},
@@ -171,7 +171,7 @@
         "Slow and clear beats fast"
       ],
       "cues": [
-        {"t": 0.0, "dur": 17.0, "kind": "direction", "text": "Slow and clear, hands at chest height", "detail": "about 2 seconds a move"},
+        {"t": 0.0, "dur": 17.0, "kind": "direction", "text": "Slow and clear", "detail": "hands at chest height, about 2 seconds a move"},
         {"t": 1.0, "dur": 1.6, "kind": "move", "move": "heart-press", "text": "Heart Press"},
         {"t": 2.6, "dur": 1.6, "kind": "move", "move": "reach-to-lens", "text": "then pull back to your chest"},
         {"t": 4.2, "dur": 1.6, "kind": "move", "move": "jaw-trace", "text": "Jaw Trace"},

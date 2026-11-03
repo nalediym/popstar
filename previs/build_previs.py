@@ -594,6 +594,7 @@ COLOR_WORDS = [  # longest first
     ("chocolate", "3e2416"), ("espresso", "2e1a10"), ("mocha", "5e3d2a"), ("brown", "5a3720"), ("amber", "d2861f"),
     ("honey", "c98a2e"), ("gold", "c9952f"), ("bronze", "9a6a2a"), ("orange", "d0631c"), ("wine", "5e1a1e"),
     ("burgundy", "5a1620"), ("black", "151010"), ("white", "ece6dc"), ("beige", "cdb594"),
+    ("light wash", "8fa6bd"), ("denim", "5b6f8a"),
 ]
 
 
@@ -608,9 +609,9 @@ def color_from_text(text, default_hex):
 
 
 RX_DRESS = r"\b(slip dress|slip|dress|gown|jumpsuit)\b"          # whole words: "slipping" is not a slip
-RX_TOP = r"\b(sweater|knit|cardigan|hoodie|turtleneck|top|tee|shirt|blouse|cami|camisole|halter|bralette|bustier|" \
-         r"corset|tank|bodysuit)\b"
-RX_BOTTOM = r"\b(pants|trousers|cargos?|jeans|leggings|joggers|skirt|shorts)\b"
+RX_TOP = r"\b(sweater|sweatshirt|pullover|jumper|knit|cardigan|hoodie|turtleneck|top|tee|shirt|blouse|cami|" \
+         r"camisole|halter|bralette|bustier|corset|tank|bodysuit)\b"
+RX_BOTTOM = r"\b(pants|trousers|cargos?|jeans|denim|leggings|joggers|skirt|shorts)\b"
 RX_SET = r"\b(two piece|set|co ord|matching)\b"
 FABRICS = ("satin", "silk", "knit", "velvet", "suede", "leather", "ribbed", "cotton", "denim")
 
@@ -637,13 +638,15 @@ def wardrobe_spec(text, default):
     elif top_c:
         if re.search(r"\b(cami|camisole|halter|strap|straps|strapless|bustier|corset|tank|bralette)\b", t):
             spec.update(neckline="cami", sleeves="none")
-        elif re.search(r"\b(sweater|knit|cardigan|hoodie|turtleneck|long sleeve|long sleeved)\b", t):
+        elif re.search(r"\b(sweater|sweatshirt|pullover|jumper|knit|cardigan|hoodie|turtleneck|long sleeve|"
+                       r"long sleeved)\b", t):
             spec.update(neckline="crew", sleeves="long")
         else:
             spec.update(neckline="crew", sleeves="none")
     if bot_c:
         spec["bottom"] = "skirt" if re.search(r"\bskirt\b", bot_c) else "pants"
     spec["cropped"] = bool(re.search(r"\bcrop(ped)?\b", t))
+    spec["headwrap"] = bool(re.search(r"\b(headwrap|head wrap|turban|head scarf|headscarf)\b", t))
     spec["wide"] = bool(re.search(r"\b(wide leg|palazzo|flare|flared)\b", t))
     spec["oversized"] = bool(re.search(r"\b(oversized|chunky|slouchy)\b", t)) or spec.get("oversized", False)
     # colours: garment clause, else the set clause, else anywhere
@@ -1086,6 +1089,13 @@ def build_mannequin(name, coll, root_loc, facing, outfit, skin, seated=False, da
     bmesh.ops.delete(bm, geom=[v for v in res["verts"] if not keep_hair(v)], context="VERTS")
     add_sphere(bm, (0.05, 0.048, 0.046), hc + Vector((0, 0.098, -0.03)), u=16, v=10)
     bm_object(f"{name}_hair", bm, coll, [hair], parent=r.neck)
+    if outfit.get("headwrap"):   # a wrap over the hair in the top's fabric, with a knot at the front-left
+        bm = bmesh.new()
+        res = bmesh.ops.create_uvsphere(bm, u_segments=28, v_segments=18, radius=1.0,
+                                        matrix=_mat4(hc + Vector((0, 0.006, 0.012)), (0, 0, 0), (0.090, 0.106, 0.124)))
+        bmesh.ops.delete(bm, geom=[v for v in res["verts"] if not keep_hair(v)], context="VERTS")
+        add_sphere(bm, (0.045, 0.04, 0.036), hc + Vector((0.055, -0.045, 0.105)), (0.3, 0.5, 0.0), u=14, v=10)
+        bm_object(f"{name}_headwrap", bm, coll, [top], parent=r.neck)
     bm = bmesh.new()
     for sx in (-1, 1):
         add_torus(bm, 0.011, 0.0022, hc + Vector((sx * 0.079, -0.002, -0.046)), (0, math.pi / 2, 0), segs=16,
@@ -1205,23 +1215,46 @@ GESTURE_LABEL = {
     "jaw_trace": "Jaw Trace", "backbeat_snap": "Backbeat Snaps", "loop_circle": "Loop circle",
     "palm_roll": "Palm Roll", "hair_comb": "Hair Comb", "frame_face": "Frame the Face", "adlib_wave": "Ad-lib Wave",
     "hush": "Hush", "vocal_lift": "Vocal Lift", "shoulder_brush": "Shoulder Brush", "lean_back": "Lean-Back Hands",
+    "shoulder_roll": "Shoulder Roll", "body_roll": "Body Roll", "hair_flip": "Hair Flip", "sway": "Sway",
+    "ooh_face": "Ooh face",
 }
 
 
+# Body moves are torso / head channels (no arm IK); everything else is an arm gesture from GESTURES.
+BODY_MOVES = {"shoulder_roll", "body_roll", "hair_flip", "sway", "ooh_face"}
+MOVE_TABLE = [  # first match wins; multi-word keys before their single-word parts
+    ("shoulder roll", "shoulder_roll"), ("body roll", "body_roll"), ("hair flip", "hair_flip"), ("ooh", "ooh_face"),
+    ("sway", "sway"),
+    ("heart", "heart_press"), ("reach", "reach_to_lens"), ("pull back", "pull_back"), ("pull", "pull_back"),
+    ("come here", "come_here"), ("come", "come_here"), ("beckon", "come_here"), ("jaw", "jaw_trace"),
+    ("snap", "backbeat_snap"), ("palm roll", "palm_roll"), ("roll", "palm_roll"), ("circle", "loop_circle"),
+    ("loop", "loop_circle"), ("hair", "hair_comb"), ("comb", "hair_comb"), ("frame", "frame_face"),
+    ("wave", "adlib_wave"), ("ad lib", "adlib_wave"), ("adlib", "adlib_wave"), ("hush", "hush"), ("mic", "hush"),
+    ("lift", "vocal_lift"), ("shoulder", "shoulder_brush"), ("lean", "lean_back"), ("point", "reach_to_lens"),
+]
+
+
 def classify_move(*names):
-    t = " ".join(n for n in names if n).lower().replace("_", " ").replace("-", " ")
-    table = [
-        ("heart", "heart_press"), ("reach", "reach_to_lens"), ("pull back", "pull_back"), ("pull", "pull_back"),
-        ("come here", "come_here"), ("come", "come_here"), ("beckon", "come_here"), ("jaw", "jaw_trace"),
-        ("snap", "backbeat_snap"), ("palm roll", "palm_roll"), ("roll", "palm_roll"), ("circle", "loop_circle"),
-        ("loop", "loop_circle"), ("hair", "hair_comb"), ("frame", "frame_face"), ("wave", "adlib_wave"),
-        ("ad lib", "adlib_wave"), ("adlib", "adlib_wave"), ("hush", "hush"), ("mic", "hush"), ("lift", "vocal_lift"),
-        ("shoulder", "shoulder_brush"), ("lean", "lean_back"), ("point", "reach_to_lens"),
-    ]
-    for k, g in table:
-        if k in t:
-            return g
+    """Map a cue to a previs move. The move id is checked first, then the label, then the free text, so a word
+    in the description ("eyes lift") can't override the id ("shoulder-roll")."""
+    for n in names:
+        if not n:
+            continue
+        t = str(n).lower().replace("_", " ").replace("-", " ")
+        for k, g in MOVE_TABLE:
+            if k in t:
+                return g
     return None
+
+
+def side_from_text(text):
+    t = (text or "").lower()
+    both = bool(re.search(r"\bboth\b", t))
+    if re.search(r"\bleft (hand|palm|arm|shoulder)\b", t):
+        return "L", both
+    if re.search(r"\bright (hand|palm|arm|shoulder)\b", t):
+        return "R", both
+    return None, both
 
 
 class Performer:
@@ -1237,14 +1270,25 @@ class Performer:
         self.hips_world = root @ Matrix.Translation((0, 0, rig.hip_z))
         self.hips_inv = self.hips_world.inverted()
 
-    def add_gesture(self, t0, dur, name, side=None):
+    def add_gesture(self, t0, dur, name, side=None, both=False):
         if side is None:
             if name in ("reach_to_lens", "come_here"):
                 # reach with the arm on the camera's side, so the move reads instead of crossing the body
                 side = "L" if self.cam_local(t0 + min(dur, 0.6)).x > 0.4 else "R"
             else:
                 side = "L" if self.mirror_arm else "R"
-        self.gestures.append((t0, t0 + dur, name, side))
+        self.gestures.append((t0, t0 + dur, name, side, both))
+
+    def body_moves(self, t):
+        """Active torso/head moves: [(name, side, u, weight)], u = progress 0..1."""
+        out = []
+        for (g0, g1, name, side, both) in self.gestures:
+            if name not in BODY_MOVES or t < g0 - 0.3 or t > g1 + 0.3:
+                continue
+            w = min(smooth01((t - g0 + 0.3) / 0.3), 1.0 - smooth01((t - g1) / 0.3))
+            if w > 0:
+                out.append((name, side, min(1.0, max(0.0, (t - g0) / max(0.01, g1 - g0))), w))
+        return out
 
     # -- channels ---------------------------------------------------------------------------------------------
     def cam_local(self, t):
@@ -1266,7 +1310,19 @@ class Performer:
         if self.kind == "lead_track":  # S4: the lead turns with the orbit to hold the gaze
             yaw, _ = self.gaze(t)
             twist += 0.38 * max(-0.9, min(0.9, yaw))
-        return (0.0, roll, twist)
+        pitch = 0.0
+        for name, side, u, w in self.body_moves(t):
+            sgn = 1.0 if side == "L" else -1.0
+            if name == "shoulder_roll":      # one shoulder up-back-down: a torso roll with a little twist
+                roll += w * math.radians(5.0) * sgn * math.sin(2 * math.pi * u)
+                twist += w * math.radians(4.0) * sgn * (1 - math.cos(2 * math.pi * u)) / 2
+            elif name == "body_roll":        # chest leads forward, then settles back
+                pitch += w * math.radians(6.0) * math.sin(2 * math.pi * u)
+            elif name == "hair_flip":
+                twist += w * math.radians(6.0) * sgn * math.sin(math.pi * u)
+            elif name == "sway":
+                roll *= 1 + 0.6 * w
+        return (pitch, roll, twist)
 
     def neck_rot(self, t):
         nod = 0.0
@@ -1285,7 +1341,17 @@ class Performer:
             k_yaw = 0.62 if self.kind == "lead_track" else 0.45
             yaw = k_yaw * max(-1.2, min(1.2, yaw_c)) * look
             pitch = lerp(base_down, -0.85 * pitch_c, look)
-        return (pitch + pitch_down, 0.0, yaw)
+        roll = 0.0
+        for name, side, u, w in self.body_moves(t):
+            sgn = 1.0 if side == "L" else -1.0
+            if name == "hair_flip":          # head swings away and back, chin up at the top
+                yaw += w * math.radians(38.0) * sgn * math.sin(math.pi * u)
+                pitch -= w * math.radians(8.0) * math.sin(math.pi * u)
+            elif name == "ooh_face":         # no face on the stand-in: a soft head tilt stands in for it
+                roll += w * math.radians(7.0) * sgn * math.sin(math.pi * u)
+            elif name == "shoulder_roll":
+                roll += w * math.radians(4.0) * sgn * math.sin(2 * math.pi * u)
+        return (pitch + pitch_down, roll, yaw)
 
     def arm_state(self, side, t):
         rest = REST["seat" if self.rig.seated else "stand"]
@@ -1293,9 +1359,9 @@ class Performer:
         if side == "L":
             rt, rp, rpalm = Vector(mirror(rt)), Vector(mirror(rp)), Vector(mirror(rpalm))
         tgt, pole, palm, curl, wsum = rt.copy(), rp.copy(), rpalm.copy(), 0.0, 0.0
-        for (g0, g1, name, gside) in self.gestures:
-            g = GESTURES[name]
-            if not (g.get("both") or gside == side):
+        for (g0, g1, name, gside, gboth) in self.gestures:
+            g = GESTURES.get(name)
+            if g is None or not (gboth or g.get("both") or gside == side):
                 continue
             if t < g0 - 0.05 or t > g1 + g["aout"] + 0.05:
                 continue
@@ -1364,7 +1430,7 @@ class Performer:
         return tgt, pole, palm, curl
 
     def gesture_start(self, name):
-        for (g0, g1, n, s) in self.gestures:
+        for (g0, g1, n, s, b) in self.gestures:
             if n == name:
                 return g0
         return 0.0
@@ -1793,13 +1859,15 @@ def cues_from_shots(shots):
     moves = shots.get("moves") if isinstance(shots.get("moves"), dict) else {}
     takes = shots.get("takes") if isinstance(shots.get("takes"), list) else []
     if not takes:
-        return None, None
-    def score(tk):
-        tid = str(tk.get("id", "")).lower()
-        return (1 if tk.get("song") else 0, 1 if "hero" in tid else 0, -1 if "backup" in tid else 0,
-                len(tk.get("cues") or []))
-    lead = max(takes, key=score)
-    backup = next((tk for tk in takes if "backup" in str(tk.get("id", "")).lower()), None)
+        return None, None, {}
+
+    def tid(tk):
+        return str(tk.get("id", "")).lower()
+    # the lead's motion is the FIRST full-song hero take in file order (hero-1), not the one with the most cues
+    lead = (next((tk for tk in takes if tk.get("song") and "hero" in tid(tk)), None)
+            or next((tk for tk in takes if tk.get("song") and "backup" not in tid(tk)), None) or takes[0])
+    backup = next((tk for tk in takes if "backup" in tid(tk)), None)
+
     def extract(tk):
         out = []
         for c in tk.get("cues") or []:
@@ -1812,9 +1880,17 @@ def cues_from_shots(shots):
             label = (moves.get(mv) or {}).get("label", "") if isinstance(moves.get(mv), dict) else ""
             g = classify_move(mv, label, c.get("text", ""))
             if g:
-                out.append(dict(t=t, dur=float(c.get("dur") or 1.3), move=g, text=label or c.get("text") or mv))
+                side, both = side_from_text(c.get("text", ""))
+                out.append(dict(t=t, dur=float(c.get("dur") or 1.3), move=g, text=label or c.get("text") or mv,
+                                side=side, both=both))
+            else:
+                log(f"  cue {mv!r} at {t} has no previs move; skipped")
         return out
-    return extract(lead), (extract(backup) if backup else None)
+    return extract(lead), (extract(backup) if backup else None), dict(lead_take=tk_id(lead), backup_take=tk_id(backup))
+
+
+def tk_id(tk):
+    return str(tk.get("id", "")) if isinstance(tk, dict) else None
 
 
 def looks_wardrobe(looks):
@@ -1919,8 +1995,13 @@ def build(args):
         p["marker"] = f"{p['key']} {p['tag']} · {MOVE_LABEL.get(p['move'], p['move'])}"
 
     # --- cues ---------------------------------------------------------------------------------------------------
-    lead_cues, backup_cues = cues_from_shots(shots)
-    cue_src = "shots file takes[].cues" if lead_cues else "director canonical plan (fallback)"
+    lead_cues, backup_cues, take_info = cues_from_shots(shots)
+    if lead_cues:
+        cue_src = f"shots file takes[{take_info.get('lead_take')}].cues"
+        if backup_cues:
+            cue_src += f" + takes[{take_info.get('backup_take')}] for the clones"
+    else:
+        cue_src = "director canonical plan (fallback)"
     if not lead_cues:
         lead_cues = fallback_cues(lines, timing["beats"] or beats, downbeats, song_end)
     log(f"hand cues from {cue_src}: " + ", ".join(f"{c['move']}@{c['t']:.2f}" for c in lead_cues))
@@ -2155,9 +2236,9 @@ def build(args):
                                 sway_amp=2.8, nod_amp=4.0)
                 bcues = backup_cues or []
                 if bcues:
-                    for c in bcues:
+                    for c in bcues:   # the flanks mirror each other, whatever hand the take says
                         if t0 <= c["t"] < t1:
-                            pf_.add_gesture(c["t"], c["dur"], c["move"], "L" if left else "R")
+                            pf_.add_gesture(c["t"], c["dur"], c["move"], "L" if left else "R", both=c.get("both", False))
                 else:
                     last_db = max(d for d in downbeats if d < t1)
                     pf_.add_gesture(t0 + 0.3, max(0.5, last_db - t0 - 0.9), "backbeat_snap", "L" if left else "R")
@@ -2167,10 +2248,13 @@ def build(args):
                                 nod_amp=4.0 if rg.seated else 5.5)
                 for c in lead_cues:
                     if t0 <= c["t"] < t1 - 0.2:
-                        pf_.add_gesture(c["t"], min(c["dur"], t1 - c["t"]), c["move"])
+                        pf_.add_gesture(c["t"], min(c["dur"], t1 - c["t"]), c["move"], side=c.get("side"),
+                                        both=c.get("both", False))
             performers.append((key, pf_))
             pf_.bake(max(0, f0 - 2), min(sc.frame_end, f1 + 2))
-        p["cues"] = [dict(t=round(c["t"], 2), move=c["move"], label=GESTURE_LABEL.get(c["move"], c["move"]))
+        p["cues"] = [dict(t=round(c["t"], 2), dur=round(c["dur"], 2), move=c["move"],
+                          label=GESTURE_LABEL.get(c["move"], c["move"]),
+                          hand=("both" if c.get("both") else {"L": "left", "R": "right"}.get(c.get("side"), "")))
                      for c in lead_cues if t0 <= c["t"] < t1 - 0.2]
         log(f"{key} built: {p['title']} frames {f0}-{f1}, camera {move} {lens:.0f}mm, "
             f"{len(rigs)} performer(s), {len(lights)} lights, cues {[c['move'] for c in p['cues']]}")

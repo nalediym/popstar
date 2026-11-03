@@ -748,8 +748,15 @@ export async function render(opts: { edlPath: string; outPath: string; captions?
   if (timing.approximate) warnings.push(`timing: ${timing.warning}; captions use approximate line times`);
   step(0.04, "preflight ok");
 
-  // 3. Scratch dir (outputs/cut/render/): cleaned on success unless --keep
-  const scratch = join(ROOT, "outputs", "cut", "render");
+  // 3. Scratch dir, one per render (outputs/cut/render-<pid>/), so two renders never trample each other.
+  //    Removed on success unless --keep; kept on failure for debugging. Old leftovers (>6 h) are swept.
+  const cutDir = join(ROOT, "outputs", "cut");
+  mkdirSync(cutDir, { recursive: true });
+  for (const d of readdirSync(cutDir)) {
+    if (!/^render-\d+$/.test(d)) continue;
+    try { if (Date.now() - statSync(join(cutDir, d)).mtimeMs > 6 * 3600e3) rmSync(join(cutDir, d), { recursive: true, force: true }); } catch { /* raced */ }
+  }
+  const scratch = join(cutDir, `render-${process.pid}`);
   rmSync(scratch, { recursive: true, force: true });
   mkdirSync(scratch, { recursive: true });
 
@@ -873,7 +880,7 @@ export async function render(opts: { edlPath: string; outPath: string; captions?
   const graph = gph.join(";");
   await Bun.write(join(scratch, "final.graph.txt"), gph.join(";\n"));
   mkdirSync(dirname(opts.outPath), { recursive: true });
-  const tmp = join(dirname(opts.outPath), `.${basename(opts.outPath, extname(opts.outPath))}.partial.mp4`);
+  const tmp = join(dirname(opts.outPath), `.${basename(opts.outPath, extname(opts.outPath))}.partial-${process.pid}.mp4`);
   let lastP = 0;
   const r = await run(["ffmpeg", "-y", "-v", "error", "-nostdin", "-progress", "pipe:1", "-nostats", ...args,
     "-filter_complex", graph, "-map", "[vout]", "-map", "[aout]", "-map_metadata", "-1", "-frames:v", String(plan.total),
@@ -898,9 +905,8 @@ export async function render(opts: { edlPath: string; outPath: string; captions?
   const vs = info.streams.find((s) => s.codec_type === "video")!, as = info.streams.find((s) => s.codec_type === "audio");
   const hasher = new Bun.CryptoHasher("md5");
   hasher.update(await Bun.file(opts.outPath).arrayBuffer());
-  if (!opts.keep) {
-    for (const f of readdirSync(scratch)) if (/^(seg_\d+_.*\.mp4|cap_\d+\.(png|txt)|mask_\w+\.png)$/.test(f)) rmSync(join(scratch, f), { force: true });
-  }
+  if (!opts.keep) rmSync(scratch, { recursive: true, force: true });
+  else log(`kept the scratch files in ${rel(scratch)}`);
   const receipt: Receipt = {
     path: rel(opts.outPath), duration_s: r4(Number(info.format.duration)), fps: r4(rate(vs.r_frame_rate)),
     width: Number(vs.width), height: Number(vs.height), has_audio: !!as, bytes: statSync(opts.outPath).size,

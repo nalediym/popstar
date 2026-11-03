@@ -21,7 +21,7 @@ export function helpText(): string {
   L.push(`  ${p.dim("usage:")} popstar [--project <dir>] <command> [options]        ${p.dim("(bin/popstar, bun tools/popstar.ts, or the plugin's copy)")}`);
   L.push("");
   L.push(`  ${p.amber("commands")}`);
-  const cmds: string[][] = [
+  const cmds: [string, string, string][] = [
     ["status", "[--json] [--song <slug>]", "every stage, its receipts, and the ONE next step"],
     ["next", "[--json] [--song <slug>]", "only the ONE next step"],
     ["doctor", "[--json] [--fast]", "ffmpeg/bun/uv/python/Blender, models, Comfy Cloud, fonts, data; exact fixes"],
@@ -33,7 +33,7 @@ export function helpText(): string {
     ["qa", "<source.mp4> <render.mp4>", "run tools/qa_render.py via uv"],
     ["open", "<recorder|looks|cut|storyboard|previs>", "open the tool or artifact that exists"],
   ];
-  for (const line of table(cmds.map(([c, a, d]) => [p.bold(c), p.dim(a), d]), "    ")) L.push(line);
+  for (const line of table(cmds.map(([c, a, d]) => [c ? p.bold(c) : "", p.dim(a), d]), "    ")) L.push(line);
   L.push("");
   L.push(`  ${p.amber("stages")} ${p.dim("(popstar status shows where you are)")}`);
   for (const line of table([["#", "stage", "tool", "receipt"].map((h) => p.dim(h)), ...STAGES.map(([n, s, t, r]) => [n, p.bold(s), t, p.dim(r)])], "    ")) L.push(line);

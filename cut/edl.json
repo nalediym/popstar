@@ -95,14 +95,14 @@
       },
       "punch_in_at": [],
       "transition_in": {
-        "type": "dissolve",
-        "frames": 10
+        "type": "cut",
+        "frames": 0
       },
       "clones": {
         "on": false,
         "mode": "triptych"
       },
-      "grade_override": null,
+      "grade_override": "amber_soft",
       "note": "3 s claymation restyle at half speed, looping. Stand-in for the handheld float."
     },
     {

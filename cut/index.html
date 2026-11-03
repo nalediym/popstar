@@ -28,7 +28,7 @@ input[type=checkbox] { accent-color: var(--amber); }
 input[type=range] { accent-color: var(--amber); width: 120px; }
 input[type=color] { width: 34px; height: 22px; padding: 0; border: 1px solid var(--line2); background: none; }
 
-header { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--line); background: #09090c; min-width: 0; }
+header { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--line); background: #09090c; min-width: 0; flex-wrap: wrap; row-gap: 6px; }
 .brand { font-weight: 800; letter-spacing: .18em; color: var(--amber); white-space: nowrap; }
 .brand small { color: var(--dim); letter-spacing: .04em; font-weight: 400; margin-left: 8px; }
 .spacer { flex: 1; }
@@ -544,11 +544,14 @@ function syncMedia(t, f) {
       const st = C.sourceTime(sc, S.playing ? t : f / fps(), D);
       const target = st.s;
       if (S.playing && (st.state === "play" || st.state === "loop")) {
-        if (Math.abs(v.playbackRate - sc.source.rate) > 1e-3) v.playbackRate = sc.source.rate;
         if (v.paused) v.play().catch(() => {});
-        let d = Math.abs(v.currentTime - target);
-        if (st.state === "loop" || v.loop) d = Math.min(d, Math.abs(D - d));
-        if (d > 0.08 && !v.seeking) v.currentTime = target;
+        // err > 0: the video is behind the song. Big drift: seek (a little ahead, seeks take ~50 ms).
+        // Small drift: nudge playbackRate, so there are no visible jumps.
+        let err = target - v.currentTime;
+        if (v.loop && Number.isFinite(D)) { if (err > D / 2) err -= D; if (err < -D / 2) err += D; }
+        const rate = sc.source.rate;
+        if (Math.abs(err) > 0.08) { if (!v.seeking) { v.currentTime = Math.min(target + 0.05 * rate, Number.isFinite(D) ? D - 0.02 : target); v.playbackRate = rate; } }
+        else { const want = Math.abs(err) > 0.03 ? rate * (1 + C.clamp(err * 1.5, -0.08, 0.08)) : rate; if (Math.abs(v.playbackRate - want) > 1e-3) v.playbackRate = want; }
       } else {
         if (!v.paused) v.pause();
         if (Math.abs(v.currentTime - target) > 0.5 / 24 && !v.seeking) v.currentTime = target;
@@ -687,16 +690,19 @@ function drawStage(f) {
 // ---------------------------------------------------------------------------------------------------------
 // the loop
 // ---------------------------------------------------------------------------------------------------------
-let lastClockF = -1;
-function tick() {
-  requestAnimationFrame(tick);
-  if (!S.edl || !S.plan) return;
-  if (S.mode !== "live") return;
+let lastClockF = -1, lastStepAt = 0;
+function step() {
+  lastStepAt = performance.now();
+  if (!S.edl || !S.plan || S.mode !== "live") return;
   const t = curT(), f = frameOf(t);
   syncMedia(t, f);
   if (f !== lastDrawn || dirty) { dirty = false; drawStage(f); }
   if (f !== lastClockF) { lastClockF = f; updateClock(t, f); drawTimeline(); }
 }
+function tick() { requestAnimationFrame(tick); step(); }
+// rAF stops when the window is occluded or a pane throttles it; the song keeps playing, so keep the
+// videos locked to it from a timer until rAF comes back.
+setInterval(() => { if (S.playing && performance.now() - lastStepAt > 150) step(); }, 100);
 function updateClock(t, f) {
   $("clock").innerHTML = `${fmtT(f / fps())} <span>/ ${fmtT(S.edl.duration_s)}</span>`;
   const db = downbeatsV(), bt = beatsV();
@@ -839,7 +845,7 @@ function hideTip() { $("tip").style.display = "none"; }
 tl.addEventListener("pointerdown", (e) => {
   if (!S.edl) return;
   const r = tl.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
-  tl.setPointerCapture(e.pointerId);
+  try { tl.setPointerCapture(e.pointerId); } catch { /* synthetic or already-released pointer */ }
   const b = hitBoundary(x, y);
   if (b != null) { TL.drag = { kind: "cut", i: b, snap: null, moved: false }; return; }
   const [y0, y1] = TL.lanes.scenes;
