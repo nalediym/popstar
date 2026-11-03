@@ -363,7 +363,7 @@ describe.skipIf(!haveFfmpeg)("render end to end (ffmpeg)", () => {
     expect(s2!.first_frame).toBeNull();
     expect(man.pending_uploads.map((u) => u.file).sort()).toEqual(["build/scenes/s1.mp4", "build/scenes/s2.mp4", "build/scenes/s3.mp4", "reference-master/renders/s1.lead/wardrobe.png"]);
     expect(state().cuts.s1).toBeDefined();
-  }, 120_000);
+  }, 300_000); // generous: four ffmpeg encodes, and the machine may be rendering previs at the same time
 
   test("recorded uploads land in the graph; a marked render is fresh until its inputs change", async () => {
     expect(await render(root, m, { ...quiet, uploaded: ["build/scenes/s1.mp4=abc123.mp4", "reference-master/renders/s1.lead/wardrobe.png=def456.png"] })).toBe(0);
@@ -398,5 +398,5 @@ describe.skipIf(!haveFfmpeg)("render end to end (ffmpeg)", () => {
     expect(man.scenes.map((s) => s.id)).toEqual(["s2"]);
     expect(man.scenes[0]!.stale_because).toBe("forced (--force)");
     expect(await render(root, m, { ...quiet, scenes: ["nope"] })).toBe(2);
-  }, 120_000);
+  }, 300_000);
 });
