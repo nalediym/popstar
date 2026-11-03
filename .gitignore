@@ -1,0 +1,23 @@
+# Personal media stays private by default (docs/architecture.md, R5).
+# The performer's footage, face renders and reference images never ship with a shared repo.
+clips/
+outputs/
+reference-master/refs/
+reference-master/renders/
+reference-master/tests/
+reference-master/queue.json
+reference-master/looks.backup.json
+cut/edl.backup.json
+
+# Song drafts and cut-down test windows (the locked song stays shareable)
+songs/*_draft*.mp3
+songs/*-[0-9]*s.mp3
+
+# Build state, caches, local config
+build/
+node_modules/
+.DS_Store
+.claude/settings.local.json
+__pycache__/
+*.pyc
+*.blend1

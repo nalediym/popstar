@@ -1,0 +1,77 @@
+{
+  "checked_at": "2026-11-02T23:58:11.166438+00:00",
+  "desktop_app": "/Applications/Comfy Desktop.app",
+  "desktop_version": "1.1.8",
+  "installer": "/Users/naledi/Downloads/Comfy Desktop 1.1.8 - arm64.dmg",
+  "official_download": "https://download.comfy.org/mac/dmg/arm64",
+  "signature_verification": "codesign passed; spctl accepted as Notarized Developer ID",
+  "instance_name": "Higgsfield Hackathon",
+  "install_path": "/Users/naledi/ComfyUI-Installs/Higgsfield Hackathon",
+  "instance_status": "installed",
+  "local_url": "http://127.0.0.1:8188",
+  "comfyui_version": "0.43.2",
+  "python_version": "3.13.12",
+  "pytorch_version": "2.12.1",
+  "gpu_backend": "mps",
+  "machine": {
+    "chip": "Apple M3",
+    "memory_gib": 16,
+    "macos": "27.2"
+  },
+  "models_downloaded": false,
+  "verification": {
+    "frontend": "Loaded in Comfy Desktop",
+    "system_stats": "passed",
+    "node_registry": "passed",
+    "model_free_workflow": "passed",
+    "preview_png": "64x64 PNG served successfully"
+  },
+  "generation_note": "A model-free workflow was verified. No model-based image or video generation has been tested.",
+  "shared_models": "/Users/naledi/ComfyUI-Shared/models",
+  "shared_output": "/Users/naledi/ComfyUI-Shared/output",
+  "logs": "/Users/naledi/ComfyUI-Installs/Higgsfield Hackathon/logs/comfyui.log",
+  "hugging_face_tools": {
+    "verified_at": "2026-11-03T00:03:16.070520+00:00",
+    "hf": {
+      "path": "/Users/naledi/.local/bin/hf",
+      "install_method": "uv tool install hf",
+      "version": "2.4.0",
+      "hub_version": "2.4.0",
+      "xet_backend_version": "1.8.0"
+    },
+    "git_xet": {
+      "path": "/opt/homebrew/bin/git-xet",
+      "version": "git-xet 0.2.1",
+      "global_transfer_agent_enabled": true
+    },
+    "git_lfs": {
+      "path": "/opt/homebrew/bin/git-lfs",
+      "version": "git-lfs/3.8.0 (GitHub; darwin arm64; go 1.27.0)",
+      "already_installed": true
+    },
+    "authentication": "Not logged in; public downloads work. Use hf auth login for private or gated models.",
+    "verification": "Downloaded and parsed public openai-community/gpt2 config.json (665 bytes). hf_xet import succeeded.",
+    "sources": [
+      "https://huggingface.co/docs/huggingface_hub/guides/cli",
+      "https://huggingface.co/docs/hub/xet/using-xet-storage"
+    ]
+  },
+  "comfy_cloud": {
+    "verified_at": "2026-11-03T00:29:52.636844+00:00",
+    "mcp_server_name": "comfy-cloud",
+    "mcp_url": "https://cloud.comfy.org/mcp",
+    "workspace": "NYC Build Night",
+    "workspace_role": "Member",
+    "authentication": "OAuth; NYC Build Night selected in consent screen",
+    "connection_verified": "Read-only get_server_info call succeeded against production Comfy Cloud",
+    "server_version": "0.80.0",
+    "discovered_tools": 42,
+    "plan": "Enterprise",
+    "renewal_date": "2026-12-02",
+    "shared_credits_at_ui_check": 412291,
+    "credit_note": "Shared workspace balance; changes as event members generate. Not a personal credit grant.",
+    "generation_started_during_setup": false,
+    "config_file": "/Users/naledi/.codex/config.toml",
+    "screenshot": "/Users/naledi/.codex/visualizations/2026/11/02/01a19eaa-c4c7-76a3-9f14-1e3dbfd4c755/comfy-cloud-nyc-workspace.png"
+  }
+}

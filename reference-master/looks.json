@@ -1,0 +1,185 @@
+{
+  "version": 1,
+  "palette": ["#7a4a2a", "#d9622b", "#ff9f43", "#ffb347"],
+  "identity_lock": "the same young Black woman: her exact face, rich deep brown skin with warm undertones and a luminous dewy sheen, copper-red hair pulled back, small white earbuds",
+  "scenes": [
+    {
+      "id": "s1-intro",
+      "title": "Cozy couch intro",
+      "start": 0,
+      "end": 8,
+      "set": "a cozy living room at night, tan suede couch, amber fairy lights, candles, a steaming mug of tea",
+      "light": "low warm key from a lamp at camera left, candle glow, deep shadows",
+      "characters": ["lead"]
+    },
+    {
+      "id": "s2-verse",
+      "title": "Living-room jam",
+      "start": 8,
+      "end": 16,
+      "set": "the same living room, laptop screen glowing with scrolling logs, holiday garland",
+      "light": "soft warm key, gold bounce, amber rim on her hair",
+      "characters": ["lead"]
+    },
+    {
+      "id": "s3-chorus",
+      "title": "Holiday stage",
+      "start": 16,
+      "end": 24,
+      "set": "an intimate late-90s R&B stage, Tuscan brown velvet curtains, fairy-light bokeh, haze",
+      "light": "large soft warm key from camera left, gold bounce, amber rim through haze",
+      "characters": ["lead"]
+    },
+    {
+      "id": "s4-harmony",
+      "title": "Girl group of me",
+      "start": 24,
+      "end": 32,
+      "set": "the same stage, wider, three mic stands",
+      "light": "amber wash, backlit haze, warm specular kickers",
+      "characters": ["lead", "backup-left", "backup-right"]
+    }
+  ],
+  "looks": [
+    {
+      "id": "s1-intro.lead",
+      "scene": "s1-intro",
+      "character": "lead",
+      "wardrobe": "an oversized cream cable-knit sweater slipping off one shoulder and small gold hoop earrings",
+      "props": "",
+      "emotion": "devagar-slow-blink",
+      "expression": {"rotate_pitch": -4, "rotate_yaw": 0, "rotate_roll": 6, "blink": 4, "eyebrow": 0, "wink": 0, "pupil_x": 0, "pupil_y": -6, "aaa": 0, "eee": 0, "woo": 0, "smile": 0.6},
+      "intensity": 100,
+      "source_frame": "reference-master/tests/source_frame.png",
+      "renders": {"wardrobe": null, "expression": null},
+      "refs": [],
+      "status": "draft",
+      "notes": ""
+    },
+    {
+      "id": "s2-verse.lead",
+      "scene": "s2-verse",
+      "character": "lead",
+      "wardrobe": "a fitted burnt-orange ribbed long-sleeve top and low-slung Tuscan-brown satin cargos, a thin gold chain",
+      "props": "",
+      "emotion": "soft-smile",
+      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 4, "wink": 0, "pupil_x": 0, "pupil_y": 0, "aaa": 0, "eee": 0, "woo": 0, "smile": 1.2},
+      "intensity": 100,
+      "source_frame": "reference-master/tests/source_frame.png",
+      "renders": {"wardrobe": null, "expression": null},
+      "refs": [],
+      "status": "draft",
+      "notes": ""
+    },
+    {
+      "id": "s3-chorus.lead",
+      "scene": "s3-chorus",
+      "character": "lead",
+      "wardrobe": "a burnt-orange silk slip dress with thin straps and small gold hoop earrings",
+      "props": "",
+      "emotion": "soft-smile",
+      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 4, "wink": 0, "pupil_x": 0, "pupil_y": 0, "aaa": 0, "eee": 0, "woo": 0, "smile": 1.2},
+      "intensity": 100,
+      "source_frame": "reference-master/tests/source_frame.png",
+      "renders": {"wardrobe": "reference-master/tests/wardrobe_chorus-stage.png", "expression": null},
+      "refs": [],
+      "status": "wardrobe-done",
+      "notes": ""
+    },
+    {
+      "id": "s4-harmony.lead",
+      "scene": "s4-harmony",
+      "character": "lead",
+      "wardrobe": "a warm amber satin two-piece, a cropped halter top and matching wide-leg trousers, with gold hoop earrings",
+      "props": "",
+      "emotion": "sing-aaa",
+      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 6, "wink": 0, "pupil_x": 0, "pupil_y": 0, "aaa": 70, "eee": 0, "woo": 0, "smile": 0},
+      "intensity": 100,
+      "source_frame": "reference-master/tests/source_frame.png",
+      "renders": {"wardrobe": null, "expression": null},
+      "refs": [],
+      "status": "draft",
+      "notes": "The lead holds the gaze while the clones play."
+    },
+    {
+      "id": "s4-harmony.backup-left",
+      "scene": "s4-harmony",
+      "character": "backup-left",
+      "wardrobe": "a matching satin two-piece in deeper burnt amber, one shade darker than the lead's: cropped halter top, wide-leg trousers, small gold hoops, girl-group styling",
+      "props": "",
+      "emotion": "playful-wink",
+      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 2, "wink": 18, "pupil_x": 0, "pupil_y": 0, "aaa": 0, "eee": 0, "woo": 0, "smile": 1},
+      "intensity": 100,
+      "source_frame": "reference-master/tests/source_frame.png",
+      "renders": {"wardrobe": null, "expression": null},
+      "refs": [],
+      "status": "draft",
+      "notes": "Clone of the lead (same identity lock), stage left."
+    },
+    {
+      "id": "s4-harmony.backup-right",
+      "scene": "s4-harmony",
+      "character": "backup-right",
+      "wardrobe": "a matching satin two-piece in deeper burnt amber, one shade darker than the lead's: cropped halter top, wide-leg trousers, small gold hoops, girl-group styling",
+      "props": "",
+      "emotion": "playful-wink",
+      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 2, "wink": 18, "pupil_x": 0, "pupil_y": 0, "aaa": 0, "eee": 0, "woo": 0, "smile": 1},
+      "intensity": 100,
+      "source_frame": "reference-master/tests/source_frame.png",
+      "renders": {"wardrobe": null, "expression": null},
+      "refs": [],
+      "status": "draft",
+      "notes": "Clone of the lead (same identity lock), stage right."
+    }
+  ],
+  "emotions": {
+    "neutral": {
+      "label": "Neutral",
+      "emoji": "😐",
+      "note": "Her resting face. Let the light and the song do the work.",
+      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 0, "wink": 0, "pupil_x": 0, "pupil_y": 0, "aaa": 0, "eee": 0, "woo": 0, "smile": 0}
+    },
+    "soft-smile": {
+      "label": "Soft smile",
+      "emoji": "😊",
+      "note": "Warm closed-mouth smile with lifted brows: the cozy hook.",
+      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 4, "wink": 0, "pupil_x": 0, "pupil_y": 0, "aaa": 0, "eee": 0, "woo": 0, "smile": 1.2}
+    },
+    "devagar-slow-blink": {
+      "label": "Devagar",
+      "emoji": "😌",
+      "note": "Lazy head tilt and a half smile, slowly. Blink +4 keeps her eyes open; drag blink negative for heavy lids.",
+      "expression": {"rotate_pitch": -4, "rotate_yaw": 0, "rotate_roll": 6, "blink": 4, "eyebrow": 0, "wink": 0, "pupil_x": 0, "pupil_y": -6, "aaa": 0, "eee": 0, "woo": 0, "smile": 0.6}
+    },
+    "sultry-gaze": {
+      "label": "Sultry gaze",
+      "emoji": "😏",
+      "note": "Eyes slide off the lens, brows low, the smallest smile: come closer.",
+      "expression": {"rotate_pitch": 0, "rotate_yaw": 8, "rotate_roll": 0, "blink": 0, "eyebrow": -3, "wink": 0, "pupil_x": 8, "pupil_y": -3, "aaa": 0, "eee": 0, "woo": 0, "smile": 0.4}
+    },
+    "playful-wink": {
+      "label": "Playful wink",
+      "emoji": "😉",
+      "note": "A one-eye wink on a full smile: the in-joke.",
+      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 2, "wink": 18, "pupil_x": 0, "pupil_y": 0, "aaa": 0, "eee": 0, "woo": 0, "smile": 1}
+    },
+    "ooh": {
+      "label": "Ooh",
+      "emoji": "😮",
+      "note": "Rounded lips on the backing 'ooh', brows lifted.",
+      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 8, "wink": 0, "pupil_x": 0, "pupil_y": 0, "aaa": 0, "eee": 0, "woo": 14, "smile": 0}
+    },
+    "sing-aaa": {
+      "label": "Sing aaa",
+      "emoji": "😃",
+      "note": "Open-mouth vowel on the chorus line, brows up.",
+      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 6, "wink": 0, "pupil_x": 0, "pupil_y": 0, "aaa": 70, "eee": 0, "woo": 0, "smile": 0}
+    },
+    "longing": {
+      "label": "Longing",
+      "emoji": "🥺",
+      "note": "Brows knit up, eyes drift, a barely-there smile.",
+      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 10, "wink": 0, "pupil_x": 0, "pupil_y": 6, "aaa": 0, "eee": 0, "woo": 0, "smile": 0.2}
+    }
+  }
+}

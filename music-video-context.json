@@ -1,0 +1,61 @@
+{
+  "updated_at": "2026-11-03T00:58:59.681854+00:00",
+  "user_confirmed": {
+    "music": "Pagode blended with 1990s R&B",
+    "mood": "Cozy girl, cozy games, approaching holiday season",
+    "palette": [
+      "Tuscan brown",
+      "orange",
+      "burnt orange",
+      "warm amber"
+    ],
+    "lyrics_topic": "AI-agent harness engineering",
+    "vocal_language": "English with a little Portuguese",
+    "song_provider": "ACE-Step 1.5 XL Turbo on Comfy Cloud (open weights; replaced Suno)",
+    "style_sequence": "Art styles inspired by Higgsfield, changing beat by beat",
+    "input_mode": "Continuous live camera feed, transformed as the person moves"
+  },
+  "song_status": "LOCKED 2026-11-02: songs/in-the-loop-devagar.mp3 — ACE-Step 1.5 XL Turbo (open weights), 32s, draft 1",
+  "working_title": "In the Loop (Devagar)",
+  "proposed_architecture": [
+    "Browser camera capture",
+    "WebRTC transport",
+    "Isolated NVIDIA GPU ComfyStream worker",
+    "Live image-to-image style workflow",
+    "WebRTC return video",
+    "Music beat controller with measured latency alignment"
+  ],
+  "verified": {
+    "local_comfyui": "Installed and reachable on Mac M3 with16GiB shared memory",
+    "cloud_workspace": "NYC Build Night, OAuth authenticated, Enterprise plan",
+    "cloud_camera_nodes": [
+      "WebcamCapture",
+      "LoadImage",
+      "LoadVideo",
+      "WanAnimate2ToVideo"
+    ],
+    "webcam_node_behavior": "Captures a still on queue; does not supply continuous streaming inference",
+    "comfystream": "Existing WebRTC webcam processing implementation; documented accelerated backend uses NVIDIA CUDA/TensorRT",
+    "cloud_comfystream_catalog_matches": 0,
+    "existing_comfy_api_deployments": 1,
+    "existing_deployment_note": "One ready job-based deployment is visible; no streaming capability verified or changes made"
+  },
+  "unresolved": [
+    "Event-provided streaming GPU endpoint or hosting arrangement",
+    "Whether event credits cover a compatible streaming worker",
+    "End-to-end latency and beat-switch accuracy",
+    "Exact complete Higgsfield art-style preset list"
+  ],
+  "boundaries": {
+    "camera_activated": false,
+    "new_paid_gpu_started": false,
+    "live_ai_render_verified": false,
+    "higgsfield_catalog": "Connector tools were advertised but get_profile dispatch returned Unknown tool; no authenticated catalog retrieved"
+  },
+  "sources": [
+    "https://github.com/livepeer/comfystream",
+    "https://docs.comfystream.org/technical/get-started/introduction",
+    "https://docs.comfystream.org/technical/get-started/install",
+    "https://github.com/livepeer/comfystream/blob/main/server/app.py"
+  ]
+}

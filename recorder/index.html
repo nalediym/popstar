@@ -1,0 +1,1608 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coach Recorder</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='38' fill='none' stroke='%23ff9f43' stroke-width='16'/%3E%3Ccircle cx='50' cy='50' r='12' fill='%23d9622b'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #0d0d10; --panel: #131318; --panel-2: #1b1b22; --line: #2a2a33;
+    --fg: #f4efe8; --dim: #a39e99; --faint: #6a666e;
+    --amber: #ff9f43; --burnt: #d9622b; --amber-soft: #ffd3a3;
+    --rec: #ff3b5c; --ok: #3bffa0; --bad: #ff5a4f;
+    --plate: rgba(10, 9, 12, .6); --plate-strong: rgba(10, 9, 12, .82);
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --panel-w: 340px;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.45 var(--mono); overflow: hidden; -webkit-font-smoothing: antialiased; }
+  .muted { color: var(--dim); }
+
+  /* ---------- layout: setlist panel | stage, bottom bar under both ---------- */
+  .app { position: fixed; inset: 0; display: grid; grid-template-columns: var(--panel-w) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; transition: grid-template-columns .35s ease; }
+  /* while performing or reviewing, the stage gets the whole width */
+  .app.perform, .app.no-panel, .app[data-mode="review"] { grid-template-columns: 0px minmax(0, 1fr); }
+
+  .panel { grid-column: 1; grid-row: 1; min-width: 0; overflow: hidden; background: var(--panel); border-right: 1px solid var(--line); }
+  .app.perform .panel, .app.no-panel .panel, .app[data-mode="review"] .panel { border-right-color: transparent; }
+  .panel-inner { width: var(--panel-w); height: 100%; overflow-y: auto; padding: 18px 18px 32px; display: flex; flex-direction: column; gap: 22px; }
+
+  .stage-wrap { grid-column: 2; grid-row: 1; min-width: 0; min-height: 0; overflow: hidden; container-type: size; display: grid; place-items: center; background: #000; }
+  /* The largest 16:9 box that fits (or the camera's real aspect once it is known). Text sizes are in cqw = % of stage width. */
+  .stage { --ar: 16 / 9; position: relative; width: min(100cqw, calc(100cqh * var(--ar))); aspect-ratio: var(--ar); container-type: inline-size; overflow: hidden;
+           background: radial-gradient(ellipse at 50% 42%, #1d1712, #060607 72%); }
+  .cam, #skel { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .cam { object-fit: contain; }
+  .stage.mirror .mirrorable { transform: scaleX(-1); }
+  #skel { pointer-events: none; opacity: 0; transition: opacity .2s; }
+  .stage.show-skel #skel { opacity: 1; }
+
+  /* ---------- framing guide (G) ---------- */
+  .guide { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .25s; }
+  .stage.show-guide .guide { opacity: 1; }
+  .guide .box { position: absolute; left: 30%; right: 30%; top: 5%; bottom: -1px; border: 1px dashed rgba(255, 211, 163, .24); border-radius: 22% 22% 0 0 / 9% 9% 0 0; }
+  .guide .mid { position: absolute; left: 50%; top: 0; bottom: 0; border-left: 1px dashed rgba(255, 211, 163, .13); }
+  .guide .eyes { position: absolute; left: 33%; right: 33%; top: 27%; border-top: 1px dotted rgba(255, 211, 163, .16); }
+  .guide span { position: absolute; left: 50%; transform: translateX(-50%); font-size: clamp(9px, .95cqw, 14px); letter-spacing: .14em; color: rgba(255, 211, 163, .34); text-transform: uppercase; }
+  .guide .lt { top: calc(5% + .4cqw); } .guide .le { top: calc(27% + .3cqw); } .guide .lb { bottom: 1.3cqw; }
+
+  /* ---------- overlay (never mirrored, never recorded) ---------- */
+  .ov { position: absolute; inset: 0; pointer-events: none; }
+  .ov::before, .ov::after { content: ""; position: absolute; left: 0; right: 0; opacity: 0; transition: opacity .4s; }
+  .ov::before { top: 0; height: 48%; background: linear-gradient(rgba(0, 0, 0, .52), rgba(0, 0, 0, 0)); }
+  .ov::after { bottom: 0; height: 42%; background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, .5)); }
+  .app.running .ov::before, .app.running .ov::after { opacity: 1; }
+  .plate { background: var(--plate); border-radius: .22em; padding: .03em .3em .07em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+
+  .top { position: absolute; left: 1.4cqw; right: 1.4cqw; top: 1.3cqw; display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 1.2cqw; }
+  .chips { display: flex; flex-direction: column; align-items: flex-start; gap: .55cqw; }
+  .chip { font-size: clamp(11px, 1.2cqw, 20px); letter-spacing: .1em; text-transform: uppercase; padding: .28em .8em; border-radius: 999px; background: var(--plate-strong); border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
+  .chip.rec { color: #fff; background: rgba(255, 59, 92, .92); border-color: transparent; font-weight: 700; text-transform: none; }
+  .chip.rec::before { content: ""; display: inline-block; width: .62em; height: .62em; margin-right: .55em; border-radius: 50%; background: #fff; animation: blink 1s steps(2, start) infinite; }
+  .chip.rehearse { color: var(--amber); border-color: rgba(255, 159, 67, .5); }
+  .chip.pose.off { color: var(--amber-soft); border-color: rgba(255, 159, 67, .4); }
+
+  .banner { justify-self: center; max-width: 58cqw; text-align: center; font-size: clamp(14px, 2.1cqw, 42px); font-weight: 800; letter-spacing: .03em; line-height: 1.2; color: var(--amber);
+            background: var(--plate-strong); border: 1px solid rgba(255, 159, 67, .4); border-radius: .55em; padding: .35em .9em; opacity: 0; transform: translateY(-.4em); transition: opacity .3s, transform .3s; }
+  .banner.show { opacity: 1; transform: none; }
+  .banner small { display: block; margin-top: .2em; font-size: .62em; font-weight: 500; color: var(--amber-soft); letter-spacing: 0; }
+
+  .hud { justify-self: end; display: flex; flex-direction: column; align-items: flex-end; gap: .3cqw; padding: .7cqw 1.1cqw; border-radius: 1cqw; background: var(--plate); opacity: 0; transition: opacity .3s; }
+  .app.running .hud { opacity: 1; }
+  .hud-row { display: flex; align-items: baseline; gap: .9cqw; }
+  .dots { display: flex; align-items: center; gap: 1cqw; height: 2.2cqw; }
+  .dot { width: 1.25cqw; height: 1.25cqw; border-radius: 50%; background: rgba(255, 255, 255, .2); transform: scale(var(--s, 1)); }
+  .dot.down { width: 1.7cqw; height: 1.7cqw; }
+  .dot.on { background: var(--amber); box-shadow: 0 0 1.4cqw rgba(255, 159, 67, .85); }
+  .dot.down.on { background: #ffb766; }
+  .hud-meta { font-size: clamp(10px, 1.3cqw, 22px); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
+  .hud-left { font-size: clamp(13px, 1.75cqw, 32px); font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .lyrics { position: absolute; left: 4cqw; right: 4cqw; top: 8.6cqw; display: flex; flex-direction: column; align-items: center; gap: .7cqw; text-align: center; }
+  .ly-cur { font-size: clamp(28px, 4.5cqw, 110px); font-weight: 800; line-height: 1.14; letter-spacing: -.01em; text-wrap: balance; filter: drop-shadow(0 .12em .3em rgba(0, 0, 0, .55));
+            opacity: 0; transform: translateY(.18em); transition: opacity .22s, transform .22s; }
+  .ly-cur.show { opacity: 1; transform: none; }
+  .ly-cur.upcoming { opacity: .6; }
+  .ly-cur.adlib { font-style: italic; font-weight: 600; }
+  /* karaoke sweep: each word fills amber from left to right over [start, end] */
+  .ly-cur .w { background-image: linear-gradient(90deg, var(--amber) 0 var(--p, 0%), #fff var(--p, 0%) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; }
+  .countin { display: none; font-size: clamp(18px, 3.4cqw, 72px); font-weight: 800; color: #fff; }
+  .countin.show { display: block; }
+  .countin span { display: inline-block; opacity: .3; }
+  .countin span.past { opacity: .16; }
+  .countin span.on { opacity: 1; color: var(--amber); animation: pop .35s ease-out; }
+  .countin i, .next-move i { font-style: normal; opacity: .35; margin: 0 .3em; }
+  .ly-next { font-size: clamp(15px, 2.4cqw, 58px); font-weight: 600; line-height: 1.2; color: rgba(255, 255, 255, .58); text-wrap: balance; opacity: 0; transition: opacity .25s; }
+  .ly-next.show { opacity: 1; }
+  .ly-next .plate { background: rgba(10, 9, 12, .42); }
+  .emote { font-size: clamp(14px, 2.15cqw, 46px); font-style: italic; color: var(--amber-soft); opacity: 0; transition: opacity .3s; }
+  .emote.show { opacity: 1; }
+
+  /* bottom column, stacked from the bottom up so nothing overlaps: warning · NEXT · move card · ready plate */
+  .moves { position: absolute; left: 50%; bottom: 3.4cqw; width: min(84cqw, 100%); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: .9cqw; }
+  .warning, .next-move, .card { display: none; }
+  .app[data-mode="review"] .moves { display: none; }
+  .warning { align-items: center; gap: .55em; max-width: 100%; font-size: clamp(15px, 2.3cqw, 50px); font-weight: 800; line-height: 1.2; color: #fff; white-space: nowrap;
+             padding: .42em 1em; border-radius: .7em; background: rgba(30, 15, 6, .9); border: 2px solid var(--amber); box-shadow: 0 0 3cqw rgba(0, 0, 0, .6); }
+  .warning.show { display: flex; animation: rise .22s ease-out; }
+  .warning.bad { border-color: var(--bad); background: rgba(44, 7, 9, .92); }
+  .warning .wi { font-size: 1.15em; }
+  .next-move { font-size: clamp(13px, 2.15cqw, 46px); font-weight: 600; white-space: nowrap; background: var(--plate-strong); border-radius: .6em; padding: .32em .85em; }
+  .next-move.show { display: block; animation: rise .2s ease-out; }
+  .next-move .k { color: var(--amber); font-weight: 800; letter-spacing: .1em; margin-right: .5em; }
+  .next-move .in { color: var(--dim); margin: 0 .5em; }
+  .next-move .n { display: inline-block; opacity: .32; }
+  .next-move .n.past { opacity: .16; }
+  .next-move .n.on { opacity: 1; color: var(--amber); font-weight: 800; transform: scale(1.3); }
+  .card { position: relative; overflow: hidden; grid-template-columns: auto minmax(0, 1fr); column-gap: 1.7cqw; align-items: center; text-align: left; min-width: 42cqw; max-width: 100%;
+          padding: 1.2cqw 2.2cqw 1.5cqw; border-radius: 1.4cqw; background: var(--plate-strong); border: 2px solid rgba(255, 159, 67, .55); }
+  .card.show { display: grid; animation: rise .18s ease-out; }
+  .card.show.flash { animation: flash .6s ease-out; }
+  .card .ic { grid-row: span 3; font-size: clamp(36px, 5.8cqw, 128px); line-height: 1; }
+  .card .lb { font-size: clamp(26px, 3.5cqw, 84px); font-weight: 800; line-height: 1.05; color: var(--amber); }
+  .card .hw { font-size: clamp(16px, 2.3cqw, 54px); line-height: 1.25; margin-top: .25em; }
+  .card .ex { font-size: clamp(12px, 1.55cqw, 34px); color: var(--dim); margin-top: .35em; }
+  .card .life { position: absolute; left: 0; bottom: 0; width: 100%; height: .45cqw; background: var(--amber); opacity: .85; transform-origin: left; transform: scaleX(var(--life, 1)); }
+
+  .center { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; text-align: center; pointer-events: none; }
+  .center .sub { font-size: clamp(14px, 2cqw, 40px); letter-spacing: .2em; text-transform: uppercase; color: var(--amber-soft); }
+  .center .big { font-size: clamp(90px, 19cqw, 420px); font-weight: 800; line-height: 1; color: #fff; text-shadow: 0 0 4cqw rgba(0, 0, 0, .7); animation: pop .5s ease-out; }
+  .center .hint { font-size: clamp(12px, 1.5cqw, 28px); color: var(--dim); margin-top: 1cqw; }
+
+  .ready { font-size: clamp(12px, 1.6cqw, 30px); white-space: nowrap; padding: .55em 1.1em; border-radius: .8em; background: var(--plate-strong); border: 1px solid var(--line); }
+  .ready b { color: var(--amber); }
+  .app.running .ready, .app[data-mode="review"] .ready, .app[data-mode="countdown"] .ready { display: none; }
+
+  .prog { position: absolute; left: 0; right: 0; bottom: 0; height: .5cqw; background: rgba(255, 255, 255, .08); opacity: 0; transition: opacity .3s; }
+  .app.running .prog { opacity: 1; }
+  .prog .fill { height: 100%; background: linear-gradient(90deg, var(--burnt), var(--amber)); transform-origin: left; transform: scaleX(var(--prog, 0)); }
+  .prog .mk { position: absolute; bottom: 0; width: 2px; height: 100%; background: rgba(255, 255, 255, .4); }
+  .prog .mk.mv { width: .4cqw; height: 180%; border-radius: 1px; background: var(--amber-soft); }
+  .skel-cap { position: absolute; right: 1.4cqw; bottom: 1.4cqw; font-size: clamp(10px, 1.05cqw, 16px); letter-spacing: .1em; text-transform: uppercase; color: rgba(255, 211, 163, .55); opacity: 0; }
+  .stage.show-skel .skel-cap { opacity: 1; }
+
+  .toast { position: absolute; left: 1.4cqw; bottom: 2cqw; font-size: clamp(12px, 1.35cqw, 22px); padding: .45em .9em; border-radius: .6em; background: var(--plate-strong); border: 1px solid var(--line); color: var(--amber-soft); opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+
+  /* camera call-to-action (before permission) */
+  .cta { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 1.3cqw; text-align: center; pointer-events: none; padding: 4cqw; }
+  .cta h1 { margin: 0; font-size: clamp(20px, 3.2cqw, 60px); font-weight: 800; }
+  .cta h1 em { font-style: normal; color: var(--amber); }
+  .cta p { margin: 0; max-width: 54cqw; color: var(--dim); font-size: clamp(12px, 1.45cqw, 24px); }
+  .cta button { pointer-events: auto; font-size: clamp(15px, 1.8cqw, 30px); padding: .7em 1.5em; }
+  .app.has-cam .cta, .app.perform .cta, .app[data-mode="review"] .cta { display: none; }
+
+  /* review card (after a take) */
+  .review { position: absolute; inset: 2.6cqw; display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 2.2cqw; align-items: center; padding: 2.2cqw;
+            border-radius: 1.4cqw; background: rgba(9, 9, 11, .93); border: 1px solid var(--line); }
+  .review video { display: block; width: 100%; max-height: 100%; aspect-ratio: var(--ar); background: #000; border-radius: .8cqw; }
+  .rv-cap { margin-top: .6cqw; font-size: clamp(10px, 1.1cqw, 16px); color: var(--faint); }
+  .rv-side { display: flex; flex-direction: column; gap: 1.2cqw; min-width: 0; max-height: 100%; overflow: auto; }
+  .rv-kicker { font-size: clamp(11px, 1.2cqw, 18px); letter-spacing: .16em; color: var(--amber); }
+  .rv-title { font-size: clamp(17px, 2.5cqw, 44px); font-weight: 800; overflow-wrap: anywhere; }
+  .rv-report ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .5em; font-size: clamp(12px, 1.4cqw, 22px); }
+  .rv-report .ok, .rv-receipt .ok { color: var(--ok); }
+  .rv-report .warn, .rv-receipt .warn { color: var(--amber-soft); }
+  .rv-receipt { font-size: clamp(12px, 1.5cqw, 24px); display: grid; gap: .35em; }
+  .rv-actions { display: flex; flex-wrap: wrap; gap: .8cqw; }
+  .rv-actions button { font-size: clamp(12px, 1.4cqw, 22px); }
+  .rv-next { font-size: clamp(12px, 1.4cqw, 22px); color: var(--dim); }
+  .rv-next b { color: var(--fg); }
+
+  /* help card (?) */
+  .help { position: absolute; inset: 3cqw 8cqw; overflow: auto; padding: 2cqw 2.6cqw; border-radius: 1.4cqw; background: rgba(9, 9, 11, .95); border: 1px solid var(--line); font-size: clamp(12px, 1.3cqw, 20px); }
+  .help h2 { margin: 0 0 .6em; font-size: 1em; letter-spacing: .14em; color: var(--amber); text-transform: uppercase; }
+  .help dl { display: grid; grid-template-columns: max-content 1fr; gap: .45em 1.4em; margin: 0 0 1.6em; }
+  .help dt { color: var(--fg); white-space: nowrap; } .help dd { margin: 0; color: var(--dim); }
+  .help .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 3cqw; }
+
+  /* ---------- panel content ---------- */
+  .kicker { font-size: 11px; letter-spacing: .2em; color: var(--amber); }
+  .song-title { margin-top: 4px; font-size: 17px; font-weight: 800; }
+  .song-meta { color: var(--dim); }
+  .data { margin-top: 10px; display: grid; gap: 3px; font-size: 12px; color: var(--dim); }
+  .data .ok { color: var(--ok); } .data .miss { color: var(--amber); }
+  .panel h2 { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 8px; font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); }
+  .panel h2 .hint { letter-spacing: 0; text-transform: none; color: var(--faint); }
+  .setlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+  .setlist button { width: 100%; display: grid; grid-template-columns: 1.4em minmax(0, 1fr) auto 1.3em; gap: 8px; align-items: center; text-align: left; padding: 7px 10px; border-radius: 8px; background: transparent; border: 1px solid transparent; }
+  .setlist button:hover { background: var(--panel-2); }
+  .setlist .sel button { background: var(--panel-2); border-color: rgba(255, 159, 67, .55); }
+  .setlist .num { color: var(--faint); } .setlist .sel .num { color: var(--amber); }
+  .setlist .tname { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .setlist .tmeta { font-size: 12px; color: var(--dim); }
+  .setlist .ck { color: var(--ok); font-weight: 800; text-align: right; }
+  .linkish { all: unset; cursor: pointer; font-size: 11px; color: var(--faint); margin-top: 6px; }
+  .linkish:hover { color: var(--dim); } .linkish:focus-visible { outline: 2px solid var(--amber); }
+  .take-title { font-size: 18px; font-weight: 800; }
+  .take-sub { color: var(--dim); font-size: 12px; margin-top: 2px; }
+  .take-brief { margin: 8px 0 0; }
+  .take-done { margin-top: 8px; color: var(--ok); font-size: 12px; overflow-wrap: anywhere; }
+  .panel h3 { margin: 14px 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); }
+  .setup { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+  .setup label { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: start; cursor: pointer; color: var(--fg); }
+  .setup input { margin: 2px 0 0; accent-color: var(--amber); }
+  .setup input:checked + span { color: var(--faint); text-decoration: line-through; }
+  details summary { cursor: pointer; margin-top: 14px; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); }
+  .cuesheet { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; font-size: 12px; }
+  .cuesheet li { display: grid; grid-template-columns: 6ch 1.5em minmax(0, 1fr); gap: 6px; color: var(--dim); }
+  .cuesheet .tm { color: var(--faint); font-variant-numeric: tabular-nums; }
+  .cuesheet .mv { color: var(--fg); }
+  .cuesheet q { color: var(--amber-soft); }
+  .clips { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 12px; }
+  .clips button { all: unset; cursor: pointer; color: var(--dim); }
+  .clips button:hover { color: var(--fg); } .clips button:focus-visible { outline: 2px solid var(--amber); }
+  .clips .rc { display: block; color: var(--ok); font-size: 11px; overflow-wrap: anywhere; }
+  .clips .rc.bad { color: var(--amber); }
+
+  /* ---------- bottom bar ---------- */
+  .bar { grid-column: 1 / -1; grid-row: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 14px; background: var(--panel); border-top: 1px solid var(--line); transition: opacity .3s; }
+  .app.perform .bar { opacity: .38; }
+  .app.perform .bar:hover, .app.perform .bar:focus-within { opacity: 1; }
+  .status { flex: 1 1 220px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--dim); }
+  .status.ok { color: var(--ok); } .status.err { color: var(--rec); } .status.warn { color: var(--amber); }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  button, input { font: inherit; color: var(--fg); background: var(--panel-2); border: 1px solid #2d2d37; border-radius: 7px; padding: 7px 12px; }
+  button { cursor: pointer; }
+  button:hover:not(:disabled) { border-color: #4b4b59; }
+  button:disabled { opacity: .4; cursor: default; }
+  button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  button.primary { background: var(--amber); border-color: var(--amber); color: #1c1005; font-weight: 800; }
+  button.primary kbd { color: #1c1005; border-color: rgba(0, 0, 0, .35); }
+  kbd { font: inherit; font-size: .82em; color: var(--dim); border: 1px solid #3b3b47; border-bottom-width: 2px; border-radius: 4px; padding: 0 .35em; margin-left: .3em; }
+  #rec.on { background: var(--rec); border-color: var(--rec); color: #000; font-weight: 700; }
+  #rec.on kbd { color: #000; border-color: rgba(0, 0, 0, .4); }
+  .toggle[aria-pressed="true"] { color: var(--amber); border-color: rgba(255, 159, 67, .55); }
+  .namebox { display: inline-flex; align-items: center; color: var(--dim); }
+  .namebox input { width: 14ch; margin: 0 2px; padding: 6px 8px; }
+  .namebox em { margin-left: 6px; font-style: normal; color: var(--amber); }
+  label.chk { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--dim); }
+  label.chk input { accent-color: var(--amber); margin: 0; }
+
+  @keyframes pop { 0% { transform: scale(1.5); } 100% { transform: scale(1); } }
+  @keyframes rise { 0% { opacity: 0; transform: translateY(.8cqw); } 100% { opacity: 1; transform: none; } }
+  @keyframes blink { 50% { opacity: 0; } }
+  @keyframes flash {
+    0% { transform: scale(1.06); box-shadow: 0 0 0 .55cqw rgba(255, 159, 67, .95), 0 0 6cqw rgba(255, 159, 67, .75); background: rgba(217, 98, 43, .55); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 159, 67, 0), 0 0 0 rgba(255, 159, 67, 0); background: var(--plate-strong); }
+  }
+
+  @media (max-width: 1100px) {
+    .bar kbd { display: none; }
+    .bar { gap: 6px 10px; padding: 6px 10px; }
+    .bar button { padding: 6px 10px; }
+  }
+  /* narrow windows: the setlist becomes a drawer (T) */
+  @media (max-width: 820px) {
+    .app, .app.perform, .app.no-panel { grid-template-columns: 0px minmax(0, 1fr); }
+    .panel { position: fixed; z-index: 20; left: 0; top: 0; bottom: 0; width: min(var(--panel-w), 88vw); transform: translateX(-102%); transition: transform .3s; border-right: 1px solid var(--line); }
+    .app.panel-open:not(.perform) .panel { transform: none; }
+    .panel-inner { width: 100%; }
+    .review { grid-template-columns: 1fr; overflow: auto; }
+    .help .cols { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app" data-mode="idle">
+  <aside class="panel" id="panel" aria-label="Setlist">
+    <div class="panel-inner">
+      <header>
+        <div class="kicker">COACH RECORDER</div>
+        <div class="song-title">In the Loop (Devagar)</div>
+        <div class="song-meta" id="songMeta">32s · 92 BPM · Bb major</div>
+        <div class="data" id="dataStatus"><div>checking timing + shot list…</div></div>
+      </header>
+
+      <section>
+        <h2>Setlist <span class="hint">keys 1–7 · N = next</span></h2>
+        <ol class="setlist" id="setlist"></ol>
+        <button class="linkish" id="clearDone" type="button">clear ✓ marks</button>
+      </section>
+
+      <section id="takeInfo">
+        <div class="take-title" id="takeTitle"></div>
+        <div class="take-sub" id="takeSub"></div>
+        <p class="take-brief" id="takeBrief"></p>
+        <div class="take-done" id="takeDone"></div>
+        <h3>Before you start</h3>
+        <ul class="setup" id="takeSetup"></ul>
+        <details id="cueBox"><summary id="cueSummary">Cue sheet</summary><ol class="cuesheet" id="cueSheet"></ol></details>
+      </section>
+
+      <section>
+        <h2>Saved clips <span class="hint">click = check</span></h2>
+        <ul class="clips" id="clipList"><li class="muted">loading…</li></ul>
+      </section>
+    </div>
+  </aside>
+
+  <main class="stage-wrap">
+    <div class="stage mirror show-guide" id="stage">
+      <video id="cam" class="cam mirrorable" autoplay muted playsinline></video>
+      <canvas id="skel" class="mirrorable"></canvas>
+      <div class="guide" aria-hidden="true">
+        <div class="box"></div><div class="mid"></div><div class="eyes"></div>
+        <span class="lt">head</span><span class="le">eyes</span><span class="lb">waist</span>
+      </div>
+
+      <div class="ov" id="ov" aria-hidden="true">
+        <div class="top">
+          <div class="chips">
+            <span class="chip rec" id="recChip" hidden>REC 0.0s</span>
+            <span class="chip rehearse" id="modeChip" hidden>rehearsal · not recording</span>
+            <span class="chip pose" id="poseChip" hidden>pose checks loading…</span>
+          </div>
+          <div class="banner" id="banner"></div>
+          <div class="hud" id="hud">
+            <div class="dots" id="dots"><i class="dot down"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+            <div class="hud-row"><span class="hud-meta" id="hudMeta"></span><span class="hud-left" id="hudLeft"></span></div>
+          </div>
+        </div>
+        <div class="lyrics">
+          <div class="ly-cur" id="lyCur"></div>
+          <div class="countin" id="countin"></div>
+          <div class="ly-next" id="lyNext"></div>
+          <div class="emote" id="emote"></div>
+        </div>
+        <div class="moves">
+          <div class="warning" id="warning"></div>
+          <div class="next-move" id="nextMove"></div>
+          <div class="card" id="card"></div>
+          <div class="ready" id="ready"></div>
+        </div>
+        <div class="center" id="center"></div>
+        <div class="prog"><div class="fill" id="progFill"></div><div id="progMarks"></div></div>
+        <div class="skel-cap">what the pose guide sees</div>
+      </div>
+
+      <div class="cta" id="cta">
+        <h1>Your R&amp;B video starts <em>here</em>.</h1>
+        <p>Earbuds in · warm light from the front · head to waist in frame. You can rehearse (R) before the camera is on.</p>
+        <button class="primary" id="ctaCam" type="button">Turn on camera <kbd>C</kbd></button>
+      </div>
+
+      <div class="review" id="review" hidden>
+        <div>
+          <video id="rvVideo" controls playsinline preload="auto"></video>
+          <div class="rv-cap" id="rvCap">as saved: not mirrored</div>
+        </div>
+        <div class="rv-side">
+          <div class="rv-kicker" id="rvKicker">REVIEW</div>
+          <div class="rv-title" id="rvTitle"></div>
+          <div class="rv-report" id="rvReport"></div>
+          <div class="rv-receipt" id="rvReceipt"></div>
+          <div class="rv-actions">
+            <button class="primary" id="rvSave" type="button">Save <kbd>⏎</kbd></button>
+            <button id="rvRetake" type="button">Retake <kbd>Space</kbd></button>
+            <button id="rvDiscard" type="button">Discard <kbd>⌫</kbd></button>
+            <button class="primary" id="rvNextBtn" type="button" hidden>Next take <kbd>N</kbd></button>
+            <button id="rvClose" type="button" hidden>Close <kbd>Esc</kbd></button>
+            <button id="rvSong" type="button" hidden>♪</button>
+          </div>
+          <div class="rv-next" id="rvNext"></div>
+        </div>
+      </div>
+
+      <div class="help" id="help" hidden>
+        <div class="cols">
+          <div>
+            <h2>Keys</h2>
+            <dl>
+              <dt><kbd>Space</kbd></dt><dd>record (3·2·1 first) / stop</dd>
+              <dt><kbd>R</kbd></dt><dd>rehearse: song + coaching, nothing recorded</dd>
+              <dt><kbd>Esc</kbd></dt><dd>stop the rehearsal or take, cancel the countdown</dd>
+              <dt><kbd>⏎</kbd> / <kbd>⌫</kbd></dt><dd>save / discard the take you just recorded</dd>
+              <dt><kbd>1</kbd>–<kbd>7</kbd>, <kbd>N</kbd></dt><dd>pick a take / next take not done yet</dd>
+              <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>skip 5s back / forward while rehearsing</dd>
+              <dt><kbd>M</kbd> <kbd>G</kbd> <kbd>S</kbd></dt><dd>mirror preview · framing guide · pose skeleton</dd>
+              <dt><kbd>T</kbd> <kbd>C</kbd></dt><dd>show/hide the setlist · turn on the camera</dd>
+              <dt><kbd>[</kbd> <kbd>]</kbd></dt><dd>overlay later/earlier, if the beat dots run ahead of what you hear (Bluetooth earbuds)</dd>
+              <dt><kbd>?</kbd></dt><dd>this card</dd>
+            </dl>
+          </div>
+          <div>
+            <h2>What you see</h2>
+            <dl>
+              <dt>big line</dt><dd>sing this now; it fills amber word by word. Dim = coming up</dd>
+              <dt>small line</dt><dd>the line after it</dd>
+              <dt>3 · 2 · 1 · sing</dt><dd>count-in on the beats before the first lyric</dd>
+              <dt>● ● ● ●</dt><dd>beats of the bar (big dot = beat 1), bar number, seconds left</dd>
+              <dt>NEXT … in 4·3·2·1</dt><dd>a move is coming; it lands on the last count</dd>
+              <dt>move card</dt><dd>do this move now; the amber line shows how long to hold it</dd>
+              <dt>top banner</dt><dd>direction for this part (where to look, energy)</dd>
+              <dt>italic line</dt><dd>a small face note: smile, slow blink</dd>
+              <dt>warning</dt><dd>this footage will not work for the AI pass. Fix it and keep going</dd>
+            </dl>
+          </div>
+        </div>
+        <p class="muted">Nothing on top of the video is recorded: the saved clip is the raw camera, unmirrored.</p>
+      </div>
+
+      <div class="toast" id="toast"></div>
+    </div>
+  </main>
+
+  <footer class="bar">
+    <div class="status" id="status" role="status" aria-live="polite">Clips save to clips/ as .mp4 · wear earbuds so the song stays out of the mic</div>
+    <div class="controls">
+      <button id="panelBtn" type="button" title="Show or hide the setlist (T)">☰ Takes <kbd>T</kbd></button>
+      <span class="namebox" title="The take saves as clips/&lt;name&gt;.mp4">clips/<input id="name" value="test-clip" aria-label="clip name" spellcheck="false" autocomplete="off">.mp4<em id="nameHint"></em></span>
+      <label class="chk" title="3-second countdown before recording starts"><input id="countdown" type="checkbox" checked> 3·2·1</label>
+      <label class="chk" title="Play the song when recording starts (earbuds in)"><input id="withSong" type="checkbox" checked> ♪ song</label>
+      <button id="start" type="button">Turn on camera <kbd>C</kbd></button>
+      <button id="rehearse" type="button">Rehearse <kbd>R</kbd></button>
+      <button id="rec" type="button" disabled>● Record <kbd>Space</kbd></button>
+      <button id="save" type="button" disabled>Save <kbd>⏎</kbd></button>
+      <button id="tMirror" class="toggle" type="button" title="Mirror the preview (M). The saved clip is never mirrored.">⇋<kbd>M</kbd></button>
+      <button id="tGuide" class="toggle" type="button" title="Framing guide: head to waist (G)">▭<kbd>G</kbd></button>
+      <button id="tSkel" class="toggle" type="button" title="Show what the pose guide sees (S)">⌇<kbd>S</kbd></button>
+      <button id="helpBtn" class="toggle" type="button" title="Keys and what everything means (?)">?</button>
+    </div>
+  </footer>
+  <audio id="song" src="/song" preload="auto"></audio>
+</div>
+
+<script type="module">
+// Coach Recorder: vanilla JS, no build step.
+//   /timing  the song clock: beats, downbeats, sections, lyric lines (+ optional words)
+//   /shots   the shot list: move vocabulary + takes with cues
+// Either can be missing; the page falls back to the built-in setlist and still records.
+// MediaRecorder always records the RAW camera stream: nothing drawn here ends up in the clip.
+
+// ---------------------------------------------------------------- 1. helpers + state
+const $ = (id) => document.getElementById(id);
+const app = $("app"), stage = $("stage"), cam = $("cam"), song = $("song"), rv = $("rvVideo");
+const num = (x) => typeof x === "number" && Number.isFinite(x);
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const sanitize = (s) => String(s ?? "").trim().replace(/[^\w-]/g, "_"); // same rule the server uses
+const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : NaN; };
+const lowerBound = (a, x) => { let lo = 0, hi = a.length; while (lo < hi) { const m = (lo + hi) >> 1; if (a[m] < x) lo = m + 1; else hi = m; } return lo; };
+const upperBound = (a, x) => { let lo = 0, hi = a.length; while (lo < hi) { const m = (lo + hi) >> 1; if (a[m] <= x) lo = m + 1; else hi = m; } return lo; };
+const nearestIdx = (a, x) => { const i = lowerBound(a, x); if (i <= 0) return 0; if (i >= a.length) return a.length - 1; return x - a[i - 1] <= a[i] - x ? i - 1 : i; };
+const fmt = (s) => { if (!num(s)) return "–"; const t = Math.max(0, Math.round(s * 10) / 10), m = Math.floor(t / 60); return `${m}:${(t - m * 60).toFixed(1).padStart(4, "0")}`; };
+const fmtLen = (s) => `${Math.round(s)}s`;
+
+// Storage can throw (private window, blocked site data). Everything works without it.
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("coach:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("coach:" + k, JSON.stringify(v)); } catch { /* fine */ } },
+};
+
+const MIME = typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported
+  ? ["video/mp4", "video/webm;codecs=vp9,opus", "video/webm"].find((m) => MediaRecorder.isTypeSupported(m)) : undefined;
+
+const S = {
+  timing: null, timingErr: "", shotsErr: "", takesFromShots: false, timingText: null, shotsText: null, dataLoaded: false,
+  moves: {}, takes: [], take: null, countIn: null,
+  mode: "idle",            // idle | countdown | rehearse | record | review
+  clock: null,             // { kind: "song" | "timer", t0, dur }
+  run: 0,                  // bumps to cancel a countdown in flight
+  stream: null, recorder: null, chunks: [], songOffset: null, recStart: 0, recTake: null, recUsesSong: false,
+  pending: null,           // the take just recorded: { blob, url, take, songOffset, stats, secs, saved, ... }
+  takeStats: null, armedDiscard: 0, rvWithSong: true, songErr: false,
+  clips: new Set(), clipFiles: [], nameAuto: true,
+  done: store.get("done", {}) || {},
+  mirror: store.get("mirror", true), guide: store.get("guide", true), skeleton: store.get("skeleton", false),
+  delayMs: Number(store.get("delayMs", 0)) || 0,
+  demo: (() => { const d = new URLSearchParams(location.search).get("demo"); return d && /^[\w-]+$/.test(d) ? d : null; })(),
+};
+
+function status(msg, cls = "") { const el = $("status"); el.textContent = msg; el.title = msg; el.className = "status" + (cls ? " " + cls : ""); }
+let toastTimer = 0;
+function toast(msg) { const el = $("toast"); el.textContent = msg; el.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 1700); }
+
+// ---------------------------------------------------------------- 2. data: built-ins, /timing, /shots
+// House vocabulary from docs/research/rnb-video-language.md. /shots moves win when they exist.
+const HOUSE_MOVES = {
+  "heart-press":    { label: "Heart Press",    icon: "🫶", how: "Press a flat palm to your chest and close your eyes for a beat." },
+  "reach-to-lens":  { label: "Reach to Lens",  icon: "🫴", how: "Reach one open hand slowly toward the camera, fingers soft." },
+  "pull-back":      { label: "Pull Back",      icon: "🤏", how: "Close the hand softly and draw it back to your chest." },
+  "jaw-trace":      { label: "Jaw Trace",      icon: "✨", how: "Trace your fingertips from ear along the jaw to the chin, off your lips." },
+  "backbeat-snaps": { label: "Backbeat Snaps", icon: "🫰", how: "Snap softly at shoulder height on beats 2 and 4." },
+  "palm-roll":      { label: "Palm Roll",      icon: "🌀", how: "Turn your hand at the wrist, palm up to palm down, slow like honey." },
+  "adlib-wave":     { label: "Ad-lib Wave",    icon: "👋", how: "Wave one open hand side to side above your head, slow." },
+  "hair-comb":      { label: "Hair Comb",      icon: "💇‍♀️", how: "Rake your fingers back through your hair from the temple; tilt your head." },
+  "come-here":      { label: "Come Here",      icon: "☝️", how: "Curl one finger slowly toward yourself, eyes on the lens." },
+  "loop-circle":    { label: "The Loop",       icon: "⭕", how: "Draw a slow circle in the air with one finger." },
+  "frame-face":     { label: "Frame the Face", icon: "🖼️", how: "Open both hands beside your cheeks like a frame, then let them fall." },
+  "shoulder-roll":  { label: "Shoulder Roll",  icon: "🤷‍♀️", how: "Roll one shoulder back slowly, then the other." },
+  "body-roll":      { label: "Body Roll",      icon: "〰️", how: "Roll a slow wave from chest to hips." },
+  "hair-flip":      { label: "Hair Flip",      icon: "💁‍♀️", how: "Turn your head and lift one shoulder so your hair swings." },
+};
+const COMMON_SETUP = [
+  "Earbuds in: the song must not bleed into the mic",
+  "Warm light from the front, ~45° to one side, a little above eye level",
+  "No bright window behind you",
+  "Camera at eye level, landscape, about an arm's length away",
+  "Head to waist in frame (G shows the guide)",
+  "Both hands inside the frame for hand moves",
+  "Hands off your mouth while you sing",
+];
+// Built-in copy of docs/capture-list.md, used when /shots is missing. No-song takes carry their own timer cues.
+const FALLBACK_TAKES = [
+  { id: "hero-1", title: "Hero take", song: true, duration_s: 32, setup: COMMON_SETUP, cues: [],
+    brief: "Perform the whole song to the lens. Soft and seductive, eye contact, small sways. Do the hand moves on the chorus." },
+  { id: "hero-2", title: "Hero take, again", song: true, duration_s: 32, setup: COMMON_SETUP, cues: [],
+    brief: "Same again; vary the moves slightly. Backup take: the best 8s per scene get picked from 1 and 2." },
+  { id: "backup-singer", title: "Your own backup singer", song: true, duration_s: 32, cues: [],
+    setup: ["Stand a little left of center", ...COMMON_SETUP],
+    brief: "Perform like your own backup singer: smaller moves, side-to-side sway, hand waves, an \"ooh\" face on the chorus (24–32s matters most)." },
+  { id: "turnaround", title: "Turnaround", song: false, duration_s: 10,
+    setup: ["Clear space to turn around", "Arms relaxed", "Camera at eye level, landscape"],
+    brief: "Turn slowly in place, 360°, arms relaxed. Then one slow over-the-shoulder look back at the lens.",
+    cues: [
+      { t: 0.5, dur: 6.5, kind: "direction", text: "Turn slowly in place: a full 360°", detail: "arms relaxed, keep it slow" },
+      { t: 7, dur: 3, kind: "direction", text: "Look back over your shoulder at the lens" },
+      { t: 7.5, dur: 2.5, kind: "emote", text: "slow, soft look" },
+    ] },
+  { id: "hands", title: "Hand library", song: false, duration_s: 15, setup: ["Hands at chest height", "Both hands inside the frame", ...COMMON_SETUP.slice(1, 4)],
+    brief: "Hands at chest height, slowly, ~2s each: one clean library of hand shapes for choreography and the pose guide.",
+    cues: [
+      ["heart-press", 1], ["reach-to-lens", 3], ["jaw-trace", 5], ["backbeat-snaps", 7], ["palm-roll", 9], ["loop-circle", 11], ["frame-face", 13],
+    ].map(([move, t]) => ({ t, dur: 2, kind: "move", move, text: HOUSE_MOVES[move].label })) },
+  { id: "shoulders", title: "Shoulders + body", song: false, duration_s: 10, setup: ["Head to waist in frame", ...COMMON_SETUP.slice(1, 3)],
+    brief: "Shoulder rolls (one, then the other), a slow body roll, one hair flip.",
+    cues: [
+      { t: 1, dur: 3, kind: "move", move: "shoulder-roll", text: "Shoulder Roll", detail: "one, then the other" },
+      { t: 4.5, dur: 3, kind: "move", move: "body-roll", text: "Body Roll" },
+      { t: 8, dur: 2, kind: "move", move: "hair-flip", text: "Hair Flip" },
+    ] },
+  { id: "face", title: "Face stills", song: false, duration_s: 6, setup: ["Face the light", "Look straight into the lens", "Stay still"],
+    brief: "Look straight into the lens, still: neutral (2s), soft smile (2s), slow blink and look away (2s).",
+    cues: [
+      { t: 0, dur: 6, kind: "direction", text: "Still. Eyes on the lens" },
+      { t: 0, dur: 2, kind: "emote", text: "neutral" },
+      { t: 2, dur: 2, kind: "emote", text: "soft smile" },
+      { t: 4, dur: 2, kind: "emote", text: "slow blink… then look away" },
+    ] },
+];
+
+async function getJSON(url) {
+  try {
+    const r = await fetch(url, { cache: "no-store" });
+    const text = await r.text();
+    if (!r.ok) return { ok: false, status: r.status, text };
+    return { ok: true, status: r.status, text, json: JSON.parse(text) };
+  } catch (e) { return { ok: false, status: 0, text: "", err: e?.message }; }
+}
+const whyMissing = (r) => (r.ok || r.status === 500 ? "unreadable" : r.status === 404 ? "missing" : r.status ? `error ${r.status}` : "unreachable");
+
+const normTok = (s) => String(s ?? "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+// Give tokens [a, b) times across [t0, t1], longer words getting more of it.
+function spread(toks, out, a, b, t0, t1) {
+  const w = toks.slice(a, b).map((t) => normTok(t).length + 1), total = w.reduce((x, y) => x + y, 0) || 1;
+  let at = t0;
+  for (let i = a; i < b; i++) { const d = ((t1 - t0) * w[i - a]) / total; out[i] = { w: toks[i], start: at, end: at + d }; at += d; }
+}
+// Per-word timing for one lyric line. The lyric text is the truth for what to sing; the transcript's
+// words[] can miss or add words, so anchor the lyric words to heard words in order and fill around them.
+function lineWords(line, words, nextStart) {
+  const toks = line.text.split(/\s+/).filter(Boolean), out = new Array(toks.length).fill(null);
+  const heard = (Array.isArray(words) ? words : [])
+    .filter((w) => w && num(w.start) && num(w.end) && w.end >= w.start)
+    .map((w) => ({ n: normTok(w.w), start: w.start, end: Math.max(w.end, w.start + 0.04) })).filter((w) => w.n)
+    .sort((a, b) => a.start - b.start);
+  for (let i = 0, j = 0; i < toks.length && j < heard.length; i++) {
+    const n = normTok(toks[i]);
+    for (let k = j; k < Math.min(heard.length, j + 3); k++) if (heard[k].n === n) { out[i] = { w: toks[i], start: heard[k].start, end: heard[k].end }; j = k + 1; break; }
+  }
+  if (!out.some(Boolean)) { spread(toks, out, 0, toks.length, line.start, line.end); return out; } // no word timing: even sweep
+  let first = 0, last = out.length - 1;
+  while (!out[first]) first++;
+  while (!out[last]) last--;
+  if (last < toks.length - 1) { // words after the last heard one
+    const run = toks.length - 1 - last, a = out[last].end;
+    let end = Math.max(line.end, a);
+    if (end - a < 0.12 * run) end = Math.min(num(nextStart) ? nextStart - 0.15 : Infinity, a + 0.45 * run); // room before the next line
+    if (end - a >= 0.12 * run) { spread(toks, out, last + 1, toks.length, a, end); line.end = Math.max(line.end, end); }
+    else spread(toks, out, last, toks.length, out[last].start, Math.max(a, out[last].start + 0.1)); // no room: share the last word
+  }
+  if (first > 0) { // words before the first heard one
+    if (out[first].start - line.start >= 0.12 * first) spread(toks, out, 0, first, line.start, out[first].start);
+    else spread(toks, out, 0, first + 1, Math.min(line.start, out[first].start), out[first].end);
+  }
+  for (let i = 1; i < out.length; i++) { // gaps between heard words
+    if (out[i]) continue;
+    let k = i; while (!out[k]) k++;
+    const a = out[i - 1].end, b = out[k].start;
+    if (b - a >= 0.12 * (k - i)) spread(toks, out, i, k, a, b);
+    else spread(toks, out, i - 1, k, out[i - 1].start, Math.max(b, out[i - 1].start + 0.1));
+    i = k;
+  }
+  return out;
+}
+
+function normTiming(j) {
+  if (!j || typeof j !== "object") return null;
+  const nums = (a) => (Array.isArray(a) ? a.filter(num).sort((x, y) => x - y) : []);
+  const beats = nums(j.beats), downbeats = nums(j.downbeats);
+  const gaps = beats.slice(1).map((b, i) => b - beats[i]).filter((g) => g > 0.2 && g < 2);
+  const bpm = num(j.bpm) && j.bpm > 30 && j.bpm < 300 ? j.bpm : gaps.length ? 60 / median(gaps) : 92;
+  const sections = (Array.isArray(j.sections) ? j.sections : [])
+    .filter((s) => s && num(s.start) && num(s.end) && s.end > s.start)
+    .map((s) => ({ name: String(s.name || ""), start: s.start, end: s.end })).sort((a, b) => a.start - b.start);
+  const lines = (Array.isArray(j.lines) ? j.lines : [])
+    .filter((l) => l && typeof l.text === "string" && l.text.trim() && num(l.start) && num(l.end) && l.end > l.start)
+    .map((l) => ({ text: l.text.trim(), start: l.start, end: l.end, section: String(l.section || ""), confidence: String(l.confidence || ""), raw: l.words }))
+    .sort((a, b) => a.start - b.start);
+  lines.forEach((line, i) => { line.words = lineWords(line, line.raw, lines[i + 1]?.start); delete line.raw; });
+  return {
+    duration: num(j.duration_s) && j.duration_s > 0 ? j.duration_s : null,
+    bpm, beatLen: gaps.length ? median(gaps) : 60 / bpm,
+    beats, downbeats, downIdx: downbeats.map((d) => nearestIdx(beats, d)), sections, lines,
+  };
+}
+
+function normTake(t, i) {
+  t = t && typeof t === "object" ? t : {};
+  const id = String(t.id || `take-${i + 1}`), isSong = !!t.song;
+  const cues = (Array.isArray(t.cues) ? t.cues : [])
+    .filter((c) => c && num(c.t) && ["move", "direction", "emote"].includes(c.kind))
+    .map((c) => ({ t: c.t, dur: num(c.dur) && c.dur > 0 ? c.dur : 1.3, kind: c.kind, move: c.kind === "move" ? String(c.move ?? "") : "", text: String(c.text ?? ""), detail: c.detail ? String(c.detail) : "", ticks: [] }))
+    .sort((a, b) => a.t - b.t);
+  return {
+    id, title: String(t.title || id), song: isSong, duration: num(t.duration_s) && t.duration_s > 0 ? t.duration_s : isSong ? 32 : 10,
+    brief: String(t.brief || ""), setup: Array.isArray(t.setup) ? t.setup.map(String).filter(Boolean) : [],
+    cues, moveCues: cues.filter((c) => c.kind === "move"),
+  };
+}
+
+function moveInfo(c) {
+  const m = (S.moves && S.moves[c.move]) || HOUSE_MOVES[c.move] || {};
+  return { label: String(m.label || c.text || c.move || "Move"), how: String(m.how || ""), icon: String(m.icon || "✋") };
+}
+
+// The beats a "NEXT … in 4·3·2·1" counts on: the n beats right before the cue's own beat.
+function ticksBefore(t, n, beats, beatLen) {
+  if (beats && beats.length) {
+    const k = lowerBound(beats, t - 0.06); // beats[k] is the cue's beat
+    if (k > 0) return beats.slice(Math.max(0, k - n), k);
+  }
+  const out = [];
+  for (let i = n; i >= 1; i--) { const x = t - i * beatLen; if (x >= 0) out.push(x); }
+  return out;
+}
+
+// "3 · 2 · 1 · sing": the 3 beats before the first lyric that has room for a count-in, then "sing" as it starts.
+function computeCountIn(T) {
+  if (!T || !T.lines.length) return null;
+  for (const line of T.lines) {
+    let ticks;
+    if (T.beats.length) {
+      const k = lowerBound(T.beats, line.start - 0.08);
+      if (k < 3) continue;
+      ticks = T.beats.slice(k - 3, k);
+    } else {
+      ticks = [3, 2, 1].map((n) => line.start - n * T.beatLen);
+      if (ticks[0] < 0) continue;
+    }
+    return { ticks, sing: line.start };
+  }
+  return null;
+}
+
+function prepareTakes() {
+  const T = S.timing;
+  for (const take of S.takes) {
+    const beats = take.song && T && T.beats.length ? T.beats : null;
+    for (const c of take.moveCues) c.ticks = ticksBefore(c.t, 4, beats, T ? T.beatLen : 60 / 92);
+  }
+  S.countIn = computeCountIn(T);
+}
+
+// Returns true when timing or shots changed since the last load.
+// Other tools rewrite these files while the page is open: a refresh that fails (missing, half-written)
+// keeps whatever already works instead of dropping back to the built-in setlist.
+async function loadData() {
+  const [tr, sr] = await Promise.all([getJSON("/timing"), getJSON("/shots")]);
+  let changed = !S.dataLoaded;
+  S.dataLoaded = true;
+
+  if (tr.ok && tr.text !== S.timingText) {
+    let T = null;
+    try { T = normTiming(tr.json); } catch (e) { console.warn("timing unreadable", e); }
+    if (T) { S.timing = T; S.timingText = tr.text; S.timingErr = ""; changed = true; }
+    else if (!S.timing && S.timingErr !== "unreadable") { S.timingErr = "unreadable"; changed = true; }
+  } else if (!tr.ok && !S.timing) {
+    const why = whyMissing(tr);
+    if (why !== S.timingErr) { S.timingErr = why; changed = true; }
+  }
+
+  const shots = sr.ok && sr.json && typeof sr.json === "object" ? sr.json : null;
+  const raw = shots && Array.isArray(shots.takes) && shots.takes.length ? shots.takes : null;
+  if (raw && sr.text !== S.shotsText) {
+    S.shotsText = sr.text; S.shotsErr = ""; S.takesFromShots = true;
+    S.moves = { ...HOUSE_MOVES, ...(shots.moves && typeof shots.moves === "object" ? shots.moves : {}) };
+    S.takes = raw.map(normTake);
+    changed = true;
+  } else if (!raw && !S.takesFromShots) {
+    const why = sr.ok ? "has no takes" : whyMissing(sr);
+    if (why !== S.shotsErr) { S.shotsErr = why; changed = true; }
+  }
+  if (!changed) return false;
+  prepareTakes();
+  const keepId = S.take?.id ?? store.get("take", "");
+  const idx = S.takes.findIndex((t) => t.id === keepId);
+  selectTake(Math.max(0, idx), { keepName: idx >= 0 && S.take?.id === keepId });
+  renderDataStatus();
+  return true;
+}
+
+// ---------------------------------------------------------------- 3. panel: setlist, take card, clips
+function renderDataStatus() {
+  const T = S.timing;
+  const dur = T?.duration ?? (num(song.duration) ? song.duration : 32);
+  $("songMeta").textContent = `${dur.toFixed(1)}s · ${T ? T.bpm.toFixed(1) : "92"} BPM · Bb major`;
+  if (!S.dataLoaded) return;
+  const moves = S.takes.reduce((n, t) => n + t.moveCues.length, 0);
+  $("dataStatus").innerHTML = [
+    T ? `<div><span class="ok">✓ timing</span> ${T.lines.length} lines · ${T.beats.length} beats</div>`
+      : `<div><span class="miss">✗ timing ${esc(S.timingErr)}</span>: no lyrics or beat dots</div>`,
+    S.takesFromShots ? `<div><span class="ok">✓ shot list</span> ${S.takes.length} takes · ${moves} moves</div>`
+      : `<div><span class="miss">✗ shot list ${esc(S.shotsErr)}</span>: built-in takes, no song cues</div>`,
+  ].join("");
+}
+
+function renderSetlist() {
+  $("setlist").innerHTML = S.takes.map((t, i) => {
+    const done = S.done[t.id];
+    return `<li class="${t === S.take ? "sel" : ""}"><button type="button" data-i="${i}" title="${esc(t.title)}${done ? " · done: " + esc(done.clip) : ""}">`
+      + `<span class="num">${i + 1}</span><span class="tname">${esc(t.id)}</span><span class="tmeta">${t.song ? "♪ " : ""}${fmtLen(t.duration)}</span><span class="ck">${done ? "✓" : ""}</span></button></li>`;
+  }).join("");
+}
+
+function cueRow(c, T) {
+  const isMove = c.kind === "move", m = isMove ? moveInfo(c) : null;
+  const icon = isMove ? m.icon : c.kind === "direction" ? "▸" : "~";
+  const line = T ? T.lines.find((l) => l.start - 0.3 <= c.t && c.t < l.end) : null;
+  return `<li><span class="tm">${fmt(c.t)}</span><span>${esc(icon)}</span><span class="${isMove ? "mv" : ""}">${esc(isMove ? m.label : c.text)}${line ? ` <q>${esc(line.text)}</q>` : ""}</span></li>`;
+}
+
+function renderTake() {
+  const t = S.take; if (!t) return;
+  $("takeTitle").textContent = t.id;
+  $("takeSub").textContent = `${t.title} · ${t.song ? "with the song" : "no song"} · ${fmtLen(t.duration)}`;
+  $("takeBrief").textContent = t.brief;
+  const d = S.done[t.id];
+  $("takeDone").textContent = d ? d.receipt || `✓ ${d.clip}` : "";
+  $("takeSetup").innerHTML = (t.setup.length ? t.setup : COMMON_SETUP).map((s) => `<li><label><input type="checkbox"><span>${esc(s)}</span></label></li>`).join("");
+  const T = t.song ? S.timing : null;
+  const moves = t.moveCues.length;
+  $("cueSummary").textContent = t.cues.length ? `Cue sheet · ${moves} move${moves === 1 ? "" : "s"}, ${t.cues.length - moves} notes` : "Cue sheet · empty";
+  $("cueSheet").innerHTML = t.cues.map((c) => cueRow(c, T)).join("")
+    || `<li class="muted">No cues for this take${t.song && !S.takesFromShots ? " until the shot list exists" : ""}.</li>`;
+  renderReady();
+}
+
+function renderClips() {
+  const files = S.clipFiles.filter((f) => !/\.src\.mp4$/.test(f));
+  $("clipList").innerHTML = files.length
+    ? files.map((f) => `<li><button type="button" data-clip="${esc(f.replace(/\.mp4$/, ""))}">clips/${esc(f)}</button><span class="rc"></span></li>`).join("")
+    : `<li class="muted">none yet</li>`;
+}
+
+async function refreshClips() {
+  try {
+    const files = await (await fetch("/clips", { cache: "no-store" })).json();
+    if (!Array.isArray(files)) return;
+    S.clipFiles = files.map(String);
+    S.clips = new Set(S.clipFiles.filter((f) => f.endsWith(".mp4")).map((f) => f.slice(0, -4)));
+  } catch { return; }
+  renderClips();
+  if (S.nameAuto && S.take && S.mode !== "review") setName(nextFreeName(S.take.id));
+  updateNameHint();
+}
+
+function nextFreeName(base) {
+  const b = sanitize(base) || "take";
+  if (!S.clips.has(b)) return b;
+  for (let i = 2; i < 1000; i++) if (!S.clips.has(`${b}-${i}`)) return `${b}-${i}`;
+  return `${b}-${Date.now()}`;
+}
+const currentName = () => sanitize($("name").value);
+function setName(v) { $("name").value = v; S.nameAuto = true; updateNameHint(); }
+function updateNameHint() {
+  const n = currentName();
+  $("nameHint").textContent = n && S.clips.has(n) ? "exists: saving overwrites" : "";
+  if (S.pending && !S.pending.saved) $("rvSave").innerHTML = `Save as <b>${esc(n || "?")}</b><kbd>⏎</kbd>`;
+}
+
+async function checkClip(name) {
+  const r = await getJSON(`/check?name=${encodeURIComponent(name)}`);
+  return r.ok && r.json && num(r.json.duration_s) ? r.json : null;
+}
+const receiptText = (i) => `✓ ${i.name} · ${i.duration_s.toFixed(1)}s · ${i.frames} frames @${+(+i.fps).toFixed(2)}fps · ${i.width ?? "?"}×${i.height ?? "?"} · ${i.has_audio ? "audio" : "NO audio"}`;
+
+function selectTake(i, { keepName = false } = {}) {
+  S.take = S.takes[i] || S.takes[0];
+  if (!S.take) return;
+  store.set("take", S.take.id);
+  if (!keepName || S.nameAuto) setName(nextFreeName(S.take.id));
+  $("withSong").checked = S.take.song;
+  renderSetlist(); renderTake(); applyMode();
+}
+
+function pickTake(i) {
+  if (i < 0 || i >= S.takes.length) return;
+  if (["record", "countdown", "rehearse"].includes(S.mode)) { status("Stop first (Esc), then pick the next take.", "warn"); return; }
+  if (S.pending && !S.pending.saved) { status("You have an unsaved take: ⏎ saves it, ⌫ throws it away.", "warn"); toast("save ⏎ or discard ⌫ first"); return; }
+  if (S.mode === "review") closeReview();
+  selectTake(i);
+  const t = S.take;
+  status(`${i + 1} · ${t.id}: ${t.song ? "with the song" : "no song"}, ${fmtLen(t.duration)}. R to rehearse, Space to record.`);
+}
+
+function nextTakeIndex() {
+  const n = S.takes.length, at = Math.max(0, S.takes.indexOf(S.take));
+  for (let k = 1; k <= n; k++) { const i = (at + k) % n; if (!S.done[S.takes[i].id]) return i; }
+  return -1;
+}
+function nextTake() {
+  const i = nextTakeIndex();
+  if (i < 0) { status(`All ${S.takes.length} takes are done ✓ Tell Claude: ${S.takes.map((t) => S.done[t.id]?.clip || t.id).join(", ")}`, "ok"); return; }
+  pickTake(i);
+}
+
+// ---------------------------------------------------------------- 4. camera, pose checks, light check
+function videoLive() { return (S.demo || S.stream) && cam.readyState >= 2 && cam.videoWidth > 0; }
+function setAspect() { if (cam.videoWidth && cam.videoHeight) stage.style.setProperty("--ar", `${cam.videoWidth} / ${cam.videoHeight}`); }
+cam.addEventListener("loadedmetadata", setAspect);
+cam.addEventListener("resize", setAspect);
+cam.addEventListener("error", () => { if (S.demo) status(`Demo clip clips/${S.demo}.mp4 didn't load. Check the name in the URL.`, "err"); });
+
+async function enableCamera() {
+  if (S.demo) return startDemo();
+  if (S.stream) return;
+  if (!navigator.mediaDevices?.getUserMedia) { status("No camera API here. Open this page on localhost in Chrome.", "err"); return; }
+  status("Asking for the camera and mic…");
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 }, audio: true });
+    S.stream = stream;
+    cam.srcObject = stream;
+    cam.play().catch(() => {});
+    stream.getVideoTracks()[0]?.addEventListener("ended", () => {
+      if (S.mode === "record") stopRecord();
+      S.stream = null; app.classList.remove("has-cam"); applyMode();
+      status("The camera stopped. Press C to turn it back on.", "err");
+    });
+    app.classList.add("has-cam");
+    applyMode();
+    status(`Camera on. ${S.take ? S.take.id + ": " : ""}R to rehearse, Space to record.`, "ok");
+  } catch (e) { status(`Camera blocked: ${e.message}`, "err"); }
+}
+
+// ?demo=<clip> plays a saved clip as the camera, to try the pose checks without one. Recording is off.
+function startDemo() {
+  cam.srcObject = null;
+  cam.src = `/clips/${encodeURIComponent(S.demo)}.mp4`;
+  cam.loop = true; cam.muted = true;
+  cam.play().catch(() => {});
+  app.classList.add("has-cam");
+  applyMode();
+  status(`Demo: clips/${S.demo}.mp4 plays as the camera so you can try the pose checks. Recording is off.`, "warn");
+}
+
+async function autoCamera() {
+  if (S.demo) return startDemo();
+  try { const p = await navigator.permissions?.query({ name: "camera" }); if (p?.state === "granted") enableCamera(); } catch { /* ask on click */ }
+}
+
+const MP = {
+  bundle: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs",
+  wasm: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm",
+  model: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+};
+const BODY = [[0, 1], [1, 2], [2, 3], [3, 7], [0, 4], [4, 5], [5, 6], [6, 8], [9, 10], [11, 12], [11, 13], [13, 15], [15, 17], [15, 19], [15, 21], [17, 19],
+  [12, 14], [14, 16], [16, 18], [16, 20], [16, 22], [18, 20], [11, 23], [12, 24], [23, 24], [23, 25], [24, 26], [25, 27], [26, 28]];
+const HAND = [15, 16, 17, 18, 19, 20, 21, 22];   // wrists, pinkies, index fingers, thumbs
+const WRIST_INDEX = [15, 16, 19, 20];
+const FACE_MOVE = /jaw|face|frame|hair|comb|neck|cheek|mic|hush|lip/i; // moves that touch the face get a tighter mouth radius
+const pose = { state: "loading", lm: null, lms: null, at: 0, last: 0, ts: 0, fails: 0, hasVis: true, err: "", conns: BODY };
+
+async function loadPose() {
+  renderPoseChip();
+  const slow = setTimeout(() => { if (pose.state === "loading") { pose.state = "slow"; renderPoseChip(); } }, 20000);
+  try {
+    const vision = await import(MP.bundle); // a variable, so no bundler tries to resolve it
+    const files = await vision.FilesetResolver.forVisionTasks(MP.wasm);
+    const opts = (delegate) => ({ baseOptions: { modelAssetPath: MP.model, delegate }, runningMode: "VIDEO", numPoses: 1 });
+    try { pose.lm = await vision.PoseLandmarker.createFromOptions(files, opts("GPU")); }
+    catch { pose.lm = await vision.PoseLandmarker.createFromOptions(files, opts("CPU")); }
+    const conns = (vision.PoseLandmarker.POSE_CONNECTIONS || []).map((c) => [c.start, c.end]).filter(([a, b]) => num(a) && num(b));
+    if (conns.length) pose.conns = conns;
+    pose.state = "on";
+  } catch (e) {
+    pose.state = "off"; pose.err = e?.message || String(e);
+    console.warn("pose checks off:", e);
+  }
+  clearTimeout(slow);
+  renderPoseChip();
+}
+function renderPoseChip() {
+  const c = $("poseChip");
+  c.hidden = pose.state === "on";
+  c.textContent = pose.state === "loading" ? "pose checks loading…" : "pose checks off";
+  c.title = pose.err ? `MediaPipe: ${pose.err}` : pose.state === "slow" ? "MediaPipe is still downloading" : "";
+  c.classList.toggle("off", pose.state !== "loading");
+}
+
+function poseTick(tp) {
+  if (pose.state !== "on" || !videoLive() || tp - pose.last < 100) return; // ~10 fps
+  pose.last = tp;
+  pose.ts = Math.max(pose.ts + 1, Math.round(tp));
+  try {
+    const r = pose.lm.detectForVideo(cam, pose.ts);
+    pose.lms = r?.landmarks?.[0] || null;
+    pose.at = tp;
+    if (pose.lms) pose.hasVis = pose.lms.some((p) => num(p.visibility) && p.visibility > 0);
+    pose.fails = 0;
+  } catch (e) {
+    if (++pose.fails >= 5) { pose.state = "off"; pose.err = e?.message || String(e); renderPoseChip(); console.warn("pose checks off:", e); }
+  }
+}
+const freshPose = () => (pose.state === "on" && pose.lms && performance.now() - pose.at < 1000 ? pose.lms : null);
+const visOf = (p) => (!p ? 0 : pose.hasVis ? (num(p.visibility) ? p.visibility : 0) : 1);
+
+// ctx: what is happening right now on the take clock (lyric active? move active? does framing matter?)
+function poseConds(ctx) {
+  const L = freshPose();
+  if (!L || L.length < 25) return { mouth: false, hands: false, far: false };
+  const ar = cam.videoWidth && cam.videoHeight ? cam.videoWidth / cam.videoHeight : 16 / 9;
+  const dist = (a, b) => Math.hypot((a.x - b.x) * ar, a.y - b.y); // in frame-heights
+  const inFrame = (p) => p.x >= 0.02 && p.x <= 0.98 && p.y >= 0.02 && p.y <= 0.98;
+  let mouth = false;
+  if (ctx.lyric) {
+    const m1 = L[9], m2 = L[10], mc = { x: (m1.x + m2.x) / 2, y: (m1.y + m2.y) / 2 };
+    const r = ctx.faceMove ? 0.045 : 0.08;
+    mouth = HAND.some((i) => visOf(L[i]) >= 0.5 && Math.min(dist(L[i], m1), dist(L[i], m2), dist(L[i], mc)) < r);
+  }
+  const hands = !!ctx.move && WRIST_INDEX.some((i) => visOf(L[i]) < 0.5 || !inFrame(L[i]));
+  const hipIn = (p) => visOf(p) >= 0.5 && p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1.03;
+  const far = !!ctx.framing && !hipIn(L[23]) && !hipIn(L[24]);
+  return { mouth, hands, far };
+}
+
+const luma = { last: 0, value: 255, dark: false, ctx: null };
+function lumaTick(tp) {
+  if (tp - luma.last < 500) return; // every 0.5s
+  luma.last = tp;
+  if (!videoLive()) { luma.dark = false; return; }
+  try {
+    if (!luma.ctx) { const c = document.createElement("canvas"); c.width = 64; c.height = 36; luma.ctx = c.getContext("2d", { willReadFrequently: true }); }
+    luma.ctx.drawImage(cam, 0, 0, 64, 36);
+    const d = luma.ctx.getImageData(0, 0, 64, 36).data;
+    let sum = 0;
+    for (let i = 0; i < d.length; i += 4) sum += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    luma.value = sum / (d.length / 4);
+    luma.dark = luma.value < 60;
+  } catch { luma.dark = false; }
+}
+
+// ---------------------------------------------------------------- 5. warnings (debounced, one at a time)
+const WARN = [ // priority order
+  { id: "mouth", icon: "✋", text: "Hand over your mouth — lower it while you sing", short: "Hand over your mouth while singing", cls: "bad" },
+  { id: "hands", icon: "🙌", text: "Hands out of frame", short: "Hands out of frame", cls: "" },
+  { id: "far", icon: "↔️", text: "Step back — I need you head to waist", short: "Too close: not head to waist", cls: "" },
+  { id: "dark", icon: "💡", text: "Too dark — face a lamp or window", short: "Too dark", cls: "" },
+];
+const newStats = () => ({ mouth: { secs: 0, at: [] }, hands: { secs: 0, at: [] }, far: { secs: 0, at: [] }, dark: { secs: 0, at: [] }, movesBad: new Set(), poseOn: pose.state === "on" });
+const wst = { since: {}, shown: null, shownAt: 0 };
+
+function warnTick(tp, t, dt) {
+  const take = S.take, running = t !== null && !!S.clock;
+  const ctx = {
+    lyric: running && R.lyricActive,
+    move: running && !!R.activeMove,
+    faceMove: running && !!R.activeMove && FACE_MOVE.test(`${R.activeMove.move} ${moveInfo(R.activeMove).label}`),
+    framing: !!take && (take.song || take.moveCues.length > 0),
+  };
+  const live = videoLive();
+  const pc = live ? poseConds(ctx) : { mouth: false, hands: false, far: false };
+  const cond = { ...pc, dark: live && luma.dark };
+  for (const w of WARN) { if (cond[w.id]) wst.since[w.id] ??= tp; else wst.since[w.id] = null; }
+  const ready = WARN.filter((w) => wst.since[w.id] != null && tp - wst.since[w.id] >= 700);   // held 0.7s
+  let next = wst.shown;
+  if (!wst.shown) next = ready[0] || null;
+  else if (ready[0] && WARN.indexOf(ready[0]) < WARN.indexOf(wst.shown)) next = ready[0];      // higher priority wins now
+  else if (!ready.includes(wst.shown) && tp - wst.shownAt >= 1500) next = ready[0] || null;  // shown at least 1.5s
+  if (next !== wst.shown) {
+    wst.shown = next; wst.shownAt = tp;
+    const el = $("warning");
+    if (next) { el.innerHTML = `<span class="wi">${next.icon}</span><span>${esc(next.text)}</span>`; el.className = `warning show ${next.cls}`; }
+    else el.classList.remove("show");
+    if (next && S.takeStats && running) { const a = S.takeStats[next.id].at; if (a.length < 4) a.push(t); }
+  }
+  if (wst.shown && S.takeStats && running) {
+    S.takeStats[wst.shown.id].secs += dt;
+    if (wst.shown.id === "hands" && R.activeMove) S.takeStats.movesBad.add(R.activeMove);
+  }
+}
+
+function drawSkeleton() {
+  const c = $("skel");
+  if (!S.skeleton) { if (c._drawn) { c.getContext("2d").clearRect(0, 0, c.width, c.height); c._drawn = false; } return; }
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.round(c.clientWidth * dpr), h = Math.round(c.clientHeight * dpr);
+  if (!w || !h) return;
+  if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  const g = c.getContext("2d");
+  g.clearRect(0, 0, w, h); c._drawn = true;
+  const L = freshPose(); if (!L) return;
+  g.lineWidth = 2 * dpr; g.strokeStyle = "rgba(255, 159, 67, .5)";
+  for (const [a, b] of pose.conns) {
+    const p = L[a], q = L[b];
+    if (!p || !q || visOf(p) < 0.3 || visOf(q) < 0.3) continue;
+    g.beginPath(); g.moveTo(p.x * w, p.y * h); g.lineTo(q.x * w, q.y * h); g.stroke();
+  }
+  for (let i = 0; i < Math.min(L.length, 25); i++) {
+    const p = L[i]; if (visOf(p) < 0.3) continue;
+    g.fillStyle = i === 9 || i === 10 ? "rgba(255, 90, 79, .95)" : HAND.includes(i) ? "rgba(255, 211, 163, .95)" : "rgba(255, 159, 67, .7)";
+    g.beginPath(); g.arc(p.x * w, p.y * h, (HAND.includes(i) || i === 9 || i === 10 ? 4.5 : 3) * dpr, 0, Math.PI * 2); g.fill();
+  }
+}
+
+// ---------------------------------------------------------------- 6. clock + overlay
+const sc = { ct: -1, at: 0 };
+// The audio clock, smoothed: currentTime can repeat between frames, so extrapolate a little.
+function songTime() {
+  const ct = song.currentTime, p = performance.now();
+  if (song.paused || ct !== sc.ct) { sc.ct = ct; sc.at = p; return ct; }
+  return ct + Math.min(0.25, (p - sc.at) / 1000);
+}
+function takeTime() {
+  const c = S.clock; if (!c) return null;
+  return c.kind === "song" ? songTime() - S.delayMs / 1000 : (performance.now() - c.t0) / 1000;
+}
+function songLength() { return num(song.duration) && song.duration > 0 ? song.duration : S.timing?.duration || S.take.duration; }
+function startClock(kind) {
+  S.clock = { kind, t0: performance.now(), dur: kind === "song" ? songLength() : S.take.duration };
+  clearOverlay(); buildMarks();
+  if (wst.shown && S.takeStats) { const a = S.takeStats[wst.shown.id].at; if (!a.length) a.push(0); } // already up when the take starts
+}
+function stopClock() { S.clock = null; }
+
+let R = {}; // render cache: only touch the DOM when something changed
+function clearOverlay() {
+  for (const id of ["lyCur", "lyNext", "countin", "emote", "banner", "card", "nextMove"]) $(id).classList.remove("show");
+  R = {};
+}
+function flash(el) { el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
+
+function buildMarks() {
+  const take = S.take, dur = S.clock.dur, T = take.song ? S.timing : null, marks = [];
+  if (T) for (const s of T.sections) if (s.start > 0.05 && s.start < dur) marks.push(`<i class="mk" style="left:${((s.start / dur) * 100).toFixed(2)}%"></i>`);
+  for (const c of take.moveCues) if (c.t < dur) marks.push(`<i class="mk mv" style="left:${((c.t / dur) * 100).toFixed(2)}%"></i>`);
+  $("progMarks").innerHTML = marks.join("");
+}
+
+function render(t) {
+  const take = S.take, running = t !== null && !!take && !!S.clock;
+  if (running !== R.running) { app.classList.toggle("running", running); if (!running) clearOverlay(); R.running = running; }
+  R.lyricActive = false; R.activeMove = null;
+  if (!running) return;
+  const T = take.song ? S.timing : null; // lyrics + beats only belong to song takes
+  renderLyrics(t, T);
+  renderCountIn(t, T);
+  renderHud(t, T);
+  renderCues(t, take);
+  $("progFill").style.setProperty("--prog", clamp(t / S.clock.dur, 0, 1).toFixed(4));
+}
+
+function renderLyrics(t, T) {
+  const L = T ? T.lines : [], cur = $("lyCur"), nxt = $("lyNext");
+  let ci = -1, up = -1;
+  for (let i = 0; i < L.length; i++) if (L[i].start <= t && t < L[i].end) ci = i;
+  if (ci < 0) for (let i = 0; i < L.length; i++) if (L[i].start > t) { if (L[i].start - t <= 1.5) up = i; break; } // upcoming, 1.5s early
+  const show = ci >= 0 ? ci : up;
+  R.lyricActive = ci >= 0;
+  if (R.ly !== show) {
+    R.ly = show;
+    if (show >= 0) {
+      cur.innerHTML = `<span class="plate">${L[show].words.map((w) => `<span class="w">${esc(w.w)}</span>`).join(" ")}</span>`;
+      R.words = [...cur.querySelectorAll(".w")];
+      cur.classList.toggle("adlib", /^\(.*\)$/.test(L[show].text));
+      cur.classList.add("show");
+    } else cur.classList.remove("show");
+  }
+  if (show >= 0) {
+    cur.classList.toggle("upcoming", ci < 0);
+    const ws = L[show].words;
+    for (let i = 0; i < ws.length; i++) {
+      const p = ci < 0 ? 0 : clamp((t - ws[i].start) / (ws[i].end - ws[i].start), 0, 1);
+      const v = `${(p * 100).toFixed(1)}%`, el = R.words[i];
+      if (el && el._p !== v) { el._p = v; el.style.setProperty("--p", v); }
+    }
+  }
+  const ni = ci >= 0 && ci + 1 < L.length && L[ci + 1].start - t < 7 ? ci + 1 : -1;
+  if (R.nx !== ni) {
+    R.nx = ni;
+    if (ni >= 0) { nxt.innerHTML = `<span class="plate">${esc(L[ni].text)}</span>`; nxt.classList.add("show"); }
+    else nxt.classList.remove("show");
+  }
+}
+
+function renderCountIn(t, T) {
+  const ci = T ? S.countIn : null, el = $("countin");
+  let idx = -2;
+  if (ci && t >= ci.ticks[0] - 0.03 && t < ci.sing + 0.7) {
+    idx = -1;
+    ci.ticks.forEach((b, i) => { if (t >= b - 0.03) idx = i; });
+    if (t >= ci.sing - 0.03) idx = 3;
+  }
+  if (R.ci === idx) return;
+  R.ci = idx;
+  if (idx === -2) { el.classList.remove("show"); return; }
+  el.innerHTML = ["3", "2", "1", "sing"].map((s, i) => `<span class="${i < idx ? "past" : i === idx ? "on" : ""}">${s}</span>`).join("<i>·</i>");
+  el.classList.add("show");
+}
+
+const dotEls = [...document.querySelectorAll("#dots .dot")];
+function renderHud(t, T) {
+  const left = Math.max(0, S.clock.dur - t);
+  const lt = left >= 10 ? `${Math.ceil(left)}s left` : `${left.toFixed(1)}s left`;
+  if (R.left !== lt) { R.left = lt; $("hudLeft").textContent = lt; }
+  let dot = -1, pulse = 0, meta = "";
+  const hasBeats = !!(T && T.beats.length);
+  if (hasBeats) {
+    const B = T.beats, D = T.downbeats, k = upperBound(B, t + 0.015) - 1;
+    if (k >= 0) {
+      pulse = Math.exp(-Math.max(0, t - B[k]) / 0.14);
+      let kd = 0, bar = Math.floor(k / 4) + 1;
+      if (D.length) { const d = upperBound(D, B[k] + 0.05) - 1; kd = T.downIdx[Math.max(0, d)]; bar = d + 1; }
+      dot = (((k - kd) % 4) + 4) % 4;
+      meta = bar > 0 ? `bar ${bar}${D.length ? "/" + D.length : ""}` : "pickup";
+    }
+    const sec = T.sections.find((s) => s.start <= t && t < s.end);
+    if (sec) meta += `${meta ? " · " : ""}${sec.name}`;
+  } else meta = S.take.song ? (S.timing ? "" : "no beat map yet") : S.take.id;
+  if (R.hb !== hasBeats) { R.hb = hasBeats; $("dots").hidden = !hasBeats; }
+  if (R.dot !== dot) { R.dot = dot; dotEls.forEach((el, i) => { el.classList.toggle("on", i === dot); el.style.setProperty("--s", "1"); }); }
+  if (dot >= 0) dotEls[dot].style.setProperty("--s", (1 + 0.6 * pulse).toFixed(3));
+  if (R.meta !== meta) { R.meta = meta; $("hudMeta").textContent = meta; }
+}
+
+function renderCues(t, take) {
+  let mv = null, dir = null, emo = null, nx = null;
+  for (const c of take.cues) {
+    if (c.t <= t && t < c.t + c.dur) { if (c.kind === "move") mv = c; else if (c.kind === "direction") dir = c; else emo = c; } // last started wins
+  }
+  for (const c of take.moveCues) if (c !== mv && c.t > t) { if (c.ticks.length && t >= c.ticks[0] - 0.03) nx = c; break; }
+  R.activeMove = mv;
+
+  const card = $("card");
+  if (R.mv !== mv) {
+    R.mv = mv;
+    if (mv) {
+      const m = moveInfo(mv);
+      const own = mv.text && mv.text.trim().toLowerCase() !== m.label.toLowerCase() ? mv.text : "";
+      const how = m.how || own;
+      const extra = [m.how ? own : "", mv.detail].filter(Boolean).join(" · ");
+      card.innerHTML = `<div class="ic">${esc(m.icon)}</div><div class="lb">${esc(m.label)}</div>${how ? `<div class="hw">${esc(how)}</div>` : ""}${extra ? `<div class="ex">${esc(extra)}</div>` : ""}<i class="life"></i>`;
+      card.classList.add("show"); flash(card); // lands on the cue's beat
+    } else card.classList.remove("show");
+  }
+  if (mv) card.style.setProperty("--life", clamp(1 - (t - mv.t) / mv.dur, 0, 1).toFixed(3));
+
+  const nm = $("nextMove");
+  let ti = -1;
+  if (nx) nx.ticks.forEach((b, i) => { if (t >= b - 0.03) ti = i; });
+  const nk = nx ? `${take.cues.indexOf(nx)}:${ti}` : "";
+  if (R.nk !== nk) {
+    R.nk = nk;
+    if (nx) {
+      const m = moveInfo(nx), n = nx.ticks.length;
+      const counts = nx.ticks.map((_, i) => `<span class="n${i < ti ? " past" : i === ti ? " on" : ""}">${n - i}</span>`).join("<i>·</i>");
+      nm.innerHTML = `<span class="k">NEXT</span>${esc(m.icon)} <b>${esc(m.label)}</b><span class="in">in</span>${counts}`;
+      nm.classList.add("show");
+    } else nm.classList.remove("show");
+  }
+
+  const bk = dir ? take.cues.indexOf(dir) : -1;
+  if (R.dir !== bk) {
+    R.dir = bk;
+    const b = $("banner");
+    if (dir) { b.innerHTML = esc(dir.text) + (dir.detail ? `<small>${esc(dir.detail)}</small>` : ""); b.classList.add("show"); }
+    else b.classList.remove("show");
+  }
+  const ek = emo ? take.cues.indexOf(emo) : -1;
+  if (R.emo !== ek) {
+    R.emo = ek;
+    const e = $("emote");
+    if (emo) { e.innerHTML = `<span class="plate">${esc(emo.text)}</span>`; e.classList.add("show"); }
+    else e.classList.remove("show");
+  }
+}
+
+function center(html) { $("center").innerHTML = html; }
+
+function renderReady() {
+  const t = S.take, el = $("ready");
+  if (!t) { el.innerHTML = ""; return; }
+  const keys = S.demo ? "<kbd>R</kbd> rehearse (demo: no recording)"
+    : S.stream ? "<kbd>R</kbd> rehearse · <kbd>Space</kbd> record" : "<kbd>R</kbd> rehearse · camera off";
+  el.innerHTML = `<b>${esc(t.id)}</b> <span class="muted">${t.song ? "♪ song" : "no song"} · ${fmtLen(t.duration)}</span> &nbsp; ${keys}`;
+}
+
+// ---------------------------------------------------------------- 7. modes: rehearse, record, review, save
+function applyMode() {
+  const m = S.mode, perform = m === "countdown" || m === "rehearse" || m === "record";
+  app.dataset.mode = m;
+  app.classList.toggle("perform", perform);
+  const rec = $("rec");
+  rec.disabled = !S.stream;
+  rec.classList.toggle("on", m === "record" || m === "countdown");
+  rec.innerHTML = m === "record" ? "■ Stop <kbd>Space</kbd>" : m === "countdown" ? "■ Cancel <kbd>Esc</kbd>" : "● Record <kbd>Space</kbd>";
+  $("rehearse").innerHTML = m === "rehearse" ? "■ Stop <kbd>R</kbd>" : "Rehearse <kbd>R</kbd>";
+  $("rehearse").disabled = m === "record" || m === "countdown";
+  $("save").disabled = !(S.pending && !S.pending.saved && !S.pending.saving);
+  $("start").hidden = !!S.stream || !!S.demo;
+  $("recChip").hidden = m !== "record";
+  $("modeChip").hidden = m !== "rehearse";
+  renderReady();
+}
+
+function toggleRehearse() {
+  if (S.mode === "rehearse") return stopRehearse();
+  if (S.mode === "record" || S.mode === "countdown" || !S.take) return;
+  if (S.mode === "review") hideReview();
+  S.mode = "rehearse";
+  S.takeStats = newStats();
+  if ($("withSong").checked) {
+    song.currentTime = 0;
+    startClock("song");
+    song.play().catch((e) => { S.songErr = true; status(`Song didn't play (${e.message}); rehearsing on a timer.`, "err"); startClock("timer"); });
+  } else startClock("timer");
+  applyMode();
+  status(`Rehearsing ${S.take.id}: nothing is recorded. R or Esc stops · ← → skip 5s.`, "warn");
+}
+
+function stopRehearse(done = false) {
+  if (S.mode !== "rehearse") return;
+  song.pause(); stopClock();
+  S.mode = S.pending && !S.pending.saved ? "review" : "idle";
+  if (S.mode === "review") showReview();
+  applyMode();
+  status(done ? "Rehearsal done. Again: R · record it: Space" : "Rehearsal stopped. R to go again · Space to record.", done ? "ok" : "");
+}
+
+function toggleRecord() {
+  if (S.mode === "record") return stopRecord();
+  if (S.mode === "countdown") return cancelCountdown();
+  startRecord();
+}
+
+async function startRecord() {
+  if (!S.take) return;
+  if (!S.stream) {
+    if (S.demo) { status("Demo mode plays a saved clip, so recording is off. Remove ?demo from the URL to record.", "warn"); return; }
+    status("Camera first: allow it, then press Space again.", "warn"); enableCamera(); return;
+  }
+  if (S.pending && !S.pending.saved) { // don't lose a take to a stray Space
+    const tp = performance.now();
+    if (!S.armedDiscard || tp - S.armedDiscard > 2500) { S.armedDiscard = tp; status("Unsaved take! Space again throws it away and records a new one · ⏎ saves it.", "warn"); toast("Space again = discard + record"); return; }
+  }
+  S.armedDiscard = 0;
+  if (S.mode === "rehearse") { song.pause(); stopClock(); }
+  hideReview();
+  dropPending();
+  const run = ++S.run;
+  S.mode = "countdown"; applyMode();
+  if ($("countdown").checked) {
+    for (let n = 3; n > 0; n--) {
+      center(`<div class="sub">recording in</div><div class="big">${n}</div><div class="hint">${esc(S.take.id)} · Esc cancels</div>`);
+      status(`Recording in ${n}…`);
+      await sleep(1000);
+      if (run !== S.run || S.mode !== "countdown") return; // cancelled
+    }
+  }
+  center("");
+  beginRecording();
+}
+
+function cancelCountdown() {
+  if (S.mode !== "countdown") return;
+  S.run++; center(""); S.mode = "idle"; applyMode();
+  status("Countdown cancelled.");
+}
+
+function beginRecording() {
+  S.chunks = []; S.songOffset = null; S.takeStats = newStats();
+  let rec;
+  try { rec = new MediaRecorder(S.stream, MIME ? { mimeType: MIME } : undefined); } // the RAW camera stream: no overlay in the file
+  catch (e) { status(`The recorder didn't start: ${e.message}`, "err"); S.mode = "idle"; applyMode(); return; }
+  const useSong = $("withSong").checked;
+  S.recorder = rec; S.recTake = S.take; S.recUsesSong = useSong;
+  rec.ondataavailable = (e) => e.data.size && S.chunks.push(e.data);
+  rec.onstart = async () => {
+    S.recStart = performance.now();
+    if (!useSong) { startClock("timer"); return; }
+    const tRec = performance.now();
+    song.currentTime = 0;
+    song.onplaying = () => { S.songOffset = (performance.now() - tRec) / 1000; song.onplaying = null; };
+    startClock("song");
+    try { await song.play(); } catch (e) { status(`Song didn't play: ${e.message}`, "err"); startClock("timer"); }
+  };
+  rec.onstop = onRecordStop;
+  rec.onerror = (e) => status(`Recorder error: ${e.error?.message || "unknown"}`, "err");
+  rec.start(250);
+  S.mode = "record"; applyMode();
+  status(`REC ${S.take.id}: Space or Esc stops${useSong ? " · ends with the song" : ` · ends at ${fmtLen(S.take.duration)}`}`, "err");
+}
+
+function stopRecord() { if (S.recorder && S.recorder.state === "recording") S.recorder.stop(); }
+
+function onRecordStop() {
+  song.pause(); song.onplaying = null; stopClock();
+  const type = MIME || S.chunks[0]?.type || "video/webm";
+  const blob = new Blob(S.chunks, { type });
+  dropPending();
+  S.pending = { blob, url: URL.createObjectURL(blob), mime: type, take: S.recTake, usedSong: S.recUsesSong, songOffset: S.songOffset,
+                stats: S.takeStats, secs: (performance.now() - S.recStart) / 1000, saved: false, saving: false };
+  S.recorder = null; S.chunks = [];
+  S.mode = "review"; applyMode(); showReview();
+  status(`Got ${(blob.size / 1e6).toFixed(1)} MB. Watch it back, then ⏎ to save.`);
+}
+
+function finishTake() {
+  if (S.mode === "record") stopRecord();
+  else if (S.mode === "rehearse") stopRehearse(true);
+}
+song.addEventListener("ended", () => { if (S.clock?.kind === "song") finishTake(); }); // auto-stop at song end
+song.addEventListener("error", () => { S.songErr = true; status("The song didn't load (/song). Takes still record, without music.", "err"); });
+song.addEventListener("loadedmetadata", renderDataStatus);
+
+function dropPending() { if (S.pending?.url) URL.revokeObjectURL(S.pending.url); S.pending = null; }
+
+function showReview() {
+  const p = S.pending; if (!p) return;
+  if (rv.dataset.url !== p.url) { rv.src = p.url; rv.dataset.url = p.url; }
+  S.rvWithSong = p.songOffset != null && !S.songErr;
+  rv.muted = S.rvWithSong;
+  $("review").hidden = false;
+  renderReview();
+}
+function hideReview() { $("review").hidden = true; rv.pause(); if (S.mode === "review") song.pause(); }
+function closeReview() { hideReview(); if (S.pending?.saved) dropPending(); S.mode = "idle"; applyMode(); }
+
+function reportHtml(p) {
+  const st = p.stats, take = p.take, out = [];
+  const want = p.usedSong ? (S.timing?.duration || songLength()) : take.duration;
+  if (p.secs < want - 1) out.push(`<li class="warn">⏹ Stopped at ${fmt(p.secs)} of ${fmt(want)}${take.song ? ": song takes need the whole song" : ""}</li>`);
+  if (take.song && !p.usedSong) out.push(`<li class="warn">♪ Recorded without the song: no sidecar, so stitching can't line the track up</li>`);
+  for (const w of WARN) {
+    const s = st[w.id];
+    if (s.secs < 0.3) continue;
+    const moves = w.id === "hands" && st.movesBad.size ? ` in ${st.movesBad.size} of ${take.moveCues.length} moves` : "";
+    out.push(`<li class="warn">${w.icon} ${esc(w.short)}${moves}: ${s.secs.toFixed(1)}s${s.at.length ? ` (at ${s.at.map(fmt).join(", ")})` : ""}</li>`);
+  }
+  if (!st.poseOn) out.push(`<li class="muted">Pose checks were off: check hands and mouth by eye.</li>`);
+  if (!out.length) out.push(`<li class="ok">✓ Clean take: hands off your mouth, in frame, enough light.</li>`);
+  return `<ul>${out.join("")}</ul>`;
+}
+
+function receiptHtml(p) {
+  const i = p.info;
+  if (!i) return `<div class="ok">✓ saved clips/${esc(p.clip)}.mp4</div><div class="warn">Couldn't run /check on it (old server?). Restart bun recorder/server.ts.</div>`;
+  const flags = [];
+  if (!i.has_audio) flags.push("No audio track: check the mic permission");
+  if (i.width && i.width < 1280) flags.push(`Only ${i.width}×${i.height}: the camera didn't give 720p`);
+  if (Math.abs(i.fps - 24) > 0.01) flags.push(`${i.fps}fps, expected 24`);
+  const want = p.usedSong ? (S.timing?.duration || songLength()) : p.take.duration;
+  if (p.take.song && i.duration_s < want - 1) flags.push(`${i.duration_s.toFixed(1)}s of ${want.toFixed(1)}s: stopped early`);
+  return `<div class="ok">${esc(receiptText(i))}</div>${p.songOffset != null ? `<div class="muted">+ sidecar clips/${esc(p.clip)}.json (song starts at ${p.songOffset.toFixed(3)}s)</div>` : ""}`
+    + flags.map((f) => `<div class="warn">⚠ ${esc(f)}</div>`).join("");
+}
+
+function renderReview() {
+  const p = S.pending; if (!p) return;
+  const saved = p.saved;
+  $("rvKicker").textContent = saved ? "SAVED ✓" : p.saving ? "SAVING + CONVERTING…" : "REVIEW · not saved yet";
+  $("rvTitle").textContent = saved ? `clips/${p.clip}.mp4` : `${p.take.id} · ${fmt(p.secs)}`;
+  $("rvReport").innerHTML = reportHtml(p);
+  $("rvReceipt").innerHTML = saved ? receiptHtml(p) : "";
+  $("rvSave").hidden = saved; $("rvSave").disabled = p.saving;
+  $("rvSave").innerHTML = `Save as <b>${esc(currentName() || "?")}</b><kbd>⏎</kbd>`;
+  $("rvDiscard").hidden = saved; $("rvDiscard").disabled = p.saving;
+  $("rvRetake").disabled = p.saving;
+  $("rvRetake").innerHTML = saved ? "Record again <kbd>Space</kbd>" : "Retake <kbd>Space</kbd>";
+  const ni = saved ? nextTakeIndex() : -1;
+  $("rvNextBtn").hidden = !saved || ni < 0;
+  $("rvClose").hidden = !saved;
+  $("rvSong").hidden = p.songOffset == null || S.songErr;
+  $("rvSong").textContent = S.rvWithSong ? "♪ playback: with the song" : "♪ playback: your mic only";
+  $("rvCap").textContent = S.rvWithSong ? "as saved: not mirrored · plays with the song, synced from the sidecar offset" : "as saved: not mirrored";
+  $("rvNext").innerHTML = !saved ? "" : ni >= 0 ? `Next up: <b>${ni + 1} · ${esc(S.takes[ni].id)}</b>: press N`
+    : `Setlist complete ✓ Tell Claude: <b>${esc(S.takes.map((t) => S.done[t.id]?.clip || t.id).join(", "))}</b>`;
+}
+
+// Review playback with the real song under it, so you can judge the lip-sync before saving.
+function rvSync(force) {
+  const p = S.pending;
+  if (S.mode !== "review" || !p || !S.rvWithSong || p.songOffset == null || $("review").hidden) return;
+  const st = rv.currentTime - p.songOffset, now = performance.now();
+  if (rv.paused || rv.ended || st < 0 || st >= songLength()) { if (!song.paused) song.pause(); return; }
+  const settled = now - (S.rvSeekAt || 0) > 500; // let a seek settle before correcting drift again
+  if (force || (settled && Math.abs(song.currentTime - st) > 0.25)) { song.currentTime = st; S.rvSeekAt = now; }
+  if (song.paused && (force || settled)) song.play().catch(() => {});
+}
+rv.addEventListener("play", () => rvSync(true));
+rv.addEventListener("seeked", () => rvSync(true));
+rv.addEventListener("pause", () => { if (S.mode === "review") song.pause(); });
+rv.addEventListener("ended", () => { if (S.mode === "review") song.pause(); });
+
+async function save() {
+  const p = S.pending;
+  if (!p || p.saved || p.saving) return;
+  let name = currentName();
+  if (!name) { setName(nextFreeName(p.take.id)); name = currentName(); }
+  p.saving = true; applyMode(); renderReview();
+  status(`Saving clips/${name}.mp4 and converting to 24fps H.264…`);
+  try {
+    const off = p.songOffset == null ? "" : `&song_offset=${p.songOffset.toFixed(3)}`;
+    const res = await fetch(`/save?name=${encodeURIComponent(name)}${off}`, { method: "POST", headers: { "content-type": p.mime }, body: p.blob });
+    if (!res.ok) throw new Error((await res.text()).slice(0, 300));
+    const { saved } = await res.json();
+    p.clip = String(saved).replace(/^clips\//, "").replace(/\.mp4$/, "");
+    p.info = await checkClip(p.clip);
+    p.saved = true; p.saving = false;
+    const receipt = p.info ? receiptText(p.info) : `✓ ${saved}`;
+    S.done[p.take.id] = { clip: p.clip, at: Date.now(), receipt };
+    store.set("done", S.done);
+    await refreshClips();
+    if (S.take === p.take) setName(nextFreeName(p.take.id));
+    renderSetlist(); renderTake(); renderReview(); applyMode();
+    status(`Saved ${saved}${p.songOffset == null ? "" : " + sidecar"} · ${receipt}`, "ok");
+  } catch (e) {
+    p.saving = false; applyMode(); renderReview();
+    status(`Save failed: ${e.message}`, "err");
+  }
+}
+
+function discard() {
+  if (S.mode !== "review" || !S.pending || S.pending.saving) return;
+  if (S.pending.saved) return closeReview();
+  dropPending(); hideReview(); S.mode = "idle"; applyMode();
+  status("Take thrown away. Space to record it again.", "warn");
+}
+
+// ---------------------------------------------------------------- 8. preferences, keys, boot
+function applyPrefs() {
+  stage.classList.toggle("mirror", !!S.mirror);
+  stage.classList.toggle("show-guide", !!S.guide);
+  stage.classList.toggle("show-skel", !!S.skeleton);
+  $("tMirror").setAttribute("aria-pressed", String(!!S.mirror));
+  $("tGuide").setAttribute("aria-pressed", String(!!S.guide));
+  $("tSkel").setAttribute("aria-pressed", String(!!S.skeleton));
+}
+function setPref(key, label) {
+  S[key] = !S[key]; store.set(key, S[key]); applyPrefs();
+  toast(`${label} ${S[key] ? "on" : "off"}`);
+  if (key === "skeleton" && S[key] && pose.state !== "on") toast(pose.state === "loading" ? "skeleton: pose model still loading" : "skeleton: pose checks are off");
+}
+function togglePanel() {
+  if (matchMedia("(max-width: 820px)").matches) app.classList.toggle("panel-open");
+  else { app.classList.toggle("no-panel"); store.set("panel", !app.classList.contains("no-panel")); }
+}
+function toggleHelp(force) { const h = $("help"); h.hidden = force === undefined ? !h.hidden : !force; }
+function nudgeDelay(d) {
+  S.delayMs = clamp(S.delayMs + d, -300, 600); store.set("delayMs", S.delayMs);
+  toast(`overlay ${S.delayMs >= 0 ? "delayed" : "early"} by ${Math.abs(S.delayMs)} ms`);
+}
+function seek(d) {
+  if (S.mode !== "rehearse" || !S.clock) return;
+  if (S.clock.kind === "song") song.currentTime = clamp(song.currentTime + d, 0, Math.max(0, songLength() - 0.2));
+  else S.clock.t0 = Math.min(performance.now(), S.clock.t0 - d * 1000);
+  toast(`${d > 0 ? "+" : ""}${d}s`);
+}
+function onEsc() {
+  if (!$("help").hidden) return toggleHelp(false);
+  if (S.mode === "record") return stopRecord();
+  if (S.mode === "countdown") return cancelCountdown();
+  if (S.mode === "rehearse") return stopRehearse();
+  if (S.mode === "review") {
+    if (S.pending && !S.pending.saved) status("Unsaved take: ⏎ saves it, ⌫ throws it away.", "warn");
+    else closeReview();
+  }
+  if (app.classList.contains("panel-open")) app.classList.remove("panel-open");
+}
+
+const isTyping = (el) => {
+  if (!(el instanceof HTMLElement)) return false;
+  if (el.isContentEditable || el.tagName === "TEXTAREA" || el.tagName === "SELECT") return true;
+  return el.tagName === "INPUT" && !["checkbox", "radio", "button", "submit", "reset", "range", "color", "file"].includes(el.type);
+};
+const REPEATABLE = new Set(["ArrowLeft", "ArrowRight", "[", "]"]);
+
+document.addEventListener("keydown", (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const typing = isTyping(e.target);
+  if (e.key === "Escape") { if (typing) e.target.blur(); onEsc(); e.preventDefault(); return; }
+  if (typing) { if (e.key === "Enter" && e.target.id === "name") { e.target.blur(); e.preventDefault(); } return; } // no shortcuts while typing
+  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  const onButton = e.target instanceof HTMLElement && !!e.target.closest("button, summary, a");
+  if (k === "Enter" && onButton) return; // a focused button handles its own Enter
+  if (e.repeat && !REPEATABLE.has(k)) { if (k === " ") e.preventDefault(); return; }
+  let handled = true;
+  switch (k) {
+    case " ": toggleRecord(); break;
+    case "r": toggleRehearse(); break;
+    case "Enter": if (S.pending && !S.pending.saved) save(); else if (S.mode === "review") closeReview(); else handled = false; break;
+    case "Backspace": case "Delete": if (S.mode === "review") discard(); else handled = false; break;
+    case "n": if (S.mode === "review" && S.pending?.saved) closeReview(); nextTake(); break;
+    case "m": setPref("mirror", "mirror"); break;
+    case "g": setPref("guide", "framing guide"); break;
+    case "s": setPref("skeleton", "pose skeleton"); break;
+    case "t": togglePanel(); break;
+    case "c": enableCamera(); break;
+    case "?": case "/": case "h": toggleHelp(); break;
+    case "ArrowLeft": seek(-5); break;
+    case "ArrowRight": seek(5); break;
+    case "[": nudgeDelay(-25); break;
+    case "]": nudgeDelay(25); break;
+    default:
+      if (/^[1-9]$/.test(k)) pickTake(Number(k) - 1); else handled = false;
+  }
+  if (handled) { e.preventDefault(); if (onButton || e.target instanceof HTMLInputElement) e.target.blur(); }
+});
+// Space must never "click" a focused button or tick a focused checkbox: it means Record.
+document.addEventListener("keyup", (e) => { if (e.key === " " && !isTyping(e.target)) e.preventDefault(); });
+// Mouse clicks leave focus on the button; drop it so the next Space goes to Record.
+document.addEventListener("click", (e) => { const b = e.target instanceof Element && e.target.closest("button"); if (b && e.detail > 0) b.blur(); });
+
+$("start").onclick = enableCamera;
+$("ctaCam").onclick = enableCamera;
+$("rehearse").onclick = toggleRehearse;
+$("rec").onclick = toggleRecord;
+$("save").onclick = save;
+$("rvSave").onclick = save;
+$("rvRetake").onclick = () => { if (S.pending && !S.pending.saved) S.armedDiscard = performance.now(); startRecord(); }; // a click is deliberate
+$("rvDiscard").onclick = discard;
+$("rvNextBtn").onclick = () => { closeReview(); nextTake(); };
+$("rvClose").onclick = closeReview;
+$("rvSong").onclick = () => { S.rvWithSong = !S.rvWithSong; rv.muted = S.rvWithSong; if (!S.rvWithSong) song.pause(); else rvSync(true); renderReview(); };
+$("tMirror").onclick = () => setPref("mirror", "mirror");
+$("tGuide").onclick = () => setPref("guide", "framing guide");
+$("tSkel").onclick = () => setPref("skeleton", "pose skeleton");
+$("helpBtn").onclick = () => toggleHelp();
+$("panelBtn").onclick = togglePanel;
+$("countdown").onchange = (e) => e.target.blur();
+$("withSong").onchange = (e) => e.target.blur();
+$("name").addEventListener("input", () => { S.nameAuto = false; updateNameHint(); });
+$("setlist").addEventListener("click", (e) => { const b = e.target instanceof Element && e.target.closest("button[data-i]"); if (b) pickTake(Number(b.dataset.i)); });
+$("clearDone").onclick = () => { S.done = {}; store.set("done", S.done); renderSetlist(); renderTake(); toast("✓ marks cleared"); };
+$("clipList").addEventListener("click", async (e) => {
+  const b = e.target instanceof Element && e.target.closest("button[data-clip]"); if (!b) return;
+  const out = b.nextElementSibling; out.textContent = "checking…"; out.className = "rc";
+  const info = await checkClip(b.dataset.clip);
+  out.textContent = info ? receiptText(info) : "couldn't check this clip"; out.classList.toggle("bad", !info || !info.has_audio);
+});
+window.addEventListener("beforeunload", (e) => { if (S.mode === "record" || (S.pending && !S.pending.saved)) { e.preventDefault(); e.returnValue = ""; } });
+window.addEventListener("focus", async () => { // pick up a new timing or shot list without a reload
+  if (S.mode !== "idle" || !S.dataLoaded) return;
+  if (await loadData()) toast("timing / shot list updated");
+  refreshClips();
+});
+
+let lastTp = performance.now(), loopErr = false;
+function frame(tp) {
+  requestAnimationFrame(frame);
+  try {
+    const dt = Math.min(0.1, Math.max(0, (tp - lastTp) / 1000)); lastTp = tp;
+    if (S.clock?.kind === "timer" && takeTime() >= S.clock.dur) finishTake(); // no-song takes end on their own
+    const t = takeTime();
+    render(t);
+    poseTick(tp); lumaTick(tp);
+    warnTick(tp, t, dt);
+    drawSkeleton();
+    if (S.mode === "record") { const s = `REC ${((tp - S.recStart) / 1000).toFixed(1)}s`; if (R.rec !== s) { R.rec = s; $("recChip").textContent = s; } }
+    if (S.mode === "review") rvSync(false);
+  } catch (err) { if (!loopErr) { loopErr = true; console.error("overlay loop:", err); } }
+}
+// Backup for hidden tabs, where requestAnimationFrame pauses.
+setInterval(() => { if (S.clock?.kind === "timer" && takeTime() >= S.clock.dur) finishTake(); }, 250);
+
+async function boot() {
+  if (store.get("panel", true) === false) app.classList.add("no-panel");
+  applyPrefs();
+  S.moves = { ...HOUSE_MOVES };
+  S.takes = FALLBACK_TAKES.map(normTake);
+  prepareTakes();
+  selectTake(Math.max(0, S.takes.findIndex((t) => t.id === store.get("take", ""))));
+  applyMode(); renderDataStatus(); renderPoseChip();
+  requestAnimationFrame(frame);
+  loadPose();
+  autoCamera();
+  await refreshClips();
+  await loadData();
+}
+window.__coach = { S, pose, luma, wst, poseConds }; // console handle for debugging the checks
+boot();
+</script>
+</body>
+</html>

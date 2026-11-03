@@ -1,0 +1,200 @@
+{
+  "song": "songs/in-the-loop-devagar.mp3",
+  "duration_s": 32.0,
+  "bpm": 91.95,
+  "beats": [
+    0.381,
+    1.033,
+    1.686,
+    2.338,
+    2.991,
+    3.643,
+    4.296,
+    4.948,
+    5.601,
+    6.253,
+    6.906,
+    7.558,
+    8.211,
+    8.863,
+    9.516,
+    10.168,
+    10.821,
+    11.473,
+    12.126,
+    12.778,
+    13.431,
+    14.083,
+    14.736,
+    15.388,
+    16.041,
+    16.693,
+    17.346,
+    17.998,
+    18.651,
+    19.303,
+    19.956,
+    20.608,
+    21.261,
+    21.913,
+    22.566,
+    23.218,
+    23.871,
+    24.523,
+    25.176,
+    25.828,
+    26.481,
+    27.133,
+    27.786,
+    28.438,
+    29.091,
+    29.743,
+    30.396,
+    31.048
+  ],
+  "downbeats": [
+    1.686,
+    4.296,
+    6.906,
+    9.516,
+    12.126,
+    14.736,
+    17.346,
+    19.956,
+    22.566,
+    25.176,
+    27.786,
+    30.396
+  ],
+  "sections": [
+    {
+      "name": "intro",
+      "start": 0.0,
+      "end": 4.296
+    },
+    {
+      "name": "verse",
+      "start": 4.296,
+      "end": 22.566
+    },
+    {
+      "name": "chorus",
+      "start": 22.566,
+      "end": 32.0
+    }
+  ],
+  "lines": [
+    {
+      "text": "(Devagar, devagar)",
+      "start": 0.0,
+      "end": 4.096,
+      "section": "intro",
+      "confidence": "low"
+    },
+    {
+      "text": "Tea is warm, the logs are scrolling slow",
+      "start": 4.496,
+      "end": 7.846,
+      "section": "verse",
+      "confidence": "low"
+    },
+    {
+      "text": "Gave my agent tools and let it go",
+      "start": 8.246,
+      "end": 11.596,
+      "section": "verse",
+      "confidence": "low"
+    },
+    {
+      "text": "Hooks before the commit, tests before the run",
+      "start": 11.996,
+      "end": 16.18,
+      "section": "verse",
+      "confidence": "low"
+    },
+    {
+      "text": "Little harness holding everything I've done",
+      "start": 16.38,
+      "end": 21.16,
+      "section": "verse",
+      "confidence": "high",
+      "words": [
+        {
+          "w": "Little",
+          "start": 16.38,
+          "end": 17.72
+        },
+        {
+          "w": "holding",
+          "start": 18.56,
+          "end": 19.02
+        },
+        {
+          "w": "everything",
+          "start": 19.02,
+          "end": 19.84
+        },
+        {
+          "w": "I've",
+          "start": 19.84,
+          "end": 20.49
+        },
+        {
+          "w": "done",
+          "start": 20.49,
+          "end": 21.16
+        }
+      ]
+    },
+    {
+      "text": "I'm in the loop, devagar",
+      "start": 22.24,
+      "end": 24.04,
+      "section": "chorus",
+      "confidence": "high",
+      "words": [
+        {
+          "w": "I'm",
+          "start": 22.24,
+          "end": 22.98
+        },
+        {
+          "w": "in",
+          "start": 22.98,
+          "end": 23.13
+        },
+        {
+          "w": "the",
+          "start": 23.14,
+          "end": 23.48
+        },
+        {
+          "w": "loop",
+          "start": 23.48,
+          "end": 24.04
+        }
+      ]
+    },
+    {
+      "text": "Every step, eu sei onde está",
+      "start": 25.512,
+      "end": 27.228,
+      "section": "chorus",
+      "confidence": "low"
+    },
+    {
+      "text": "Plan it, run it, check it, back again",
+      "start": 27.628,
+      "end": 29.344,
+      "section": "chorus",
+      "confidence": "low"
+    },
+    {
+      "text": "Keep me in the loop, meu bem",
+      "start": 29.744,
+      "end": 30.99,
+      "section": "chorus",
+      "confidence": "low"
+    }
+  ]
+}

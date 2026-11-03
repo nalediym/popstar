@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "templates/music-video/shots.schema.json",
+  "title": "Pop-star music video shot list (single source of truth)",
+  "description": "takes[] drive the coach recorder overlay; scenes[] drive previs, Reference Master, render and stitch. Times are seconds on the song clock.",
+  "type": "object",
+  "required": ["version", "song", "timing", "moves", "takes", "scenes"],
+  "properties": {
+    "version": { "const": 1 },
+    "song": { "type": "string", "description": "repo path of the song mp3" },
+    "timing": { "type": "string", "description": "repo path of the timing json (beats, downbeats, lyric lines)" },
+    "sync_offset_s": { "type": "number", "default": 0, "description": "song t=0 inside the chosen take (from the recorder sidecar)" },
+    "identity_lock": { "type": "string", "description": "the character description, repeated verbatim in every prompt" },
+    "negative": { "type": "string" },
+    "moves": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["label", "how", "icon"],
+        "properties": { "label": { "type": "string" }, "how": { "type": "string" }, "icon": { "type": "string" } }
+      }
+    },
+    "takes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "song", "duration_s", "brief", "setup", "cues"],
+        "properties": {
+          "id": { "type": "string" }, "title": { "type": "string" }, "song": { "type": "boolean" },
+          "duration_s": { "type": "number" }, "brief": { "type": "string" },
+          "setup": { "type": "array", "items": { "type": "string" } },
+          "cues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["t", "dur", "kind", "text"],
+              "properties": {
+                "t": { "type": "number" }, "dur": { "type": "number" },
+                "kind": { "enum": ["move", "direction", "emote"] },
+                "move": { "type": "string" }, "text": { "type": "string" }, "detail": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "scenes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "t0", "t1", "section", "seed", "set", "light", "camera", "emotion", "prompt"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "t0": { "type": "number", "description": "on a downbeat" },
+          "t1": { "type": "number", "description": "on a downbeat or the song end" },
+          "section": { "type": "string" },
+          "seed": { "type": "integer" },
+          "set": { "type": "string" },
+          "light": { "type": "string" },
+          "emotion": { "type": "string" },
+          "look": { "type": "string", "description": "Reference Master look id for the lead, e.g. s3-chorus.lead" },
+          "camera": {
+            "type": "object",
+            "required": ["move"],
+            "properties": {
+              "move": { "enum": ["static", "slow_push_in", "handheld_float", "low_angle_push_in", "quarter_orbit", "lateral_slide"] },
+              "focal_mm": { "type": "number" },
+              "post": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["fx"],
+                  "properties": {
+                    "fx": { "enum": ["slow_push", "punch_in", "drift", "shake"] },
+                    "from": { "type": "number" }, "to": { "type": "number" },
+                    "at": { "type": "array", "items": { "type": "number" } },
+                    "amount": { "type": "number" }
+                  }
+                }
+              }
+            }
+          },
+          "prompt": { "type": "string", "description": "LTX paragraph; contains identity_lock verbatim" },
+          "negative": { "type": "string" },
+          "hero_frame": {
+            "type": "object",
+            "properties": { "source_t": { "type": "number" }, "look": { "type": "string" }, "strength": { "type": "number", "default": 0.8 } }
+          },
+          "lipsync": { "enum": ["pose_face", "hybrid"], "default": "pose_face" },
+          "harmony": { "type": "boolean", "default": false },
+          "clones": {
+            "type": "object",
+            "properties": {
+              "mode": { "enum": ["tile_source", "triptych"] }, "count": { "type": "integer" },
+              "backup_scale": { "type": "number" }, "fallback": { "enum": ["triptych", "none"] }
+            }
+          },
+          "transition_in": {
+            "type": "object",
+            "properties": { "type": { "enum": ["cut", "dissolve", "flash", "letterbox_wipe_in"] }, "frames": { "type": "integer" } }
+          },
+          "fx": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": { "t": { "type": "number" }, "type": { "enum": ["flash", "punch_in", "letterbox_wipe_out"] }, "frames": { "type": "integer" }, "amount": { "type": "number" } }
+            }
+          }
+        }
+      }
+    }
+  }
+}

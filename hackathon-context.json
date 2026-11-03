@@ -1,0 +1,371 @@
+{
+  "checked_at": "2026-11-02",
+  "competition": {
+    "name": "Open Source Higgsfield",
+    "organizer": "Comfy",
+    "scope": "Build an open-source creative application using ComfyUI, inspired by Higgsfield applications or an original idea.",
+    "official_url": "https://comfy.org/open-source-higgsfield",
+    "signup_url": "https://form.typeform.com/to/Ayn9Cwfj",
+    "submission_url": "https://form.typeform.com/to/V1dSQrkS",
+    "deadline": {
+      "date": "2026-11-03",
+      "pacific": "2026-11-03T09:00:00-08:00",
+      "eastern": "2026-11-03T12:00:00-05:00",
+      "utc": "2026-11-03T17:00:00Z",
+      "pacific_timezone": "America/Los_Angeles",
+      "eastern_timezone": "America/New_York",
+      "source_ids": [
+        "competition_page",
+        "submission_form"
+      ]
+    },
+    "winners_announced": "2026-11-10",
+    "deadline_discrepancy": {
+      "outdated_listing": "The NYC Luma page retains October 30 at 9 AM Pacific as the online deadline and mentions an event-day opportunity for attendees.",
+      "current_confirmation": "The official competition page and submission form both show the extension to November 3 at 9 AM Pacific / noon Eastern.",
+      "source_ids": [
+        "competition_page",
+        "submission_form",
+        "nyc_event"
+      ]
+    }
+  },
+  "sourced_rules": {
+    "comfyui_required": true,
+    "allowed_execution": [
+      "Local ComfyUI",
+      "Comfy Cloud",
+      "Comfy Developer Platform",
+      "Comfy Router",
+      "Comfy SDK",
+      "Any combination of the above"
+    ],
+    "public_repository_required": true,
+    "open_source_license_required": true,
+    "reproducible_local_setup_instructions_required": true,
+    "additional_tools_and_models": "Allowed when explained in the demo video.",
+    "content_requirements": [
+      "Lawful",
+      "Safe for work",
+      "No unlicensed intellectual property",
+      "Permission for real people's likenesses"
+    ],
+    "entries_per_person": 1,
+    "feature_permission_on_submission": {
+      "organizations": [
+        "Comfy",
+        "Runpod",
+        "LTX",
+        "Black Forest Labs",
+        "MiniMax"
+      ],
+      "description": "Submission includes agreement to credited promotion, including Comfy sites and products, under the form's Creator Feature Terms."
+    },
+    "open_weights_category": "Requires open-weights models and no closed model APIs or partner nodes. The submission form says rented GPUs still count as fully open.",
+    "main_and_provider_bonus_prizes_can_combine": true,
+    "build_night_attendance_required": false,
+    "source_ids": [
+      "competition_page",
+      "competition_rules_translation_asset",
+      "submission_form"
+    ]
+  },
+  "submission_checklist": [
+    {
+      "item": "Public GitHub repository",
+      "required": true,
+      "includes": [
+        "Application code",
+        "ComfyUI workflow files",
+        "Open-source license",
+        "Local setup and run instructions"
+      ]
+    },
+    {
+      "item": "Demo video URL",
+      "required": true,
+      "maximum_duration_seconds": 120,
+      "content": "Show the working application and explain how it was built; explain innovation when entering that category."
+    },
+    {
+      "item": "Social post URL",
+      "required": true,
+      "hashtag": "#OpenSourceHiggsfield",
+      "content": "Link the demonstration on a social platform such as Reddit, X, Instagram, LinkedIn, YouTube, or TikTok."
+    },
+    {
+      "item": "Live application or endpoint URL",
+      "required": false,
+      "encouraged": true,
+      "judging_notes": "The form says this link will remain private to judges, expects approximately 5–10 judging runs, and permits rate limits or spending caps."
+    },
+    {
+      "item": "Complete the official submission form before the deadline",
+      "required": true,
+      "url": "https://form.typeform.com/to/V1dSQrkS"
+    }
+  ],
+  "submission_form_fields": {
+    "required": [
+      "Name for credit",
+      "Comfy app email",
+      "Country",
+      "Prior familiarity with ComfyUI",
+      "Project title",
+      "One-line description, at most 100 characters",
+      "Public GitHub repository URL",
+      "Demo video URL",
+      "Social post URL with #OpenSourceHiggsfield",
+      "Comfy components used",
+      "All generative models used",
+      "Applicable prize categories",
+      "Fully open stack: yes, no, or unsure",
+      "Four eligibility agreements"
+    ],
+    "optional": [
+      "Social handles",
+      "Discord username",
+      "Reddit username",
+      "Live application or endpoint URL",
+      "Other tools and techniques",
+      "Additional notes for judges"
+    ],
+    "comfy_component_choices_in_form": [
+      "Comfy API",
+      "Comfy Router",
+      "Comfy SDK",
+      "Comfy Cloud Agent",
+      "Comfy MCP"
+    ],
+    "agreements": [
+      "Public repository with an open-source license",
+      "Lawful, SFW content with permitted IP and likenesses",
+      "Credited feature permission under the referenced terms",
+      "This is the entrant's only submission"
+    ],
+    "source_ids": [
+      "submission_form"
+    ]
+  },
+  "prizes": {
+    "advertised_total_value_usd": 25000,
+    "main": [
+      {
+        "category": "Best Overall",
+        "award": "$10,000 cash",
+        "eligibility": "All entries are considered."
+      },
+      {
+        "category": "Most Innovative",
+        "award": "GeForce RTX 5090",
+        "eligibility": "Novel application, custom nodes, or use of ComfyUI; explain the innovation in the demo."
+      },
+      {
+        "category": "Most Viral",
+        "award": "GeForce RTX 5090",
+        "eligibility": "Enjoyable to use and suited to sharing."
+      },
+      {
+        "category": "Open Weights Only",
+        "award": "GeForce RTX 5090",
+        "eligibility": "Open-weights models without partner nodes or closed model APIs."
+      },
+      {
+        "category": "Runner-up",
+        "number_of_awards": 10,
+        "award_each": "$250 in Comfy credits"
+      }
+    ],
+    "provider_bonuses": [
+      {
+        "category": "VFX Workflow Built with LTX",
+        "award": "$2,000 cash",
+        "eligibility": "LTX is the workflow's core video model."
+      },
+      {
+        "category": "Built with FLUX",
+        "awards": [
+          "$1,000 in FLUX API credits",
+          "$500 in FLUX API credits",
+          "$250 in FLUX API credits"
+        ],
+        "eligibility": "FLUX 3 is the workflow's core model."
+      },
+      {
+        "category": "Built with MiniMax H3",
+        "award": "$1,000 in API credits",
+        "eligibility": "MiniMax H3 is the workflow's core model."
+      }
+    ],
+    "numerical_judging_rubric_found": false,
+    "source_ids": [
+      "competition_page"
+    ]
+  },
+  "nyc_build_night": {
+    "title": "Open Source Higgsfield: ComfyUI Build Night",
+    "date": "2026-11-02",
+    "timezone": "America/New_York",
+    "start": "2026-11-02T17:30:00-05:00",
+    "end": "2026-11-02T22:30:00-05:00",
+    "venue": "The Yard",
+    "publicly_listed_address": "106 W 32nd St, New York, NY",
+    "registration_status_at_check": "Full; waitlist offered",
+    "agenda": [
+      {
+        "start_local": "17:30",
+        "end_local": "20:30",
+        "activity": "Structured building with Comfy team support"
+      },
+      {
+        "start_local": "20:30",
+        "end_local": "21:00",
+        "activity": "ComfyUI and Runpod presentations"
+      },
+      {
+        "start_local": "21:00",
+        "end_local": "21:30",
+        "activity": "Project demos"
+      },
+      {
+        "start_local": "21:30",
+        "end_local": "22:30",
+        "activity": "Open networking"
+      }
+    ],
+    "source_ids": [
+      "nyc_event"
+    ]
+  },
+  "technical_context": {
+    "mac_desktop": {
+      "supported_hardware": "Apple Silicon M1 or later",
+      "minimum_macos": "13 Ventura",
+      "recommended_disk_gb_per_instance": 4.85,
+      "models_require_additional_storage": true,
+      "installation_flow": "Download the official DMG, copy Comfy Desktop into Applications, launch it, and create a ComfyUI instance.",
+      "source_ids": [
+        "mac_installation_docs",
+        "first_generation_docs"
+      ]
+    },
+    "sdk": {
+      "python_package": "comfy-sdk",
+      "typescript_package": "@comfyorg/sdk",
+      "minimum_python": "3.10",
+      "minimum_node": "22",
+      "cloud_api_note": "The documentation states that Comfy Cloud API access requires a paid subscription.",
+      "self_hosted_v2_note": "The v2 SDK connects to a self-hosted ComfyUI through the separate comfy-api-proxy service.",
+      "source_ids": [
+        "sdk_docs"
+      ]
+    },
+    "workflow_basics": "Load a template or workflow JSON, download its missing models, then run it. ComfyUI-generated images can also carry importable workflow metadata.",
+    "inspiration": [
+      "Cinematic Studio",
+      "Re-shoot a video",
+      "Openjutsu character replacement"
+    ]
+  },
+  "suggested_next_steps": {
+    "status": "Suggestions for planning; these are not organizer rules.",
+    "items": [
+      "Choose one narrow creative interaction and a target prize category.",
+      "Confirm the relevant workflow runs before adding application controls.",
+      "Keep model, node, and setup requirements documented as the project develops.",
+      "Budget time for the repository instructions, two-minute demo, social post, and submission form.",
+      "Use local inference or an explicitly selected hosted backend according to the workflow's hardware needs."
+    ]
+  },
+  "sources": [
+    {
+      "id": "competition_page",
+      "title": "Open Source Higgsfield competition",
+      "url": "https://comfy.org/open-source-higgsfield"
+    },
+    {
+      "id": "competition_rules_translation_asset",
+      "title": "Official competition page JavaScript text, including dynamically rendered requirements",
+      "url": "https://comfy.org/_website/translations.Cb1O5zNz.js",
+      "note": "This hashed asset URL may change when the website is rebuilt. The canonical competition page remains the stable entry point."
+    },
+    {
+      "id": "submission_form",
+      "title": "Open Source Higgsfield submission form",
+      "url": "https://form.typeform.com/to/V1dSQrkS"
+    },
+    {
+      "id": "signup_form",
+      "title": "Competition sign-up and credits",
+      "url": "https://form.typeform.com/to/Ayn9Cwfj"
+    },
+    {
+      "id": "nyc_event",
+      "title": "NYC ComfyUI Build Night",
+      "url": "https://luma.com/nyc-yjfm"
+    },
+    {
+      "id": "mac_installation_docs",
+      "title": "Comfy Desktop for macOS",
+      "url": "https://docs.comfy.org/installation/desktop/macos"
+    },
+    {
+      "id": "first_generation_docs",
+      "title": "Getting Started with AI Image Generation",
+      "url": "https://docs.comfy.org/get_started/first_generation"
+    },
+    {
+      "id": "sdk_docs",
+      "title": "Comfy SDKs: Python and TypeScript",
+      "url": "https://docs.comfy.org/development/api-development/sdks"
+    },
+    {
+      "id": "comfy_hub",
+      "title": "Comfy Hub apps and workflows",
+      "url": "https://comfy.org/hub"
+    },
+    {
+      "id": "developer_platform",
+      "title": "Comfy Developer Platform",
+      "url": "https://comfy.org/platform/"
+    }
+  ],
+  "build_night_qr_codes": {
+    "source": "QR codes decoded from the attendee photo supplied on 2026-11-02",
+    "free_comfy_credits": {
+      "url": "https://form.typeform.com/to/QCBCLTWj",
+      "title": "OS Higgsfield Build Night Credits",
+      "required_fields": [
+        "Comfy account email",
+        "ComfyUI experience level"
+      ],
+      "experience_choices": [
+        "Never used it",
+        "Beginner",
+        "Intermediate",
+        "Advanced"
+      ],
+      "optional_fields": [
+        "Additional comments"
+      ],
+      "completion_message": "Credits are on the way",
+      "amount_specified": false,
+      "expiry_specified": false,
+      "personal_or_shared_specified": false,
+      "note": "The form does not establish whether it adds an individual grant beyond the event team pool."
+    },
+    "present_live_today": {
+      "url": "https://form.typeform.com/to/q17QgysT",
+      "title": "OS Higgsfield Build Night Presenters",
+      "required_fields": [
+        "Name",
+        "Build title"
+      ],
+      "instructions": "Wait for your name to be called, come to the stage, and present from your own laptop.",
+      "link_issue": "The completion screen labels a link as Google Meet, but the target is a Build Night feedback Typeform at https://form.typeform.com/to/iRGXNwBm."
+    },
+    "rules_and_entry": {
+      "url": "https://comfy.org/open-source-higgsfield"
+    }
+  }
+}

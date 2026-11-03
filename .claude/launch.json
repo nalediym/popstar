@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "recorder",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["PORT=56101", "bun", "recorder/server.ts"],
+      "port": 56101
+    }
+  ]
+}

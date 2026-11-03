@@ -1,0 +1,47 @@
+# HANDOFF — pop-star music video (written 2026-11-02 ~22:40 ET, model switched to Fable 5.1)
+
+Deadline: **2026-11-03 12:00 ET** (Open Source Higgsfield hackathon). Open weights only. Compute = Comfy Cloud via the `comfy-cloud` MCP.
+First command in any new session: `bun tools/popstar.ts status` (stages + the one next step).
+Vision + locked decisions: `PLAN.md` (§ Vision v2). Architecture + risks: `docs/architecture.md`. Skills: `.claude/skills/`.
+
+## One line
+Naledi records ~32s of herself lip-syncing to an original song; one pipeline turns it into a '90s R&B music video of her:
+her real motion (DWPose → LTX-2.3 IC-LoRA), new wardrobe/sets/expressions per scene (Reference Master), clones on the harmonies, cut on the downbeats.
+
+## Verified tonight (receipts in outputs/ and reference-master/tests/)
+| What | Evidence | Recipe |
+|---|---|---|
+| Song, locked | `songs/in-the-loop-devagar.mp3` (ACE-Step 1.5, 32s, ~90.9 BPM real) | `songs/in-the-loop-devagar.md` |
+| Pose restyle follows her motion | `outputs/chunk-01_anime-neon_pose.mp4`, `chunk-02_claymation_pose.mp4` + side-by-sides | rerun job `650120d9-3e42-4fbb-8ebc-19e1629c4832` via `submit_workflow from_prompt_id` + overrides `199.file`, `129:211.on_false`, `129:112.text`, `129:704.seed`, `200.image` + `129:198.bypass=false` |
+| Lip-sync from a photo + audio | `outputs/chorus_lipsync_ia2v.mp4` (LTX-2.3 ia2v, job `ec3ea736…`), `chorus_lipsync_infinitetalk.mp4` (job `05f64513…`), `chorus_lipsync_compare.mp4` | ia2v overrides: `269.image`, `276.audio`, `340:319.value` prompt, `340:349.value=false`, `340:332.start_index`, `340:331.value` duration, `340:286.noise_seed` |
+| Wardrobe + set edit keeps identity | `reference-master/tests/sheet_wardrobe.png` (Qwen Image 2.1 Turbo edit, job `eff061da…`) | `.claude/skills/reference-master/SKILL.md` |
+| Editable eyes/mouth/head | `reference-master/tests/sheet_chorus_expressions.png` (ExpressionEditor, job `39a4709f…`) | same skill; use STRONG slider values |
+| Beat/downbeat detection | beat_this: 12 downbeats `1.68 4.28 6.90 9.50 12.12 14.72 17.34 19.94 22.56 25.16 27.78 30.38` | `docs/research/orchestration.md` §4 |
+
+Comfy Cloud input names already uploaded (reusable): clip-01 `461682d8…mp4`, her first frame `660bf887…png`, song `ebedfcc8…mp3`, chorus wardrobe render `958a28e5…png`.
+
+## In flight when this was written (background builds; verify each when it lands, then commit it)
+| Build | Produces | Verify by |
+|---|---|---|
+| Coach recorder workflow | `songs/*.timing.json`, `shots/in-the-loop-devagar.json`, `recorder/index.html` overlay (karaoke, beat HUD, move cards, pose warnings), `tools/song_timing.py`, `tools/validate_shots.py` | open the recorder in the browser pane with `?demo=test-clip`, watch cues fire on beats; `python3 -I tools/validate_shots.py …` |
+| Reference Master | `reference-master/{server.ts,index.html,looks.json}` + refs tray (Pinterest links), intensity slider, presets | run it, paste a pin link, queue a render, "Copy for Claude" |
+| Blender previs | `previs/build_previs.py`, `outputs/previs/animatic.mp4`, `previs/camera_plan.json` | watch the animatic; cuts on downbeats |
+| Comfy graph pinning (R1) | `workflows/*.api.json`, `workflows/slots.json`, `tools/comfy_compile.ts` | equivalence test vs job `ce7dccfd…`; `submit_workflow dry_run` |
+| Director's Cut | `cut/{server.ts,index.html,edl.json}`, `tools/stitch.ts`, `outputs/final.mp4` (placeholders) | play it against the song; render; ffprobe 32s/24fps/audio |
+
+## Not started
+R2 (scene times: one source of truth), R3 (`popstar.json` manifest, no hardcoded paths), plugin packaging (`plugins/popstar` + marketplace.json, format in the research report), Asset Doctor / gap filler (missing shots → generated inserts; archive light leaks), unified Studio (one server, tabs), **the hero take**, **the 4 scene renders**, **stitch v1 with real renders**, hybrid lip-sync spike, LICENSES.md audit (LivePortrait face-detector weights may be non-commercial).
+
+## Gotchas (each cost time tonight)
+- Subgraph `slot_overrides` fail on Cloud templates → use flattened `"<instance>:<node>"` `input_overrides` (the error names the id).
+- Running a *saved* workflow reverted LoadImage + bypass edits → rerun from a working job id, or submit full API JSON.
+- Models lighten her skin unless every prompt has the identity lock verbatim ("rich deep brown skin, warm undertones, luminous dewy sheen…") and the negative has "lightened skin, pale skin".
+- Whisper on the full song hallucinates; use ≤8s windows with `initial_prompt`.
+- zsh: `cp/mv/rm` are `-i` aliases (use `/bin/…`); unquoted vars don't word-split. Port 56101 = recorder preview.
+- LTX frame counts must be 8n+1. ffmpeg `zoompan` shakes; use `scale eval=frame` + `crop`.
+
+## Next, in order (after the builds land)
+1. Tool freeze. 2. Record `hero-1` with the coach (earbuds, warm front light, hands off the mouth). 3. One anchored render: scene s3 with its Reference Master look as first frame; check identity holds 8s. 4. Render all 4 scenes (`submit_batch`). 5. Stitch v1 in the Director's Cut. 6. Only then: clones, hybrid spike, plugin.
+
+## Open questions (grill in progress)
+Freeze tools after the in-flight builds? · GitHub public/private + name · seated or standing performance · Fable on director/QA agents only, or everywhere.
