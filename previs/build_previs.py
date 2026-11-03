@@ -1089,6 +1089,13 @@ def build_mannequin(name, coll, root_loc, facing, outfit, skin, seated=False, da
     bmesh.ops.delete(bm, geom=[v for v in res["verts"] if not keep_hair(v)], context="VERTS")
     add_sphere(bm, (0.05, 0.048, 0.046), hc + Vector((0, 0.098, -0.03)), u=16, v=10)
     bm_object(f"{name}_hair", bm, coll, [hair], parent=r.neck)
+    if outfit.get("headwrap"):   # a wrap over the hair in the top's fabric, with a knot at the front-left
+        bm = bmesh.new()
+        res = bmesh.ops.create_uvsphere(bm, u_segments=28, v_segments=18, radius=1.0,
+                                        matrix=_mat4(hc + Vector((0, 0.006, 0.012)), (0, 0, 0), (0.090, 0.106, 0.124)))
+        bmesh.ops.delete(bm, geom=[v for v in res["verts"] if not keep_hair(v)], context="VERTS")
+        add_sphere(bm, (0.045, 0.04, 0.036), hc + Vector((0.055, -0.045, 0.105)), (0.3, 0.5, 0.0), u=14, v=10)
+        bm_object(f"{name}_headwrap", bm, coll, [top], parent=r.neck)
     bm = bmesh.new()
     for sx in (-1, 1):
         add_torus(bm, 0.011, 0.0022, hc + Vector((sx * 0.079, -0.002, -0.046)), (0, math.pi / 2, 0), segs=16,
