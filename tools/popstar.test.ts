@@ -185,6 +185,7 @@ describe("doctor", () => {
   const deps = (over: Partial<DoctorDeps> = {}, banners = banner): DoctorDeps => ({
     run: (cmd) => (cmd[0] === "uv" && cmd[1] === "run" ? ok("") : banners[cmd[0]!] !== undefined ? ok(banners[cmd[0]!]!) : { ok: false, code: null, stdout: "", stderr: "", timedOut: false, error: "ENOENT" }),
     exists: () => true,
+    list: () => ["hero-1.mp4", "hero-1.json"],
     reach: async () => ({ ok: true, status: 200 }),
     env: { COMFY_API_KEY: "comfyui-test" },
     home: "/home/test",
@@ -198,6 +199,9 @@ describe("doctor", () => {
     expect(checks.every((c) => c.ok)).toBe(true);
     expect(checks.find((c) => c.id === "ffmpeg")?.detail).toBe("9.0.1");
     expect(checks.find((c) => c.id === "blender")?.detail).toBe(BLENDER);
+    expect(checks.find((c) => c.id === "hero-take")?.detail).toBe("clips/hero-1.mp4");
+    const noTake = await runDoctor("/repo", m, deps({ list: () => [] }));
+    expect(noTake.find((c) => c.id === "hero-take")).toMatchObject({ ok: false, required: false, fix: "popstar open recorder   # record hero-1 with the coach" });
   });
 
   test("--fast skips the beat_this import", async () => {

@@ -594,6 +594,7 @@ COLOR_WORDS = [  # longest first
     ("chocolate", "3e2416"), ("espresso", "2e1a10"), ("mocha", "5e3d2a"), ("brown", "5a3720"), ("amber", "d2861f"),
     ("honey", "c98a2e"), ("gold", "c9952f"), ("bronze", "9a6a2a"), ("orange", "d0631c"), ("wine", "5e1a1e"),
     ("burgundy", "5a1620"), ("black", "151010"), ("white", "ece6dc"), ("beige", "cdb594"),
+    ("light wash", "8fa6bd"), ("denim", "5b6f8a"),
 ]
 
 
@@ -608,9 +609,9 @@ def color_from_text(text, default_hex):
 
 
 RX_DRESS = r"\b(slip dress|slip|dress|gown|jumpsuit)\b"          # whole words: "slipping" is not a slip
-RX_TOP = r"\b(sweater|knit|cardigan|hoodie|turtleneck|top|tee|shirt|blouse|cami|camisole|halter|bralette|bustier|" \
-         r"corset|tank|bodysuit)\b"
-RX_BOTTOM = r"\b(pants|trousers|cargos?|jeans|leggings|joggers|skirt|shorts)\b"
+RX_TOP = r"\b(sweater|sweatshirt|pullover|jumper|knit|cardigan|hoodie|turtleneck|top|tee|shirt|blouse|cami|" \
+         r"camisole|halter|bralette|bustier|corset|tank|bodysuit)\b"
+RX_BOTTOM = r"\b(pants|trousers|cargos?|jeans|denim|leggings|joggers|skirt|shorts)\b"
 RX_SET = r"\b(two piece|set|co ord|matching)\b"
 FABRICS = ("satin", "silk", "knit", "velvet", "suede", "leather", "ribbed", "cotton", "denim")
 
@@ -637,13 +638,15 @@ def wardrobe_spec(text, default):
     elif top_c:
         if re.search(r"\b(cami|camisole|halter|strap|straps|strapless|bustier|corset|tank|bralette)\b", t):
             spec.update(neckline="cami", sleeves="none")
-        elif re.search(r"\b(sweater|knit|cardigan|hoodie|turtleneck|long sleeve|long sleeved)\b", t):
+        elif re.search(r"\b(sweater|sweatshirt|pullover|jumper|knit|cardigan|hoodie|turtleneck|long sleeve|"
+                       r"long sleeved)\b", t):
             spec.update(neckline="crew", sleeves="long")
         else:
             spec.update(neckline="crew", sleeves="none")
     if bot_c:
         spec["bottom"] = "skirt" if re.search(r"\bskirt\b", bot_c) else "pants"
     spec["cropped"] = bool(re.search(r"\bcrop(ped)?\b", t))
+    spec["headwrap"] = bool(re.search(r"\b(headwrap|head wrap|turban|head scarf|headscarf)\b", t))
     spec["wide"] = bool(re.search(r"\b(wide leg|palazzo|flare|flared)\b", t))
     spec["oversized"] = bool(re.search(r"\b(oversized|chunky|slouchy)\b", t)) or spec.get("oversized", False)
     # colours: garment clause, else the set clause, else anywhere
