@@ -24,15 +24,19 @@ const json = (body: unknown, status = 200) => Response.json(body, { status, head
 
 // ---- the EDL on disk ------------------------------------------------------------------------------------------
 
-async function readEdlFile(): Promise<{ edl?: Edl; text?: string; error?: string }> {
+/** Content version of the EDL file. Pages send it back on PUT, so a stale tab can't silently overwrite a newer
+ *  edit (from another window, or from Claude editing cut/edl.json directly). */
+const versionOf = (text: string) => new Bun.CryptoHasher("sha1").update(text).digest("hex").slice(0, 12);
+async function readEdlFile(): Promise<{ edl?: Edl; text?: string; version?: string; error?: string }> {
   const f = Bun.file(edlPath);
   if (!(await f.exists())) return {};
   const text = await f.text();
+  const version = versionOf(text);
   try {
     const v = validateEdl(JSON.parse(text));
-    return v.ok ? { edl: v.edl, text } : { error: `cut/edl.json is invalid: ${v.errors.join("; ")}`, text };
+    return v.ok ? { edl: v.edl, text, version } : { error: `cut/edl.json is invalid: ${v.errors.join("; ")}`, text, version };
   } catch (e) {
-    return { error: `cut/edl.json is not valid JSON: ${(e as Error).message}`, text };
+    return { error: `cut/edl.json is not valid JSON: ${(e as Error).message}`, text, version };
   }
 }
 async function currentSong(): Promise<string> {
@@ -40,11 +44,13 @@ async function currentSong(): Promise<string> {
 }
 let writeSeq = 0;
 /** Atomic write: temp file in the same dir, then rename. The previous version becomes cut/edl.backup.json. */
-async function writeEdl(edl: Edl) {
+async function writeEdl(edl: Edl): Promise<string> {
   if (existsSync(edlPath)) copyFileSync(edlPath, backupPath);
   const tmp = `${edlPath}.tmp-${process.pid}-${++writeSeq}`;
-  await Bun.write(tmp, JSON.stringify(edl, null, 2) + "\n");
+  const text = JSON.stringify(edl, null, 2) + "\n";
+  await Bun.write(tmp, text);
   renameSync(tmp, edlPath);
+  return versionOf(text);
 }
 
 // ---- assets ---------------------------------------------------------------------------------------------------
@@ -267,10 +273,15 @@ const server = Bun.serve({
     if (get && path === "/edl") {
       const cur = await readEdlFile();
       if (cur.error) return jsonError(500, cur.error, { backup: existsSync(backupPath) ? rel(backupPath) : null });
-      if (cur.edl) return json(cur.edl);
+      if (cur.edl) return Response.json(cur.edl, { headers: { ...noStore, "x-edl-version": cur.version! } });
       const seed = await seedEdl(); // first run: write the canonical seed
-      await writeEdl(seed);
-      return json(seed);
+      const version = await writeEdl(seed);
+      return Response.json(seed, { headers: { ...noStore, "x-edl-version": version } });
+    }
+
+    if (get && path === "/edl/version") {
+      const cur = await readEdlFile();
+      return json({ version: cur.version ?? null, error: cur.error ?? null });
     }
 
     if (get && path === "/edl/seed") return json(await seedEdl()); // a fresh seed, not written ("start over")
@@ -280,8 +291,14 @@ const server = Bun.serve({
       try { body = await req.json(); } catch (e) { return jsonError(400, `body is not JSON: ${(e as Error).message}`); }
       const v = validateEdl(body);
       if (!v.ok) return jsonError(400, "EDL rejected", { errors: v.errors });
-      await writeEdl(v.edl);
-      return json({ ok: true, saved: rel(edlPath), backup: rel(backupPath), warnings: v.warnings, saved_at: new Date().toISOString() });
+      const base = req.headers.get("x-edl-base");
+      const cur = await readEdlFile();
+      if (base && cur.version && base !== cur.version) {
+        return jsonError(409, "cut/edl.json changed since this page loaded it (another window, or an edit on disk)",
+          { version: cur.version, edl: cur.edl ?? null });
+      }
+      const version = await writeEdl(v.edl);
+      return json({ ok: true, version, saved: rel(edlPath), backup: rel(backupPath), warnings: v.warnings, saved_at: new Date().toISOString() });
     }
 
     if (get && path === "/assets") {

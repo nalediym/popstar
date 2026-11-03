@@ -5,22 +5,24 @@
         [--looks reference-master/looks.json] [--frames storyboards/frames] [--out storyboards] [--song <slug>]
 
 Reads (every input is optional; what is missing falls back to the canonical plan baked in below, and the board says so):
-  shots/<song>.json              scenes[] + takes[] (per-beat cues) from the rnb-director skill
-  songs/<song>.timing.json       beats, downbeats, lyric lines (beat_this + Whisper)
+  shots/<song>.json              scenes[] (field overlay) + takes[hero-1].cues (the hand moves) from the rnb-director skill
+  songs/<song>.timing.json       beats, downbeats, sections, lyric lines (beat_this + Whisper)
   reference-master/looks.json    scene titles, set, light, the lead's wardrobe
+  songs/<song>.md                the song title (first heading)
   <frames>/s1.png .. s4.png      one raw frame per scene (1280x720-ish)
 Writes:
   <frames>/s{n}_letterbox.png    the frame with the 2.39:1 bars burned on
   <out>/<song>_board.png + .pdf  2x2 director's board, 2560x1600
   <out>/<song>_beatboard.png     12-bar strip, 2560x640
 Only dependency: Pillow. Fonts: Menlo (mono) + Georgia Italic (lyrics) from /System/Library/Fonts; Pillow's default if missing.
-Layout problems (a row that had to shrink, a line that was cut) are printed to stderr as "storyboard: warning".
+Layout problems (a row that had to shrink, a label that collided) are printed to stderr as "storyboard: warning".
 """
 from __future__ import annotations
 
 import argparse
 import json
 import math
+import re
 import sys
 from dataclasses import dataclass, field
 from datetime import date
@@ -54,7 +56,7 @@ def warn(msg: str) -> None:
     print(f"storyboard: warning: {msg}", file=sys.stderr)
 
 
-def font(size: int, bold: bool = False, serif: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+def font(size: int, bold: bool = False, serif: bool = False):
     try:
         if serif:
             return ImageFont.truetype(GEORGIA_ITALIC, size)
@@ -77,6 +79,10 @@ def fmt_t(t: float) -> str:
 
 def with_alpha(c: tuple, a: int) -> tuple:
     return (c[0], c[1], c[2], a)
+
+
+def clamp(v, lo, hi):
+    return max(lo, min(hi, v))
 
 
 # ---------------------------------------------------------------- data
@@ -119,6 +125,18 @@ class Scene:
     tags: list[str] = field(default_factory=list)  # chips drawn on the frame besides the camera move
 
 
+@dataclass
+class Timing:
+    beats: list[float]
+    downbeats: list[float]
+    lines: list[Line]
+    sections: list[tuple[str, float, float]]
+    duration: float
+    bpm: float
+    source: str  # file path or "canonical fallback"
+    approx: bool  # True when everything on it is approximate
+
+
 CANON_DOWNBEATS = [1.68, 4.28, 6.90, 9.50, 12.12, 14.72, 17.34, 19.94, 22.56, 25.16, 27.78, 30.38]
 CANON_BAR = 2.61
 CANON_DURATION = 32.0
@@ -135,17 +153,14 @@ CANON_LINES = [
     ("Plan it, run it, check it, back again", 24.1, 27.5),
     ("Keep me in the loop, meu bem", 27.5, 31.0),
 ]
-
-
-@dataclass
-class Timing:
-    beats: list[float]
-    downbeats: list[float]
-    lines: list[Line]
-    duration: float
-    bpm: float
-    source: str  # file path or "canonical fallback"
-    approx: bool  # True when everything on it is approximate
+MOVE_NAMES = {  # slug -> house name (rnb-director + docs/research/rnb-video-language.md §5)
+    "heart-press": "Heart Press", "reach-to-lens": "Reach to Lens", "pull-back": "Pull Back", "jaw-trace": "Jaw Trace",
+    "neck-slide": "Neck Slide", "backbeat-snaps": "Backbeat Snaps", "backbeat-snap": "Backbeat Snaps", "palm-roll": "Palm Roll",
+    "adlib-wave": "Ad-lib Wave", "ad-lib-wave": "Ad-lib Wave", "vocal-lift": "Vocal Lift", "mic-cup": "Mic Cup", "hair-comb": "Hair Comb",
+    "shoulder-brush": "Shoulder Brush", "frame-face": "Frame the Face", "frame-the-face": "Frame the Face", "hush": "Hush",
+    "come-here": "Come Here", "lean-back-hands": "Lean-Back Hands", "loop-circle": "Loop Circle", "shoulder-roll": "Shoulder Roll",
+    "body-roll": "Body Roll", "hair-flip": "Hair Flip", "sway": "Sway", "ooh-face": "Ooh Face",
+}
 
 
 def load_timing(path: Path | None) -> Timing:
@@ -159,11 +174,12 @@ def load_timing(path: Path | None) -> Timing:
         downbeats = [float(b) for b in j.get("downbeats", [])] or CANON_DOWNBEATS
         if not beats:  # synthesize 4 beats per bar from the downbeats
             beats = sorted({round(d + k * (CANON_BAR / 4), 3) for d in downbeats for k in range(4)})
-        return Timing(beats, downbeats, lines, float(j.get("duration_s", CANON_DURATION)), float(j.get("bpm", CANON_BPM)), str(path), False)
+        sections = [(str(s["name"]), float(s["start"]), float(s["end"])) for s in j.get("sections", [])]
+        return Timing(beats, downbeats, lines, sections, float(j.get("duration_s", CANON_DURATION)), float(j.get("bpm", CANON_BPM)), str(path), False)
     # fallback: canonical downbeats, synthesized beats, approximate lyric times
     beats = sorted({round(d + k * (CANON_BAR / 4), 3) for d in CANON_DOWNBEATS for k in range(4)} | {0.37, 1.03})
     beats = [b for b in beats if b < CANON_DURATION]
-    return Timing(beats, CANON_DOWNBEATS, [Line(t, a, b, True) for t, a, b in CANON_LINES], CANON_DURATION, CANON_BPM, "canonical fallback", True)
+    return Timing(beats, CANON_DOWNBEATS, [Line(t, a, b, True) for t, a, b in CANON_LINES], [], CANON_DURATION, CANON_BPM, "canonical fallback", True)
 
 
 def find_line(lines: list[Line], needle: str) -> Line | None:
@@ -185,7 +201,6 @@ def canonical_scenes(tm: Timing, looks: dict | None) -> list[Scene]:
     t1s = [db[2], db[6], db[9], tm.duration]
     ap = tm.approx
 
-    # cue times
     heart1 = Cue(db[0], "Heart Press", approx=ap, note="bar 1")
     snaps_rep = []
     for d in db:
@@ -221,7 +236,7 @@ def canonical_scenes(tm: Timing, looks: dict | None) -> list[Scene]:
         v = L.get(sid, {}).get(key)
         return str(v) if v else default
 
-    scenes = [
+    return [
         Scene(
             id="s1-intro", title=pick("s1-intro", "title", "Cozy couch intro").upper(), t0=t0s[0], t1=t1s[0],
             section="intro", section_label="INTRO + VERSE IN",
@@ -264,23 +279,66 @@ def canonical_scenes(tm: Timing, looks: dict | None) -> list[Scene]:
             tags=["CLONES: TRIPTYCH FALLBACK"],
         ),
     ]
-    return scenes
 
 
-def scenes_from_shots(shots: dict, canon: list[Scene], tm: Timing) -> list[Scene]:
-    """Overlay shots/<song>.json on the canonical plan, field by field. Unknown fields keep the canonical value."""
-    out: list[Scene] = []
+def move_name(moves, slug: str) -> str:
+    """Display name for a move slug: shots.moves (dict or list) first, then the house list, then Title Case."""
+    if isinstance(moves, dict):
+        m = moves.get(slug)
+        if isinstance(m, dict):
+            for k in ("name", "label", "title"):
+                if m.get(k):
+                    return str(m[k])
+        elif isinstance(m, str):
+            return m
+    elif isinstance(moves, list):
+        for m in moves:
+            if isinstance(m, dict) and m.get("id") == slug:
+                for k in ("name", "label", "title"):
+                    if m.get(k):
+                        return str(m[k])
+    if slug in MOVE_NAMES:
+        return MOVE_NAMES[slug]
+    words = slug.replace("_", "-").split("-")
+    return " ".join(w if w in ("to", "the", "of") and i else w.capitalize() for i, w in enumerate(words))
+
+
+def cues_from_take(shots: dict, tm: Timing, take_id: str = "hero-1") -> list[Cue]:
+    takes = shots.get("takes") or []
+    take = next((t for t in takes if str(t.get("id", "")) == take_id), None)
+    if take is None:
+        take = next((t for t in takes if str(t.get("id", "")).startswith(take_id)), None)
+    if take is None:
+        return []
+    out: list[Cue] = []
+    for c in take.get("cues", []):
+        if str(c.get("kind", "")).lower() != "move" or "t" not in c:
+            continue
+        slug = str(c.get("move") or c.get("text") or "move")
+        name = move_name(shots.get("moves"), slug)
+        note = str(c.get("text", "")) if c.get("text") and str(c.get("text")) != name else ""
+        detail = str(c.get("detail", ""))
+        approx = bool(c.get("approx")) or "approx" in detail.lower()
+        t = float(c["t"])
+        repeat: list[float] = []
+        if "snap" in slug and c.get("dur"):
+            end = t + float(c["dur"])
+            for d in tm.downbeats:
+                if t - 1e-3 <= d < end:
+                    for n in (1, 3):
+                        b = beat_after(tm.beats, d, n)
+                        if b is not None and b < end:
+                            repeat.append(b)
+        out.append(Cue(t, name, approx=approx, note=note, repeat=repeat))
+    return sorted(out, key=lambda c: c.t)
+
+
+def scenes_from_shots(shots: dict, canon: list[Scene]) -> list[Scene]:
+    """Overlay shots/<song>.json scenes[] on the canonical plan, field by field. Unknown fields keep the canonical value."""
     raw_scenes = shots.get("scenes") or []
     if not raw_scenes:
         return canon
-    # hero-1 take cues (kind == "move") override the hand cues
-    takes = shots.get("takes") or []
-    take = next((t for t in takes if str(t.get("id", "")).startswith("hero-1")), takes[0] if takes else None)
-    moves: list[Cue] = []
-    if take:
-        for c in take.get("cues", []):
-            if str(c.get("kind", "move")).lower() == "move" and "t" in c and c.get("text"):
-                moves.append(Cue(float(c["t"]), str(c["text"]), approx=bool(c.get("approx", False)), note=str(c.get("note", ""))))
+    out: list[Scene] = []
     for i, sc in enumerate(raw_scenes):
         base = canon[min(i, len(canon) - 1)]
 
@@ -290,6 +348,11 @@ def scenes_from_shots(shots: dict, canon: list[Scene], tm: Timing) -> list[Scene
                 if v not in (None, ""):
                     return v
             return default
+
+        def text_of(v, default):
+            if isinstance(v, dict):
+                return str(v.get("description") or v.get("text") or default)
+            return str(v) if v not in (None, "") else default
 
         t0 = float(g("t0", "start", default=base.t0))
         t1 = float(g("t1", "end", default=base.t1))
@@ -302,7 +365,8 @@ def scenes_from_shots(shots: dict, canon: list[Scene], tm: Timing) -> list[Scene
             if isinstance(p, dict):
                 zf = p.get("from", p.get("zoom_from"))
                 zt = p.get("to", p.get("zoom_to"))
-                post = (float(zf), float(zt)) if zf is not None and zt is not None else post
+                if zf is not None and zt is not None:
+                    post = (float(zf), float(zt))
                 pi = p.get("punch_in") or p.get("punch_ins")
                 if isinstance(pi, (int, float)):
                     punch = [float(pi)]
@@ -316,18 +380,13 @@ def scenes_from_shots(shots: dict, canon: list[Scene], tm: Timing) -> list[Scene
             trans_in = str(tr.get("in") or trans_in)
         elif isinstance(tr, str):
             trans_in = tr
-        cues = [c for c in moves if t0 <= c.t < t1] if moves else [c for c in base.cues if t0 <= c.t < t1]
-        light = g("light", default=base.light)
-        emo = g("emotion", default=base.emotion)
         out.append(
             Scene(
-                id=str(g("id", default=base.id)), title=str(g("title", default=base.title)).upper(), t0=t0, t1=t1,
+                id=str(g("id", default=base.id)), title=text_of(g("title"), base.title).upper(), t0=t0, t1=t1,
                 section=str(g("board_section", default=base.section)), section_label=str(g("section", default=base.section_label)).upper(),
-                set=str(g("set", default=base.set)) if not isinstance(g("set"), dict) else str(g("set").get("description", base.set)),
-                light=str(light) if not isinstance(light, dict) else str(light.get("description", base.light)),
-                wardrobe=str(g("wardrobe", default=base.wardrobe)), camera=camera, post=post, punch_ins=punch,
-                emotion=str(emo) if not isinstance(emo, dict) else str(emo.get("description", base.emotion)),
-                cues=sorted(cues, key=lambda c: c.t), transition_in=trans_in, frame=base.frame, frame_source=base.frame_source, tags=base.tags,
+                set=text_of(g("set"), base.set), light=text_of(g("light"), base.light), wardrobe=text_of(g("wardrobe"), base.wardrobe),
+                camera=camera, post=post, punch_ins=punch, emotion=text_of(g("emotion"), base.emotion),
+                cues=[c for c in base.cues if t0 <= c.t < t1], transition_in=trans_in, frame=base.frame, frame_source=base.frame_source, tags=base.tags,
             )
         )
     return out
@@ -341,11 +400,23 @@ def glyph_for(camera: str) -> str:
         return "handheld_float"
     if "lateral" in c or "slide" in c or "truck" in c:
         return "lateral_slide"
-    if "low" in c and ("push" in c or "dolly" in c):
+    if ("low-angle" in c or "low angle" in c) and ("push" in c or "dolly" in c):
         return "low_angle_push_in"
     if "push" in c or "dolly" in c:
         return "push_in"
     return "hold"
+
+
+def song_title(root: Path, slug: str) -> str:
+    p = root / "songs" / f"{slug}.md"
+    if p.exists():
+        for ln in p.read_text().splitlines():
+            if ln.startswith("# "):
+                t = ln[2:].strip()
+                t = re.split(r"\s+[—–-]\s+", t)[0].strip()
+                if t:
+                    return t
+    return slug.replace("-", " ").title()
 
 
 # ---------------------------------------------------------------- drawing helpers
@@ -386,8 +457,7 @@ def arrow(d: ImageDraw.ImageDraw, p0, p1, color, width=3, head=11, shadow=True):
     (x0, y0), (x1, y1) = p0, p1
     ang = math.atan2(y1 - y0, x1 - x0)
     tip = [(x1, y1), (x1 - head * math.cos(ang - 0.55), y1 - head * math.sin(ang - 0.55)), (x1 - head * math.cos(ang + 0.55), y1 - head * math.sin(ang + 0.55))]
-    # shorten the shaft so it does not poke through the head
-    sx, sy = x1 - (head * 0.6) * math.cos(ang), y1 - (head * 0.6) * math.sin(ang)
+    sx, sy = x1 - (head * 0.6) * math.cos(ang), y1 - (head * 0.6) * math.sin(ang)  # shaft stops inside the head
     if shadow:
         d.line([(x0, y0), (sx, sy)], fill=SHADOW, width=width + 4)
         d.polygon([(x + 1, y + 1) for x, y in tip], fill=SHADOW)
@@ -425,12 +495,12 @@ def chip(d, x, y, text, size=13, fg=AMBER, bg=(13, 13, 16, 205), outline=None, b
     f = font(size, bold)
     w = f.getlength(text) + 2 * pad[0]
     h = size + 2 * pad[1] + 2
-    if anchor == "rt":
+    if anchor in ("rt", "rb"):
         x = x - w
-    if anchor == "lb":
+    if anchor in ("lb", "rb"):
         y = y - h
-    if anchor == "rb":
-        x, y = x - w, y - h
+    if anchor == "ct":
+        x = x - w / 2
     d.rounded_rectangle([x, y, x + w, y + h], radius=5, fill=bg, outline=outline or with_alpha(fg, 150), width=1)
     d.text((x + pad[0], y + pad[1]), text, font=f, fill=fg)
     return (x, y, x + w, y + h)
@@ -446,13 +516,36 @@ def label(d, x, y, text, size=12, color=DIM, bold=True, spacing=1):
     return cx - x
 
 
+def place_labels(d, items, f, x_lo, x_hi, y0, row_h, rows=3, who="labels", note_font=None):
+    """items: [(cx, text, color, note)]. Greedy rows so labels never overlap; notes go on the row below if free."""
+    rows_right = [-1e9] * rows
+    for cx, text, color, note in items:
+        tw = f.getlength(text)
+        lx = clamp(cx - tw / 2, x_lo, max(x_lo, x_hi - tw))
+        row = next((r for r in range(rows) if lx > rows_right[r] + 10), None)
+        if row is None:
+            row = min(range(rows), key=lambda r: rows_right[r])
+            warn(f"{who}: labels overlap near x={cx:.0f} ({text!r})")
+        ly = y0 + row * row_h
+        d.line([(cx, y0 - 6), (cx, ly - 1)], fill=with_alpha(AMBER, 110), width=1)
+        d.text((lx, ly), text, font=f, fill=color)
+        rows_right[row] = lx + tw
+        if note and note_font is not None and row + 1 < rows:
+            nw = note_font.getlength(note)
+            nx = clamp(lx, x_lo, max(x_lo, x_hi - nw))
+            if nx > rows_right[row + 1] + 10:
+                d.text((nx, y0 + (row + 1) * row_h), note, font=note_font, fill=DIM)
+                rows_right[row + 1] = nx + nw
+
+
 # ---------------------------------------------------------------- icons (the hand vocabulary + FX)
 def icon_kind(name: str) -> str:
     n = name.lower()
     for key, kind in [
-        ("heart", "heart"), ("reach", "reach"), ("pull", "pullback"), ("jaw", "jaw"), ("snap", "snap"), ("loop", "loop"),
-        ("come here", "comehere"), ("wave", "wave"), ("comb", "comb"), ("frame", "frameface"), ("palm", "palmroll"),
-        ("lift", "lift"), ("neck", "jaw"), ("hush", "hush"), ("mic", "hush"), ("shoulder", "comb"), ("lean", "wave"),
+        ("heart", "heart"), ("reach", "reach"), ("pull", "pullback"), ("jaw", "jaw"), ("neck", "jaw"), ("snap", "snap"),
+        ("loop", "loop"), ("come here", "comehere"), ("wave", "wave"), ("sway", "wave"), ("comb", "comb"), ("hair", "comb"),
+        ("frame", "frameface"), ("palm", "palmroll"), ("lift", "lift"), ("hush", "hush"), ("mic", "hush"),
+        ("shoulder", "shoulderroll"), ("body", "bodyroll"), ("lean", "wave"), ("ooh", "ooh"),
     ]:
         if key in n:
             return kind
@@ -460,7 +553,7 @@ def icon_kind(name: str) -> str:
 
 
 def draw_icon(d, kind: str, x: float, y: float, s: float, color=AMBER, shadow=True):
-    """A 1-stroke glyph centred on (x, y), about s px wide."""
+    """A one-stroke glyph centred on (x, y), about s px wide."""
     r = s / 2
 
     def pen(col, w):
@@ -501,12 +594,20 @@ def draw_icon(d, kind: str, x: float, y: float, s: float, color=AMBER, shadow=Tr
                 d.line([(x + sx * r, y + r * 0.9), (x + sx * r * 0.45, y + r * 0.9)], fill=col, width=w)
         elif kind == "palmroll":
             curved_arrow(d, x, y + r * 0.3, r * 0.85, 180, 360, col, width=w, head=7, shadow=False)
+        elif kind == "shoulderroll":  # a shoulder (dot) with a roll over it
+            d.ellipse([x - 3, y + r * 0.35, x + 3, y + r * 0.35 + 6], fill=col)
+            curved_arrow(d, x, y + r * 0.3, r * 0.8, 200, 340, col, width=w, head=7, shadow=False)
+        elif kind == "bodyroll":  # a vertical S
+            pts = [(x + r * 0.5 * math.sin(i / 24 * 2 * math.pi), y - r + i * (2 * r) / 24) for i in range(25)]
+            d.line(pts, fill=col, width=w, joint="curve")
         elif kind == "lift":
             arrow(d, (x, y + r), (x, y - r), col, width=w, head=8, shadow=False)
             d.line([(x - r * 0.6, y + r), (x + r * 0.6, y + r)], fill=col, width=w)
         elif kind == "hush":
             d.line([(x, y - r), (x, y + r * 0.3)], fill=col, width=w + 1)
             d.line([(x - r * 0.8, y + r * 0.7), (x + r * 0.8, y + r * 0.7)], fill=col, width=w)
+        elif kind == "ooh":
+            d.ellipse([x - r * 0.55, y - r * 0.7, x + r * 0.55, y + r * 0.7], outline=col, width=max(2, w - 1))
         elif kind == "flash":
             for k in range(8):
                 a = math.radians(k * 45 + 22.5)
@@ -573,7 +674,7 @@ FRAME_W, FRAME_H = 704, 396
 
 
 def draw_camera_glyph(d, sc: Scene, fx, fy, fw, fh):
-    """The camera move as a glyph over the frame. Picture area excludes the letterbox bars."""
+    """The camera move as a glyph over the frame. The picture area excludes the letterbox bars."""
     bar = round(92 * fh / 720)
     px0, py0, px1, py1 = fx, fy + bar, fx + fw, fy + fh - bar
     kind = glyph_for(sc.camera)
@@ -588,7 +689,7 @@ def draw_camera_glyph(d, sc: Scene, fx, fy, fw, fh):
             w, h = (px1 - px0) / z, (py1 - py0) / z
             cx, cy = (px0 + px1) / 2, (py0 + py1) / 2
             dashed_rect(d, (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2), with_alpha(AMBER, 190), width=2)
-            chip(d, cx - w / 2 + 6, cy - h / 2 + 6, f"end frame {z:.2f}x", size=11, pad=(5, 3))
+            chip(d, cx, cy + h / 2 - 6, f"end frame {z:.2f}x", size=11, pad=(5, 3), anchor="ct")
     if kind == "low_angle_push_in":
         chip(d, px0 + 12, py1 - 12, "↑ LOW ANGLE", size=13, anchor="lb")
     elif kind == "handheld_float":
@@ -596,39 +697,37 @@ def draw_camera_glyph(d, sc: Scene, fx, fy, fw, fh):
         pts = [(x0 + i * L / 60, y + 8 * math.sin(i / 60 * 2 * math.pi * 3)) for i in range(61)]
         d.line(pts, fill=SHADOW, width=8, joint="curve")
         d.line(pts, fill=AMBER, width=4, joint="curve")
-        chip(d, px1 - 12, y - 14, "HANDHELD FLOAT", size=12, anchor="rb")
     elif kind == "quarter_orbit":
-        cx, cy = px1 - 110, py1 - 50
+        cx, cy = px1 - 100, py1 - 44
         d.ellipse([cx - 7, cy - 7, cx + 7, cy + 7], fill=SHADOW)
         d.ellipse([cx - 5, cy - 5, cx + 5, cy + 5], fill=AMBER)
         curved_arrow(d, cx, cy, 40, 190, 290, AMBER, width=4, head=13)
-        chip(d, px1 - 12, py1 - 12, "¼ ORBIT · post drift", size=12, anchor="rb")
     elif kind == "lateral_slide":
         arrow(d, (px1 - 200, py1 - 34), (px1 - 40, py1 - 34), AMBER, width=4, head=13)
-        chip(d, px1 - 12, py1 - 48, "LATERAL SLIDE", size=12, anchor="rb")
     # camera name chip, top-right of the picture; punch-ins under it
     name = sc.camera.upper()
     if sc.post:
         name += f" · post {sc.post[0]:.2f}→{sc.post[1]:.2f}"
+    elif kind in ("handheld_float", "quarter_orbit"):
+        name += " · post drift"
     box = chip(d, px1 - 10, py0 + 10, name, size=13, anchor="rt")
     y = box[3] + 6
     for p in sc.punch_ins:
         box = chip(d, px1 - 10, y, f"PUNCH-IN @ {fmt_t(p)}", size=12, anchor="rt", fg=CREAM)
         y = box[3] + 6
-    # extra tags, bottom-left (after the low-angle tag if present)
     ty = py1 - 12 - (34 if kind == "low_angle_push_in" else 0)
     for t in sc.tags:
         box = chip(d, px0 + 12, ty, t, size=12, anchor="lb", fg=CREAM)
         ty = box[1] - 6
 
 
-def draw_hands_strip(d, x, y, w, sc: Scene, tm: Timing, cue_font_size=13):
+def draw_hands_strip(d, x, y, w, sc: Scene, tm: Timing) -> int:
     """A mini timeline of the scene window with beat ticks, bar numbers and the move cues. Returns its height."""
     lab_w = 92
-    label(d, x, y + 4, "HANDS", 12)
-    d.text((x, y + 22), f"{fmt_t(sc.t0)}→{fmt_t(sc.t1)}", font=font(11), fill=DIM)
+    label(d, x, y + 2, "HANDS", 12)
+    d.text((x, y + 20), f"{fmt_t(sc.t0)}→{fmt_t(sc.t1)}", font=font(11), fill=DIM)
     tx0, tx1 = x + lab_w, x + w - 12
-    base = y + 44
+    base = y + 38
     span = max(0.01, sc.t1 - sc.t0)
 
     def X(t):
@@ -643,28 +742,19 @@ def draw_hands_strip(d, x, y, w, sc: Scene, tm: Timing, cue_font_size=13):
             if is_db:
                 n = tm.downbeats.index(min(tm.downbeats, key=lambda v: abs(v - b))) + 1
                 d.text((X(b) + 4, base - 15), f"bar {n}", font=font(10), fill=DIM)
-    f = font(cue_font_size)
-    rows_right = [tx0 - 1e9, tx0 - 1e9]  # right edge of the last label on each row
+    items = []
     for c in sc.cues:
         for rt in c.repeat:  # the repeating snaps: small dim copies
             if sc.t0 <= rt < sc.t1:
                 draw_icon(d, icon_kind(c.text), X(rt), base - 24, 12, with_alpha(AMBER, 150), shadow=False)
         cx = X(c.t)
-        draw_icon(d, icon_kind(c.text), cx, base - 26, 22, AMBER)
-        txt = f"{c.text} · {'~' if c.approx else ''}{fmt_t(c.t)}" + (f"  {c.note}" if c.note else "")
-        tw = f.getlength(txt)
-        lx = min(max(cx - tw / 2, tx0 - 60), tx1 - tw)
-        row = 0 if lx > rows_right[0] + 10 else 1
-        if row == 1 and lx <= rows_right[1] + 10:
-            row = 0  # both rows busy: accept the overlap on row 0 but say so
-            warn(f"{sc.id} hands strip: cue labels overlap near {fmt_t(c.t)}s")
-        ly = base + 8 + row * 17
-        d.line([(cx, base), (cx, ly - 1)], fill=with_alpha(AMBER, 120), width=1)
-        d.text((lx, ly), txt, font=f, fill=TEXT if row == 0 else CREAM)
-        rows_right[row] = lx + tw
-    if not sc.cues:
-        d.text((tx0 + 4, base + 8), "(no hand cues in this window)", font=f, fill=DIM)
-    return 44 + 8 + 17 * 2 + 6
+        draw_icon(d, icon_kind(c.text), cx, base - 27, 22, AMBER)
+        items.append((cx, f"{c.text} · {'~' if c.approx else ''}{fmt_t(c.t)}", TEXT, c.note))
+    if items:
+        place_labels(d, items, font(13), tx0 - 40, tx1, base + 8, 16, rows=3, who=f"{sc.id} hands strip", note_font=font(11))
+    else:
+        d.text((tx0 + 4, base + 8), "(no hand cues in this window)", font=font(13), fill=DIM)
+    return 38 + 8 + 16 * 3
 
 
 def scene_lines(sc: Scene, lines: list[Line], max_n=3) -> list[tuple[Line, bool, bool]]:
@@ -683,23 +773,25 @@ def scene_lines(sc: Scene, lines: list[Line], max_n=3) -> list[tuple[Line, bool,
 
 
 def draw_lyrics_row(d, x, y, w, sc: Scene, tm: Timing) -> int:
-    label(d, x, y + 4, "LYRICS", 12)
+    label(d, x, y + 2, "LYRICS", 12)
     if tm.approx:
-        d.text((x, y + 22), "~ approx", font=font(11), fill=DIM)
+        d.text((x, y + 20), "~ approx", font=font(11), fill=DIM)
     rows = scene_lines(sc, tm.lines)
-    fy = y + 2
+    fy = y
     mono = font(12)
     for l, before, after in rows:
-        mark = "←" if before else " "
-        tstr = f"{mark} {'~' if l.approx else ' '}{fmt_t(l.start)}"
+        tstr = f"{'←' if before else ' '} {'~' if l.approx else ' '}{fmt_t(l.start)}"
         d.text((x + 92, fy + 6), tstr, font=mono, fill=DIM)
-        ls, f, _ = fit_text(l.text + ("  →" if after else ""), 20, w - 92 - 96, 1, serif=True, min_size=15, what=f"{sc.id} lyric")
-        d.text((x + 92 + 92, fy), ls[0], font=f, fill=CREAM)
-        fy += 26
+        ls, f, _ = fit_text(l.text, 20, w - 92 - 96 - 30, 1, serif=True, min_size=15, what=f"{sc.id} lyric")
+        tx = x + 92 + 92
+        d.text((tx, fy), ls[0], font=f, fill=CREAM)
+        if after:
+            d.text((tx + f.getlength(ls[0]) + 10, fy + 5), "→", font=mono, fill=DIM)
+        fy += 24
     if not rows:
         d.text((x + 92, fy + 4), "(no lyric in this window)", font=font(13), fill=DIM)
-        fy += 26
-    return fy - y + 4
+        fy += 24
+    return fy - y + 2
 
 
 def bars_label(sc: Scene, tm: Timing) -> str:
@@ -712,25 +804,24 @@ def bars_label(sc: Scene, tm: Timing) -> str:
     return f"{pre}bars {first}–{last}" if last > first else f"{pre}bar {first}"
 
 
-def draw_panel(d, x, y, w, h, sc: Scene, tm: Timing, frame: Image.Image):
+def draw_panel(board, d, x, y, w, h, sc: Scene, tm: Timing, frame: Image.Image):
     d.rounded_rectangle([x, y, x + w, y + h], radius=10, fill=PANEL, outline=PANEL_EDGE, width=1)
     pad = 16
     cx, cy, iw = x + pad, y + pad, w - 2 * pad
-    # header: S3 · HOLIDAY STAGE · 17.34–25.16s · bars 7–9 · [CHORUS]
+    # header: S3 · HOLIDAY STAGE · 17.34–25.17s · bars 7–9 · [CHORUS · HOOK]
     sid = sc.id.split("-")[0].upper()
     fb, fr = font(22, True), font(19)
     d.text((cx, cy), sid, font=fb, fill=AMBER)
     hx = cx + fb.getlength(sid) + 10
-    head = f"· {sc.title} · {fmt_t(sc.t0)}–{fmt_t(sc.t1)}s · {bars_label(sc, tm)}"
-    d.text((hx, cy + 2), head, font=fr, fill=TEXT)
+    d.text((hx, cy + 2), f"· {sc.title} · {fmt_t(sc.t0)}–{fmt_t(sc.t1)}s · {bars_label(sc, tm)}", font=fr, fill=TEXT)
     col = SECTION_COLOR.get(sc.section, AMBER)
     chip(d, cx + iw, cy, sc.section_label, size=13, fg=INK, bg=col, outline=col, anchor="rt")
     # frame + glyphs
     fx, fy = cx, cy + 40
     d.rectangle([fx - 1, fy - 1, fx + FRAME_W, fy + FRAME_H], outline=(60, 60, 70, 255), width=1)
-    d._image.paste(frame.resize((FRAME_W, FRAME_H), Image.LANCZOS), (fx, fy))
+    board.paste(frame.resize((FRAME_W, FRAME_H), Image.LANCZOS), (fx, fy))
     draw_camera_glyph(d, sc, fx, fy, FRAME_W, FRAME_H)
-    d.text((fx, fy + FRAME_H + 6), sc.frame_source, font=font(11), fill=DIM)
+    d.text((fx, fy + FRAME_H + 5), sc.frame_source, font=font(11), fill=DIM)
     # right column rows
     rx = fx + FRAME_W + 22
     rw = cx + iw - rx
@@ -738,11 +829,11 @@ def draw_panel(d, x, y, w, h, sc: Scene, tm: Timing, frame: Image.Image):
     cam = sc.camera
     if sc.post:
         cam += f" · post zoom {sc.post[0]:.2f}→{sc.post[1]:.2f}"
-    else:
-        cam += " · no post zoom (drift only)" if glyph_for(sc.camera) in ("handheld_float", "quarter_orbit") else ""
+    elif glyph_for(sc.camera) in ("handheld_float", "quarter_orbit"):
+        cam += " · no post zoom (drift only)"
     for p in sc.punch_ins:
         cam += f" · punch-in on {fmt_t(p)}"
-    rows = [("SET", sc.set, 3), ("LIGHT", sc.light, 2), ("WARDROBE", sc.wardrobe, 2), ("CAMERA", cam, 2), ("EMOTION", sc.emotion, 2), ("TRANSITION IN", sc.transition_in, 1)]
+    rows = [("SET", sc.set, 3), ("LIGHT", sc.light, 2), ("WARDROBE", sc.wardrobe, 3), ("CAMERA", cam, 2), ("EMOTION", sc.emotion, 2), ("TRANSITION IN", sc.transition_in, 1)]
     for name, val, maxl in rows:
         label(d, rx, ry, name, 11)
         ry += 15
@@ -753,13 +844,13 @@ def draw_panel(d, x, y, w, h, sc: Scene, tm: Timing, frame: Image.Image):
         ry += 7
     col_bottom = ry
     # hands strip, lyrics
-    sy = max(fy + FRAME_H + 24, col_bottom + 6)
+    sy = max(fy + FRAME_H + 22, col_bottom + 4)
     hh = draw_hands_strip(d, cx, sy, iw, sc, tm)
-    ly = sy + hh + 8
+    ly = sy + hh + 6
     lh = draw_lyrics_row(d, cx, ly, iw, sc, tm)
     bottom = ly + lh
     if bottom > y + h - 8:
-        warn(f"{sc.id}: panel content overflows by {bottom - (y + h - 8)}px")
+        warn(f"{sc.id}: panel content overflows by {bottom - (y + h - 8):.0f}px")
 
 
 def draw_legend_item(d, x, y, kind, text, size=13):
@@ -768,37 +859,35 @@ def draw_legend_item(d, x, y, kind, text, size=13):
     return x + 28 + font(size).getlength(text) + 28
 
 
-def render_board(scenes: list[Scene], tm: Timing, frames_dir: Path, out_png: Path, out_pdf: Path, song: str, frame_notes: dict[str, str]):
+def render_board(scenes: list[Scene], tm: Timing, frames_dir: Path, out_png: Path, out_pdf: Path, title: str, frame_notes: dict[str, str], cue_source: str):
     board = Image.new("RGBA", (BOARD_W, BOARD_H), BG)
     d = ImageDraw.Draw(board, "RGBA")
-    # title
     tf = font(34, True)
-    title = song.replace("-", " ").upper()
-    d.text((30, 22), title, font=tf, fill=AMBER)
+    t_up = title.upper()
+    d.text((30, 22), t_up, font=tf, fill=AMBER)
     sub = f"director's storyboard · {tm.duration:.1f}s · {tm.bpm:.0f} BPM · {len(tm.downbeats)} bars · {len(scenes)} scenes · 2.39:1 letterbox · cuts on downbeats"
-    d.text((30 + tf.getlength(title) + 24, 34), sub, font=font(17), fill=DIM)
-    right = f"hackathon R&B music video · generated {date.today().isoformat()} · timing: {Path(tm.source).name if tm.source != 'canonical fallback' else 'canonical fallback (~)'}"
+    d.text((30 + tf.getlength(t_up) + 24, 34), sub, font=font(17), fill=DIM)
+    timing_src = Path(tm.source).name if tm.source != "canonical fallback" else "canonical fallback (~)"
+    right = f"hackathon R&B music video · generated {date.today().isoformat()} · timing: {timing_src} · hands: {cue_source}"
     rf = font(14)
     d.text((BOARD_W - 30 - rf.getlength(right), 40), right, font=rf, fill=DIM)
     d.line([(30, 84), (BOARD_W - 30, 84)], fill=with_alpha(AMBER, 140), width=1)
-    # 2x2 panels
     pw, ph, gx, gy = 1230, 690, 40, 28
     x0s, y0s = [30, 30 + pw + gx], [112, 112 + ph + gy]
     for i, sc in enumerate(scenes[:4]):
         frame, ok = load_frame(frames_dir, sc.frame)
         sc.frame_source = ("frame · " + frame_notes.get(sc.id, sc.frame)) if ok else "frame · MISSING"
-        draw_panel(d, x0s[i % 2], y0s[i // 2], pw, ph, sc, tm, frame)
-    # legend
-    ly = 112 + 2 * ph + gy + 14
-    lx = 30
-    label(d, lx, ly + 2, "GLYPHS", 11)
-    lx += 90
+        draw_panel(board, d, x0s[i % 2], y0s[i // 2], pw, ph, sc, tm, frame)
+    # legend: glyphs, hand icons, frame provenance
+    ly = 112 + 2 * ph + gy + 10
     f = font(13)
-    # push-in glyph in miniature
+    label(d, 30, ly + 2, "GLYPHS", 11)
+    lx = 120
     for sx, sy in [(-1, -1), (1, -1), (-1, 1), (1, 1)]:
         arrow(d, (lx + 11 + sx * 11, ly + 9 + sy * 9), (lx + 11 + sx * 3, ly + 9 + sy * 2), AMBER, width=2, head=5, shadow=False)
-    d.text((lx + 30, ly), "corner arrows = push-in (dashed box = post-zoom end frame; ↑ tag = low angle)", font=f, fill=DIM)
-    lx += 30 + f.getlength("corner arrows = push-in (dashed box = post-zoom end frame; ↑ tag = low angle)") + 28
+    t1 = "corner arrows = push-in (dashed box = post-zoom end frame; ↑ tag = low angle)"
+    d.text((lx + 30, ly), t1, font=f, fill=DIM)
+    lx += 30 + f.getlength(t1) + 28
     pts = [(lx + i * 22 / 20, ly + 9 + 5 * math.sin(i / 20 * 2 * math.pi * 2)) for i in range(21)]
     d.line(pts, fill=AMBER, width=2, joint="curve")
     d.text((lx + 30, ly), "wave = handheld float", font=f, fill=DIM)
@@ -810,14 +899,17 @@ def render_board(scenes: list[Scene], tm: Timing, frames_dir: Path, out_png: Pat
     arrow(d, (lx, ly + 9), (lx + 22, ly + 9), AMBER, width=2, head=6, shadow=False)
     d.text((lx + 30, ly), "horizontal arrow = lateral slide", font=f, fill=DIM)
     lx += 30 + f.getlength("horizontal arrow = lateral slide") + 28
-    d.text((lx, ly), "~ = approximate time    ← → = lyric continues from / into the next scene", font=f, fill=DIM)
-    ly2 = ly + 24
-    lx = 30 + 90
-    for kind, text in [("heart", "Heart Press"), ("snap", "Backbeat Snaps"), ("jaw", "Jaw Trace"), ("loop", "Loop Circle"), ("reach", "Reach to Lens"), ("pullback", "Pull Back"), ("comehere", "Come Here"), ("wave", "Ad-lib Wave")]:
+    d.text((lx, ly), "~ = approximate time    ← → = lyric continues from the previous / into the next scene", font=f, fill=DIM)
+    ly2 = ly + 22
+    label(d, 30, ly2 + 2, "HANDS", 11)
+    lx = 120
+    for kind, text in [("heart", "Heart Press"), ("snap", "Backbeat Snaps (small = every 2 & 4)"), ("jaw", "Jaw Trace"), ("loop", "Loop Circle"), ("reach", "Reach to Lens"), ("pullback", "Pull Back"), ("comehere", "Come Here"), ("wave", "Ad-lib Wave"), ("palmroll", "Palm Roll"), ("comb", "Hair Comb"), ("shoulderroll", "Shoulder Roll"), ("bodyroll", "Body Roll")]:
         lx = draw_legend_item(d, lx, ly2, kind, text)
-    src = "frames · " + " · ".join(f"{k.split('-')[0].upper()}: {v}" for k, v in frame_notes.items())
-    sf = font(12)
-    d.text((BOARD_W - 30 - sf.getlength(src), ly2 + 3), src, font=sf, fill=DIM)
+    ly3 = ly2 + 22
+    label(d, 30, ly3 + 2, "FRAMES", 11)
+    src = " · ".join(f"{k.split('-')[0].upper()}: {v}" for k, v in frame_notes.items())
+    ls, sf, _ = fit_text(src, 12, BOARD_W - 150, 1, min_size=10, what="frames line")
+    d.text((120, ly3 + 1), ls[0], font=sf, fill=DIM)
     out = board.convert("RGB")
     out.save(out_png)
     out.save(out_pdf, "PDF", resolution=150.0)
@@ -827,7 +919,7 @@ def render_board(scenes: list[Scene], tm: Timing, frames_dir: Path, out_png: Pat
 BEAT_W, BEAT_H = 2560, 640
 
 
-def render_beatboard(scenes: list[Scene], tm: Timing, out_png: Path, song: str):
+def render_beatboard(scenes: list[Scene], tm: Timing, out_png: Path, title: str):
     im = Image.new("RGBA", (BEAT_W, BEAT_H), BG)
     d = ImageDraw.Draw(im, "RGBA")
     L, R = 70, BEAT_W - 70
@@ -837,20 +929,14 @@ def render_beatboard(scenes: list[Scene], tm: Timing, out_png: Path, song: str):
         return L + t * pps
 
     tf = font(26, True)
-    title = song.replace("-", " ").upper() + " · BEATBOARD"
-    d.text((L, 18), title, font=tf, fill=AMBER)
+    t_up = title.upper() + " · BEATBOARD"
+    d.text((L, 18), t_up, font=tf, fill=AMBER)
     bar_s = (tm.downbeats[-1] - tm.downbeats[0]) / (len(tm.downbeats) - 1) if len(tm.downbeats) > 1 else CANON_BAR
     sub = f"{tm.duration:.2f}s · {tm.bpm:.2f} BPM · bar ≈ {bar_s:.2f}s · {len(tm.beats)} beats · {len(tm.downbeats)} downbeats · 24 fps"
-    d.text((L + tf.getlength(title) + 22, 27), sub, font=font(15), fill=DIM)
-    note = "bars start on the detected downbeats; the pickup is the time before bar 1; bar 12 runs to the end of the song" if not tm.approx else "~ canonical fallback: downbeats from the plan, lyric times approximate"
+    d.text((L + tf.getlength(t_up) + 22, 27), sub, font=font(15), fill=DIM)
+    note = "bars start on the detected downbeats; PICKUP = before bar 1; bar 12 runs to the end of the song" if not tm.approx else "~ canonical fallback: downbeats from the plan, lyric times approximate"
     nf = font(13)
     d.text((R - nf.getlength(note), 30), note, font=nf, fill=DIM)
-
-    # bar header cells
-    y_bar, h_bar = 76, 46
-    edges = [0.0] + list(tm.downbeats) + [tm.duration]
-    cells = [(edges[i], edges[i + 1], ("PICKUP" if i == 0 else f"BAR {i}")) for i in range(len(edges) - 1)]
-    total = sum(b - a for a, b, _ in cells)
 
     def section_at(t):
         for sc in scenes:
@@ -858,36 +944,50 @@ def render_beatboard(scenes: list[Scene], tm: Timing, out_png: Path, song: str):
                 return sc.section
         return scenes[-1].section
 
+    # bar header cells
+    y_bar, h_bar = 72, 46
+    edges = [0.0] + list(tm.downbeats) + [tm.duration]
+    cells = [(edges[i], edges[i + 1], ("PICKUP" if i == 0 else f"BAR {i}")) for i in range(len(edges) - 1)]
+    total = sum(b - a for a, b, _ in cells)
     for a, b, name in cells:
         col = SECTION_COLOR.get(section_at(a + 0.01), AMBER)
         d.rectangle([X(a) + 1, y_bar, X(b) - 1, y_bar + h_bar], fill=with_alpha(col, 42))
         d.rectangle([X(a) + 1, y_bar, X(b) - 1, y_bar + 5], fill=col)
         d.text((X(a) + 8, y_bar + 10), name, font=font(14, True), fill=TEXT)
-        d.text((X(a) + 8, y_bar + 28), f"{fmt_t(a)}s", font=font(12), fill=DIM)
+        d.text((X(a) + 8, y_bar + 28), f"{fmt_t(a)}s", font=font(12), fill=CREAM)
     d.text((X(tm.duration) + 6, y_bar + 10), f"{fmt_t(tm.duration)}s", font=font(12, True), fill=AMBER)
     d.text((X(tm.duration) + 6, y_bar + 28), f"Σ {total:.2f}s", font=font(11), fill=DIM)
 
-    # scene / section band
-    y_sec = y_bar + h_bar + 8
+    # scene band
+    y_sec = y_bar + h_bar + 6
     for sc in scenes:
         col = SECTION_COLOR.get(sc.section, AMBER)
         d.rectangle([X(sc.t0) + 1, y_sec, X(sc.t1) - 1, y_sec + 26], fill=col)
         txt = f"{sc.id.split('-')[0].upper()} · {sc.section_label} · {sc.title} · {fmt_t(sc.t0)}–{fmt_t(sc.t1)}"
         ls, f, _ = fit_text(txt, 13, X(sc.t1) - X(sc.t0) - 16, 1, bold=True, min_size=10, what="beatboard scene band")
         d.text((X(sc.t0) + 8, y_sec + 6), ls[0], font=f, fill=INK)
+    # audio sections from the timing file (thin band): shows where the vocal chorus really lands
+    y_aud = y_sec + 30
+    if tm.sections:
+        for name, a, b in tm.sections:
+            col = SECTION_COLOR.get(name, DIM)
+            d.rectangle([X(a) + 1, y_aud, X(b) - 1, y_aud + 7], fill=with_alpha(col, 150))
+            d.text((X(a) + 4, y_aud + 10), f"audio {name} {fmt_t(a)}", font=font(10), fill=DIM)
+        d.text((X(0) - 62, y_aud + 10), "timing.json", font=font(9), fill=DIM)
 
     # beat ruler
-    y_rule = y_sec + 26 + 30
+    y_rule = y_aud + 44
     d.line([(X(0), y_rule), (X(tm.duration), y_rule)], fill=with_alpha(DIM, 160), width=1)
     for b in tm.beats:
         is_db = any(abs(b - v) < 1e-3 for v in tm.downbeats)
         d.line([(X(b), y_rule - (14 if is_db else 6)), (X(b), y_rule + 2)], fill=with_alpha(AMBER if is_db else DIM, 200 if is_db else 130), width=2 if is_db else 1)
-    d.text((X(0) - 2, y_rule - 30), "0.00", font=font(11), fill=DIM)
-    d.text((X(tm.duration) - 30, y_rule - 30), fmt_t(tm.duration), font=font(11), fill=DIM)
+    d.text((X(0) - 36, y_rule - 7), "0.00", font=font(11), fill=DIM)
+    d.text((X(tm.duration) + 6, y_rule - 7), fmt_t(tm.duration), font=font(11), fill=DIM)
     d.text((X(0) + 6, y_rule + 4), "beats · taller = downbeat", font=font(10), fill=DIM)
 
     # lyric lanes (two, alternating)
-    y_lyr, lane_h = y_rule + 22, 56
+    y_lyr, lane_h = y_rule + 22, 60
+    d.text((8, y_lyr + 2), "LYRICS", font=font(11, True), fill=DIM)
     lf = font(18, serif=True)
     for i, l in enumerate(tm.lines):
         lane = i % 2
@@ -897,84 +997,63 @@ def render_beatboard(scenes: list[Scene], tm: Timing, out_png: Path, song: str):
         avail = X(tm.duration) - X(l.start) - 8
         wrap_w = max(X(l.end) - X(l.start) - 8, min(avail, 380))
         ls = wrap_text(l.text, lf, wrap_w)
+        lf2 = lf
         if len(ls) > 2:
             ls, lf2, _ = fit_text(l.text, 18, wrap_w, 2, serif=True, min_size=14, what="beatboard lyric")
-        else:
-            lf2 = lf
+        d.text((X(l.start) + 7, ly + 3), f"{'~' if l.approx else ''}{fmt_t(l.start)}–{fmt_t(l.end)}", font=font(10), fill=DIM)
         for k, ln in enumerate(ls[:2]):
-            d.text((X(l.start) + 7, ly + 5 + k * 23), ln, font=lf2, fill=CREAM)
-        tlab = f"{'~' if l.approx else ''}{fmt_t(l.start)}"
-        d.text((X(l.start) + 7 + lf2.getlength(ls[0]) + 8, ly + 9), tlab, font=font(10), fill=DIM)
+            d.text((X(l.start) + 7, ly + 15 + k * 22), ln, font=lf2, fill=CREAM)
 
     # cue lane
-    y_cue = y_lyr + 2 * lane_h + 4 + 14
-    base = y_cue + 36
-    d.text((X(0), y_cue - 2), "MOVES", font=font(11, True), fill=DIM)
+    y_cue = y_lyr + 2 * lane_h + 4 + 12
+    base = y_cue + 38
+    d.text((8, y_cue), "MOVES", font=font(11, True), fill=DIM)
     d.line([(X(0), base), (X(tm.duration), base)], fill=with_alpha(DIM, 110), width=1)
-    cf = font(12)
-    rows_right = [-1e9, -1e9]
     all_cues = sorted([c for sc in scenes for c in sc.cues], key=lambda c: c.t)
+    items = []
     for c in all_cues:
         for rt in c.repeat:
             draw_icon(d, icon_kind(c.text), X(rt), base - 20, 12, with_alpha(AMBER, 150), shadow=False)
-        cx = X(c.t)
-        draw_icon(d, icon_kind(c.text), cx, base - 22, 22, AMBER)
-        txt = f"{c.text} {'~' if c.approx else ''}{fmt_t(c.t)}"
-        tw = cf.getlength(txt)
-        lx = min(max(cx - tw / 2, X(0)), X(tm.duration) - tw)
-        row = 0 if lx > rows_right[0] + 8 else 1
-        if row == 1 and lx <= rows_right[1] + 8:
-            row = 0
-            warn(f"beatboard: cue labels overlap near {fmt_t(c.t)}s")
-        ly = base + 6 + row * 16
-        d.line([(cx, base), (cx, ly)], fill=with_alpha(AMBER, 120), width=1)
-        d.text((lx, ly), txt, font=cf, fill=TEXT if row == 0 else CREAM)
-        rows_right[row] = lx + tw
+        draw_icon(d, icon_kind(c.text), X(c.t), base - 23, 22, AMBER)
+        items.append((X(c.t), f"{c.text} {'~' if c.approx else ''}{fmt_t(c.t)}", TEXT, ""))
+    place_labels(d, items, font(12), X(0), X(tm.duration), base + 6, 16, rows=3, who="beatboard moves")
 
     # FX lane: letterbox in/out, flash, punch-ins, transitions at the scene cuts
-    y_fx = base + 44
+    y_fx = base + 56
     fx_base = y_fx + 30
-    d.text((X(0), y_fx - 4), "FX · CUTS", font=font(11, True), fill=DIM)
+    d.text((8, y_fx - 2), "FX · CUTS", font=font(11, True), fill=DIM)
     d.line([(X(0), fx_base), (X(tm.duration), fx_base)], fill=with_alpha(DIM, 110), width=1)
     fx_items: list[tuple[float, str, str]] = [(0.0, "lb_in", "letterbox wipe in"), (tm.beats[-1] if tm.beats else tm.duration, "lb_out", "letterbox wipe out")]
     for sc in scenes[1:]:
         ti = sc.transition_in.lower()
         if "flash" in ti:
-            fx_items.append((sc.t0, "flash", f"cut + warm flash"))
+            fx_items.append((sc.t0, "flash", "cut + warm flash"))
         elif "dissolve" in ti:
             fx_items.append((sc.t0, "dissolve", "dissolve 10f"))
         else:
             fx_items.append((sc.t0, "cut", "cut"))
-    for sc in scenes:
-        for p in sc.punch_ins:
-            fx_items.append((p, "punch", "punch-in"))
-    if scenes[-1].t0 not in [p for sc in scenes for p in sc.punch_ins]:
-        fx_items.append((scenes[-1].t0, "punch", "punch-in"))  # the s4 cut lands with a punch (plan: 22.56 and 25.16)
-    rows_right = [-1e9, -1e9]
+    punches = [p for sc in scenes for p in sc.punch_ins]
+    if scenes[-1].t0 not in punches:
+        punches.append(scenes[-1].t0)  # the plan's second punch-in lands on the s4 cut (22.56 and 25.16)
+    for p in punches:
+        fx_items.append((p, "punch", "punch-in"))
+    items = []
     for t, kind, text in sorted(fx_items, key=lambda i: i[0]):
-        cx = X(t)
-        draw_icon(d, kind, cx, fx_base - 18, 20, AMBER if kind in ("flash", "punch") else CREAM)
-        txt = f"{text} {fmt_t(t)}"
-        tw = cf.getlength(txt)
-        lx = min(max(cx - tw / 2, X(0)), X(tm.duration) - tw)
-        row = 0 if lx > rows_right[0] + 8 else 1
-        ly = fx_base + 6 + row * 16
-        d.line([(cx, fx_base), (cx, ly)], fill=with_alpha(AMBER, 120), width=1)
-        d.text((lx, ly), txt, font=cf, fill=TEXT)
-        rows_right[row] = lx + tw
+        draw_icon(d, kind, X(t), fx_base - 18, 20, AMBER if kind in ("flash", "punch") else CREAM)
+        items.append((X(t), f"{text} {fmt_t(t)}", TEXT, ""))
+    place_labels(d, items, font(12), X(0), X(tm.duration), fx_base + 6, 16, rows=2, who="beatboard fx")
 
     # scene boundaries, full height of the lanes
     for sc in scenes[1:]:
-        x = X(sc.t0)
-        d.line([(x, y_bar - 6), (x, fx_base + 40)], fill=with_alpha(AMBER, 200), width=2)
+        d.line([(X(sc.t0), y_bar - 6), (X(sc.t0), fx_base + 40)], fill=with_alpha(AMBER, 200), width=2)
     for t in (0.0, tm.duration):
         d.line([(X(t), y_bar - 6), (X(t), fx_base + 40)], fill=with_alpha(DIM, 160), width=1)
 
     # legend
-    y_leg = fx_base + 56
+    y_leg = fx_base + 52
     label(d, L, y_leg + 2, "LEGEND", 11)
     lx = L + 90
-    for kind, text in [("heart", "Heart Press"), ("snap", "Backbeat Snaps (small = every 2 & 4)"), ("jaw", "Jaw Trace"), ("loop", "Loop Circle"), ("reach", "Reach to Lens"), ("pullback", "Pull Back"), ("comehere", "Come Here")]:
+    for kind, text in [("heart", "Heart Press"), ("snap", "Backbeat Snaps (small = every 2 & 4)"), ("jaw", "Jaw Trace"), ("loop", "Loop Circle"), ("reach", "Reach to Lens"), ("pullback", "Pull Back"), ("comehere", "Come Here"), ("palmroll", "Palm Roll"), ("comb", "Hair Comb"), ("shoulderroll", "Shoulder Roll"), ("bodyroll", "Body Roll")]:
         lx = draw_legend_item(d, lx, y_leg, kind, text, 12)
     lx = L + 90
     y_leg2 = y_leg + 24
@@ -998,6 +1077,7 @@ def main(argv=None):
     ap.add_argument("--frames", default="storyboards/frames", help="dir with s1.png..s4.png")
     ap.add_argument("--out", default="storyboards", help="output dir")
     ap.add_argument("--song", default="in-the-loop-devagar", help="song slug (names the outputs and default inputs)")
+    ap.add_argument("--take", default="hero-1", help="which shots take supplies the hand cues")
     ap.add_argument("--frame-notes", default=None, help="JSON {scene id: provenance text} printed under each frame")
     a = ap.parse_args(argv)
 
@@ -1014,10 +1094,21 @@ def main(argv=None):
     print(f"storyboard: timing from {tm.source}" + (" (everything approximate)" if tm.approx else f" · {len(tm.beats)} beats, {len(tm.lines)} lines"), file=sys.stderr)
     looks = json.loads(looks_p.read_text()) if looks_p and looks_p.exists() else None
     scenes = canonical_scenes(tm, looks)
+    cue_source = "canonical table"
     if shots_p.exists():
         try:
-            scenes = scenes_from_shots(json.loads(shots_p.read_text()), scenes, tm)
-            print(f"storyboard: scenes from {shots_p}", file=sys.stderr)
+            shots = json.loads(shots_p.read_text())
+            if shots.get("scenes"):
+                scenes = scenes_from_shots(shots, scenes)
+                print(f"storyboard: scenes[] from {shots_p}", file=sys.stderr)
+            else:
+                print(f"storyboard: {shots_p} has no scenes[] yet; scenes from the canonical plan", file=sys.stderr)
+            take_cues = cues_from_take(shots, tm, a.take)
+            if take_cues:
+                for sc in scenes:
+                    sc.cues = [c for c in take_cues if sc.t0 <= c.t < sc.t1]
+                cue_source = f"shots takes[{a.take}]"
+                print(f"storyboard: {len(take_cues)} hand cues from takes[{a.take}] in {shots_p.name}", file=sys.stderr)
         except (ValueError, KeyError, TypeError) as e:
             warn(f"could not read {shots_p} ({e}); using the canonical plan")
     else:
@@ -1025,17 +1116,18 @@ def main(argv=None):
 
     default_notes = {
         "s1-intro": "Comfy Cloud look-wardrobe (Qwen-Image-2.1 edit) · job 5a19c16f · seed 11",
-        "s2-verse": "Comfy Cloud look-wardrobe (Qwen-Image-2.1 edit) · job 635909ab · seed 12",
+        "s2-verse": "Comfy Cloud look-wardrobe (Qwen-Image-2.1 edit) · job 33b6e37b · seed 13",
         "s3-chorus": "existing look render · reference-master/tests/wardrobe_chorus-stage.png (job eff061da)",
         "s4-harmony": "ffmpeg triptych from the s3 frame (clones: triptych fallback) · storyboards/frames/make_s4_triptych.sh",
     }
     notes = {**default_notes, **(json.loads(a.frame_notes) if a.frame_notes else {})}
+    title = song_title(root, a.song)
 
     board_png = out_dir / f"{a.song}_board.png"
     board_pdf = out_dir / f"{a.song}_board.pdf"
     beat_png = out_dir / f"{a.song}_beatboard.png"
-    render_board(scenes, tm, frames_dir, board_png, board_pdf, a.song, notes)
-    total = render_beatboard(scenes, tm, beat_png, a.song)
+    render_board(scenes, tm, frames_dir, board_png, board_pdf, title, notes, cue_source)
+    total = render_beatboard(scenes, tm, beat_png, title)
     print(f"storyboard: wrote {board_png}, {board_pdf}, {beat_png}; beatboard cells sum to {total:.2f}s", file=sys.stderr)
     for sc in scenes:
         cues = ", ".join(f"{c.text}@{'~' if c.approx else ''}{fmt_t(c.t)}" for c in sc.cues) or "-"
