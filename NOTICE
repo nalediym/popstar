@@ -1,0 +1,27 @@
+popstar — make anyone a pop star in an R&B music video
+Copyright 2026 Naledi (nalediym)
+
+This product includes software and model weights developed by third parties.
+Full audit with sources: docs/LICENSES.md.
+
+Model notices (retained as their licenses require)
+- LTX-2.3 and the LTX-2.3 IC-LoRA Union Control weights: © Lightricks Ltd., used under the
+  LTX-2 Community License Agreement (https://github.com/Lightricks/LTX-2/blob/main/LICENSE-2).
+- Gemma 3 12B (text encoder): Gemma is provided under and subject to the Gemma Terms of Use
+  found at ai.google.dev/gemma/terms.
+- Qwen-Image 2.1 Turbo: © Alibaba Cloud, Qwen Research License Agreement (non-commercial use only).
+  An Apache-2.0 Qwen-Image-Edit graph is provided as the commercial-safe alternative.
+- ACE-Step 1.5 (MIT) · DWPose and YOLOX (Apache-2.0) · LivePortrait (MIT) · Wan2.1 and InfiniteTalk
+  (Apache-2.0) · chinese-wav2vec2-base (MIT) · Whisper (MIT) · beat_this (MIT) · MediaPipe (Apache-2.0).
+
+Stock footage
+- Light-leak clips by Jeffrey Beach (Beachfront Productions) via the Internet Archive:
+  "Light Leak Soft Focus", "Light Leak Hard Edge", "Light Leak Special Effect", "Light Leak Fast Motion",
+  licensed CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/); cropped, retimed and blended.
+  https://archive.org/details/LightLeakSoftFocus · https://archive.org/details/LightLeakHardEdge ·
+  https://archive.org/details/LightLeak · https://archive.org/details/LightLeakFastMotion
+- "Film Leader" countdown by The Chosen One via the Internet Archive, public domain:
+  https://archive.org/details/FilmLeader
+
+Tools
+- ComfyUI (GPL-3.0) and Comfy Cloud · Blender (GPL) · ffmpeg (LGPL-2.1+/GPL) · Bun (MIT) · uv (Apache-2.0 OR MIT).

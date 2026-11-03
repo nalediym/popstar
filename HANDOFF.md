@@ -26,11 +26,19 @@ Comfy Cloud input names already uploaded (reusable): clip-01 `461682d8…mp4`, h
 | Coach recorder workflow | `songs/*.timing.json`, `shots/in-the-loop-devagar.json`, `recorder/index.html` overlay (karaoke, beat HUD, move cards, pose warnings), `tools/song_timing.py`, `tools/validate_shots.py` | open the recorder in the browser pane with `?demo=test-clip`, watch cues fire on beats; `python3 -I tools/validate_shots.py …` |
 | Reference Master | `reference-master/{server.ts,index.html,looks.json}` + refs tray (Pinterest links), intensity slider, presets | run it, paste a pin link, queue a render, "Copy for Claude" |
 | Blender previs | `previs/build_previs.py`, `outputs/previs/animatic.mp4`, `previs/camera_plan.json` | watch the animatic; cuts on downbeats |
-| Comfy graph pinning (R1) | `workflows/*.api.json`, `workflows/slots.json`, `tools/comfy_compile.ts` | equivalence test vs job `ce7dccfd…`; `submit_workflow dry_run` |
+| ~~Comfy graph pinning (R1)~~ **LANDED** | `workflows/*.api.json` (6 graphs), `workflows/slots.json`, `tools/comfy_compile.ts` (`--list`, `--set`, `--preset`) | equivalence test vs job `ce7dccfd…` passed (0 diffs); all 6 dry-run validated. **Always pass `trim_duration=0` to pose-restyle** (pinned default 5 s caps scenes). InfiniteTalk rounds up to 81-frame windows; trim in stitch. Wardrobe width/height only apply with `custom_size=true`. |
+| Storyboards | `storyboards/*_board.png`, `*_beatboard.png`, `.pdf`, `tools/storyboard.py` | look at the boards; s1/s2 frames rendered on Cloud, s4 is a triptych composite |
 | Director's Cut | `cut/{server.ts,index.html,edl.json}`, `tools/stitch.ts`, `outputs/final.mp4` (placeholders) | play it against the song; render; ffprobe 32s/24fps/audio |
 
 ## Not started
 R2 (scene times: one source of truth), R3 (`popstar.json` manifest, no hardcoded paths), plugin packaging (`plugins/popstar` + marketplace.json, format in the research report), Asset Doctor / gap filler (missing shots → generated inserts; archive light leaks), unified Studio (one server, tabs), **the hero take**, **the 4 scene renders**, **stitch v1 with real renders**, hybrid lip-sync spike, LICENSES.md audit (LivePortrait face-detector weights may be non-commercial).
+
+## Licenses (docs/LICENSES.md, audited 2026-11-02 ~23:40)
+Open Weights bonus: eligible (all weights downloadable, no partner nodes). Commercial blocker: **Qwen-Image 2.1 Turbo**
+(wardrobe edits) is research-only; swap to the Apache-2.0 Qwen-Image-Edit (test in flight → `workflows/look-wardrobe-apache.api.json`).
+LTX-2.3 = LTX-2 Community License (free under $10M revenue, keep notices). Gemma = Gemma Terms (ship a NOTICE). Everything
+else MIT/Apache. Light leaks are CC-BY 3.0 (credit Jeffrey Beach / Beachfront Productions). Repo license recommendation: Apache-2.0 + NOTICE.
+Taste refs: `docs/inspiration/pinterest.md` (synthesis) + `build/pinterest-refs/` (25 pins, staged; move into `reference-master/refs/pinterest/` after the RM build lands, because its tests wipe `refs/`).
 
 ## Gotchas (each cost time tonight)
 - Subgraph `slot_overrides` fail on Cloud templates → use flattened `"<instance>:<node>"` `input_overrides` (the error names the id).

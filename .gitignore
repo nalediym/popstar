@@ -9,6 +9,13 @@ reference-master/queue.json
 reference-master/looks.backup.json
 cut/edl.backup.json
 
+# Storyboard frames and boards carry the performer's face: opt in per file with `git add -f` when publishing.
+storyboards/frames/
+storyboards/*.png
+storyboards/*.pdf
+previs/*.blend
+previs/stills/
+
 # Song drafts and cut-down test windows (the locked song stays shareable)
 songs/*_draft*.mp3
 songs/*-[0-9]*s.mp3
