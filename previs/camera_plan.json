@@ -1,0 +1,224 @@
+{
+  "version": 1,
+  "song": "songs/in-the-loop-devagar.mp3",
+  "fps": 24,
+  "frames": 768,
+  "duration_s": 32.0,
+  "cut_rule": "each cut lands 1 frame before its downbeat: start_frame = round(t*24) - 1",
+  "downbeats_s": [
+    1.686,
+    4.296,
+    6.906,
+    9.516,
+    12.126,
+    14.736,
+    17.346,
+    19.956,
+    22.566,
+    25.176,
+    27.786,
+    30.396
+  ],
+  "sources": {
+    "scene_plan": "director defaults (PLAN.md Vision v2)",
+    "hand_cues": "director canonical plan (fallback)",
+    "timing": "/Users/naledi/Projects/comfy-ui-higgs-hack-a-thon/songs/in-the-loop-devagar.timing.json",
+    "shots": null,
+    "looks": "/Users/naledi/Projects/comfy-ui-higgs-hack-a-thon/reference-master/looks.json"
+  },
+  "post_zoom_note": "post_zoom = scale-and-crop push for the 2D stitch (scale eval=frame + crop, never zoompan); it matches the previs dolly ratio dolly_start_m/dolly_end_m for push-ins.",
+  "render": {
+    "engine": "BLENDER_EEVEE",
+    "blender": "5.2.2 LTS"
+  },
+  "generated_at": "2026-11-02T22:00:59",
+  "scenes": [
+    {
+      "id": "s1-intro",
+      "key": "S1",
+      "title": "Cozy couch intro",
+      "marker": "S1 couch · slow push-in",
+      "camera_object": "S1_cam",
+      "section": "intro + verse in",
+      "start_s": 0.0,
+      "end_s": 6.875,
+      "start_frame": 0,
+      "end_frame": 164,
+      "cut_downbeat_s": null,
+      "camera_move": "slow_push_in",
+      "focal_start_mm": 50.0,
+      "focal_end_mm": 50.0,
+      "dolly_start_m": 3.505,
+      "dolly_end_m": 3.254,
+      "orbit_deg": 0.0,
+      "slide_m": 0.0,
+      "height_m": 1.14,
+      "tilt_deg": -6.0,
+      "aperture_fstop": 2.8,
+      "notes": "Seated on the tan suede couch; slow eye-level push-in, held. Lamp key camera-left, candles and a steaming mug in the foreground, fairy lights on the back wall.",
+      "post_zoom": {
+        "from": 1.0,
+        "to": 1.08
+      },
+      "hand_cues": [
+        {
+          "t": 1.69,
+          "move": "heart_press",
+          "label": "Heart Press"
+        }
+      ],
+      "wardrobe": {
+        "lead": "an oversized cream cable-knit sweater slipping off one shoulder and small gold hoop earrings",
+        "backup": "",
+        "source": "looks.json"
+      }
+    },
+    {
+      "id": "s2-verse",
+      "key": "S2",
+      "title": "Living-room jam",
+      "marker": "S2 jam · handheld float",
+      "camera_object": "S2_cam",
+      "section": "verse",
+      "start_s": 6.875,
+      "end_s": 17.2917,
+      "start_frame": 165,
+      "end_frame": 414,
+      "cut_downbeat_s": 6.906,
+      "camera_move": "handheld_float",
+      "focal_start_mm": 35.0,
+      "focal_end_mm": 35.0,
+      "dolly_start_m": 1.811,
+      "dolly_end_m": 1.811,
+      "orbit_deg": 0.0,
+      "slide_m": 0.52,
+      "height_m": 1.5,
+      "tilt_deg": -2.5,
+      "aperture_fstop": 2.8,
+      "notes": "Standing in the same living room; gentle handheld float (noise on the camera) over a slow lateral slide. Laptop at camera-right glows with scrolling amber logs; garland.",
+      "post_zoom": {
+        "from": 1.0,
+        "to": 1.03
+      },
+      "hand_cues": [
+        {
+          "t": 9.52,
+          "move": "backbeat_snap",
+          "label": "Backbeat Snaps"
+        },
+        {
+          "t": 15.33,
+          "move": "jaw_trace",
+          "label": "Jaw Trace"
+        }
+      ],
+      "wardrobe": {
+        "lead": "a fitted burnt-orange ribbed long-sleeve top and low-slung Tuscan-brown satin cargos, a thin gold chain",
+        "backup": "",
+        "source": "looks.json"
+      },
+      "post_pan_x": {
+        "from": -0.015,
+        "to": 0.015
+      },
+      "post_shake": {
+        "amount_px_at_1280": 3,
+        "period_s": 1.8
+      }
+    },
+    {
+      "id": "s3-chorus",
+      "key": "S3",
+      "title": "Holiday stage",
+      "marker": "S3 stage · low-angle push-in",
+      "camera_object": "S3_cam",
+      "section": "chorus lift (hook)",
+      "start_s": 17.2917,
+      "end_s": 25.125,
+      "start_frame": 415,
+      "end_frame": 602,
+      "cut_downbeat_s": 17.346,
+      "camera_move": "low_angle_push_in",
+      "focal_start_mm": 50.0,
+      "focal_end_mm": 50.0,
+      "dolly_start_m": 2.731,
+      "dolly_end_m": 2.463,
+      "orbit_deg": 0.0,
+      "slide_m": 0.0,
+      "height_m": 1.02,
+      "tilt_deg": 13.1,
+      "aperture_fstop": 1.0,
+      "notes": "Chorus lift: low-angle push-in on the stage, f/1.4 so the fairy-light wall goes to bokeh; amber rim through haze, velvet curtains washed burnt orange.",
+      "post_zoom": {
+        "from": 1.0,
+        "to": 1.12
+      },
+      "hand_cues": [
+        {
+          "t": 22.24,
+          "move": "loop_circle",
+          "label": "Loop circle"
+        }
+      ],
+      "wardrobe": {
+        "lead": "a burnt-orange silk slip dress with thin straps and small gold hoop earrings",
+        "backup": "",
+        "source": "looks.json"
+      }
+    },
+    {
+      "id": "s4-harmony",
+      "key": "S4",
+      "title": "Girl group of me",
+      "marker": "S4 girl group · quarter orbit",
+      "camera_object": "S4_cam",
+      "section": "chorus out + harmonies",
+      "start_s": 25.125,
+      "end_s": 32.0,
+      "start_frame": 603,
+      "end_frame": 767,
+      "cut_downbeat_s": 25.176,
+      "camera_move": "quarter_orbit",
+      "focal_start_mm": 35.0,
+      "focal_end_mm": 35.0,
+      "dolly_start_m": 2.606,
+      "dolly_end_m": 2.606,
+      "orbit_deg": 90.0,
+      "slide_m": 0.0,
+      "height_m": 1.45,
+      "tilt_deg": -0.6,
+      "aperture_fstop": 2.8,
+      "notes": "Harmony: lead at the V apex nearest the lens, two darker-wardrobe clones behind at 45°; 90° orbit around the trio (in 2D, fake it with a slow drift + zoom).",
+      "post_zoom": {
+        "from": 1.0,
+        "to": 1.04
+      },
+      "hand_cues": [
+        {
+          "t": 26.25,
+          "move": "heart_press",
+          "label": "Heart Press"
+        },
+        {
+          "t": 29.74,
+          "move": "reach_to_lens",
+          "label": "Reach to Lens"
+        },
+        {
+          "t": 30.55,
+          "move": "come_here",
+          "label": "Come Here"
+        }
+      ],
+      "wardrobe": {
+        "lead": "a warm amber satin two-piece, a cropped halter top and matching wide-leg trousers, with gold hoop earrings",
+        "backup": "a matching satin two-piece in deeper burnt amber, one shade darker than the lead's: cropped halter top, wide-leg trousers, small gold hoops, girl-group styling",
+        "source": "looks.json"
+      },
+      "post_pan_x": {
+        "from": -0.03,
+        "to": 0.03
+      }
+    }
+  ]
+}

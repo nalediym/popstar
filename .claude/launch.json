@@ -6,6 +6,18 @@
       "runtimeExecutable": "env",
       "runtimeArgs": ["PORT=56101", "bun", "recorder/server.ts"],
       "port": 56101
+    },
+    {
+      "name": "reference-master",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["PORT=56110", "bun", "reference-master/server.ts"],
+      "port": 56110
+    },
+    {
+      "name": "cut",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["PORT=56120", "bun", "cut/server.ts"],
+      "port": 56120
     }
   ]
 }

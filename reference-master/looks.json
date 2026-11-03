@@ -1,6 +1,11 @@
 {
   "version": 1,
-  "palette": ["#7a4a2a", "#d9622b", "#ff9f43", "#ffb347"],
+  "palette": [
+    "#7a4a2a",
+    "#d9622b",
+    "#ff9f43",
+    "#ffb347"
+  ],
   "identity_lock": "the same young Black woman: her exact face, rich deep brown skin with warm undertones and a luminous dewy sheen, copper-red hair pulled back, small white earbuds",
   "scenes": [
     {
@@ -10,7 +15,11 @@
       "end": 8,
       "set": "a cozy living room at night, tan suede couch, amber fairy lights, candles, a steaming mug of tea",
       "light": "low warm key from a lamp at camera left, candle glow, deep shadows",
-      "characters": ["lead"]
+      "characters": [
+        "lead"
+      ],
+      "light_alt": "golden-hour window daylight from camera left, plants in the window, warm wood; soft and sunlit (her Vibes board)",
+      "notes": "Render both light variants (night candles vs golden-hour window) and pick by eye."
     },
     {
       "id": "s2-verse",
@@ -19,7 +28,10 @@
       "end": 16,
       "set": "the same living room, laptop screen glowing with scrolling logs, holiday garland",
       "light": "soft warm key, gold bounce, amber rim on her hair",
-      "characters": ["lead"]
+      "characters": [
+        "lead"
+      ],
+      "notes": "Mirror-selfie framing is on-taste (phone in hand, soft daylight)."
     },
     {
       "id": "s3-chorus",
@@ -28,7 +40,9 @@
       "end": 24,
       "set": "an intimate late-90s R&B stage, Tuscan brown velvet curtains, fairy-light bokeh, haze",
       "light": "large soft warm key from camera left, gold bounce, amber rim through haze",
-      "characters": ["lead"]
+      "characters": [
+        "lead"
+      ]
     },
     {
       "id": "s4-harmony",
@@ -37,7 +51,11 @@
       "end": 32,
       "set": "the same stage, wider, three mic stands",
       "light": "amber wash, backlit haze, warm specular kickers",
-      "characters": ["lead", "backup-left", "backup-right"]
+      "characters": [
+        "lead",
+        "backup-left",
+        "backup-right"
+      ]
     }
   ],
   "looks": [
@@ -45,14 +63,66 @@
       "id": "s1-intro.lead",
       "scene": "s1-intro",
       "character": "lead",
-      "wardrobe": "an oversized cream cable-knit sweater slipping off one shoulder and small gold hoop earrings",
+      "wardrobe": "an oversized rust-brown chunky knit sweater with the sleeves pushed up, small gold hoops, bare feet tucked under her, a steaming mug in both hands",
       "props": "",
       "emotion": "devagar-slow-blink",
-      "expression": {"rotate_pitch": -4, "rotate_yaw": 0, "rotate_roll": 6, "blink": 4, "eyebrow": 0, "wink": 0, "pupil_x": 0, "pupil_y": -6, "aaa": 0, "eee": 0, "woo": 0, "smile": 0.6},
+      "expression": {
+        "rotate_pitch": -4,
+        "rotate_yaw": 0,
+        "rotate_roll": 6,
+        "blink": 4,
+        "eyebrow": 0,
+        "wink": 0,
+        "pupil_x": 0,
+        "pupil_y": -6,
+        "aaa": 0,
+        "eee": 0,
+        "woo": 0,
+        "smile": 0.6
+      },
       "intensity": 100,
       "source_frame": "reference-master/tests/source_frame.png",
-      "renders": {"wardrobe": null, "expression": null},
-      "refs": [],
+      "renders": {
+        "wardrobe": null,
+        "expression": null
+      },
+      "refs": [
+        {
+          "path": "reference-master/refs/pinterest/s1_wardrobe/01.jpg",
+          "source_url": "https://i.pinimg.com/originals/8b/f3/24/8bf3247c417f4f7d1b85936599f9baac.jpg",
+          "role": "wardrobe",
+          "starred": true,
+          "note": "rust knit flat-lay: sweater, denim, socks, coffee, books"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s1_wardrobe/02.jpg",
+          "source_url": "https://i.pinimg.com/originals/71/9d/08/719d08e284fda3b133b47490cfa6421d.jpg",
+          "role": "wardrobe",
+          "starred": false,
+          "note": "brown striped sweater + denim + boots flat-lay"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s1_set/06.jpg",
+          "source_url": "https://i.pinimg.com/originals/3a/11/cb/3a11cbb94419c06148a29438f9ab09fe.jpg",
+          "role": "set",
+          "starred": false,
+          "note": "sage overshirt + satchel + mug + botanicals (cozy props)"
+        },
+        {
+          "path": "reference-master/refs/pinterest/mood/07.jpg",
+          "source_url": "https://i.pinimg.com/originals/ce/c9/c4/cec9c4b204abd643e720e2484929adb1.jpg",
+          "role": "mood",
+          "starred": false,
+          "note": "woman on a bed by a mirror and lamp: warm window light"
+        },
+        {
+          "path": "reference-master/refs/pinterest/mood/08.jpg",
+          "source_url": "https://i.pinimg.com/originals/10/d0/9c/10d09ca37cbf98f9a4a955771d75cceb.jpg",
+          "role": "mood",
+          "starred": false,
+          "note": "black bodysuit painting on canvas: body in motion, daylight"
+        }
+      ],
       "status": "draft",
       "notes": ""
     },
@@ -60,14 +130,59 @@
       "id": "s2-verse.lead",
       "scene": "s2-verse",
       "character": "lead",
-      "wardrobe": "a fitted burnt-orange ribbed long-sleeve top and low-slung Tuscan-brown satin cargos, a thin gold chain",
+      "wardrobe": "a tucked-in vintage brown sweatshirt and high-waist light-wash denim, small gold hoops, a long camel wool coat draped over the couch arm",
       "props": "",
       "emotion": "soft-smile",
-      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 4, "wink": 0, "pupil_x": 0, "pupil_y": 0, "aaa": 0, "eee": 0, "woo": 0, "smile": 1.2},
+      "expression": {
+        "rotate_pitch": 0,
+        "rotate_yaw": 0,
+        "rotate_roll": 0,
+        "blink": 0,
+        "eyebrow": 4,
+        "wink": 0,
+        "pupil_x": 0,
+        "pupil_y": 0,
+        "aaa": 0,
+        "eee": 0,
+        "woo": 0,
+        "smile": 1.2
+      },
       "intensity": 100,
       "source_frame": "reference-master/tests/source_frame.png",
-      "renders": {"wardrobe": null, "expression": null},
-      "refs": [],
+      "renders": {
+        "wardrobe": null,
+        "expression": null
+      },
+      "refs": [
+        {
+          "path": "reference-master/refs/pinterest/s2_wardrobe/03.jpg",
+          "source_url": "https://i.pinimg.com/originals/fc/34/55/fc345594c5862cf0a91f1c8394d84411.jpg",
+          "role": "wardrobe",
+          "starred": true,
+          "note": "tucked brown vintage sweatshirt + light denim"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s2_wardrobe/04.jpg",
+          "source_url": "https://i.pinimg.com/originals/9e/bf/90/9ebf90cd4de90cf2d3e98142a3ed7883.jpg",
+          "role": "wardrobe",
+          "starred": false,
+          "note": "long camel wool coat over white tee + denim"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s2_wardrobe/05.jpg",
+          "source_url": "https://i.pinimg.com/originals/fc/04/02/fc0402423625617683c58fedd263e3bc.jpg",
+          "role": "wardrobe",
+          "starred": false,
+          "note": "white turtleneck editorial, hand to head"
+        },
+        {
+          "path": "reference-master/refs/pinterest/mood/09.jpg",
+          "source_url": "https://i.pinimg.com/originals/a7/88/88/a788888230ed731a259d41f0514cdb66.jpg",
+          "role": "mood",
+          "starred": false,
+          "note": "floor mirror selfie: verse framing idea"
+        }
+      ],
       "status": "draft",
       "notes": ""
     },
@@ -75,14 +190,94 @@
       "id": "s3-chorus.lead",
       "scene": "s3-chorus",
       "character": "lead",
-      "wardrobe": "a burnt-orange silk slip dress with thin straps and small gold hoop earrings",
+      "wardrobe": "a burnt-orange satin slip dress with thin straps, big gold hoop earrings, a glossy brown-nude lip with a bronze sheen, voluminous '90s curls",
       "props": "",
       "emotion": "soft-smile",
-      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 4, "wink": 0, "pupil_x": 0, "pupil_y": 0, "aaa": 0, "eee": 0, "woo": 0, "smile": 1.2},
+      "expression": {
+        "rotate_pitch": 0,
+        "rotate_yaw": 0,
+        "rotate_roll": 0,
+        "blink": 0,
+        "eyebrow": 4,
+        "wink": 0,
+        "pupil_x": 0,
+        "pupil_y": 0,
+        "aaa": 0,
+        "eee": 0,
+        "woo": 0,
+        "smile": 1.2
+      },
       "intensity": 100,
       "source_frame": "reference-master/tests/source_frame.png",
-      "renders": {"wardrobe": "reference-master/tests/wardrobe_chorus-stage.png", "expression": null},
-      "refs": [],
+      "renders": {
+        "wardrobe": "reference-master/tests/wardrobe_chorus-stage.png",
+        "expression": null
+      },
+      "refs": [
+        {
+          "path": "reference-master/refs/pinterest/s3_wardrobe/12.jpg",
+          "source_url": "https://i.pinimg.com/originals/6a/4b/8e/6a4b8ecee6affd72b38873fcc7191824.jpg",
+          "role": "wardrobe",
+          "starred": true,
+          "note": "red mermaid sweetheart dress"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s3_makeup/18.jpg",
+          "source_url": "https://i.pinimg.com/originals/b1/7b/59/b17b595c257d18d9fba57a6a4891814a.jpg",
+          "role": "mood",
+          "starred": false,
+          "note": "Tems glossy look"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s3_makeup/19.jpg",
+          "source_url": "https://i.pinimg.com/originals/92/f3/ca/92f3ca78282ba8951588d8710e0a4bee.jpg",
+          "role": "mood",
+          "starred": false,
+          "note": "Tems"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s3_makeup/20.jpg",
+          "source_url": "https://i.pinimg.com/originals/2f/19/cc/2f19cc9abefb5cca3b4b62d09b00ae3f.jpg",
+          "role": "mood",
+          "starred": false,
+          "note": "fox eye look"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s3_makeup/21.jpg",
+          "source_url": "https://i.pinimg.com/originals/b1/fe/c6/b1fec6f9b87829718ed9be849f38c606.jpg",
+          "role": "mood",
+          "starred": false,
+          "note": "untitled"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s3_hair/22.jpg",
+          "source_url": "https://i.pinimg.com/originals/fc/fc/48/fcfc48ac97dfa7a429bc0a8207bedaa6.jpg",
+          "role": "mood",
+          "starred": false,
+          "note": "kinky straight style"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s3_hair/23.jpg",
+          "source_url": "https://i.pinimg.com/originals/b1/67/93/b1679350c667a878815193dc549d062b.jpg",
+          "role": "mood",
+          "starred": false,
+          "note": "untitled"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s3_hair/24.jpg",
+          "source_url": "https://i.pinimg.com/originals/41/64/c6/4164c621bcf0bc765c97fd315adeef6c.jpg",
+          "role": "mood",
+          "starred": false,
+          "note": "untitled"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s3_hair/25.jpg",
+          "source_url": "https://i.pinimg.com/originals/68/51/fa/6851fa23eb0eab9485ecf758fe1bdbd8.jpg",
+          "role": "mood",
+          "starred": false,
+          "note": "untitled"
+        }
+      ],
       "status": "wardrobe-done",
       "notes": ""
     },
@@ -90,14 +285,45 @@
       "id": "s4-harmony.lead",
       "scene": "s4-harmony",
       "character": "lead",
-      "wardrobe": "a warm amber satin two-piece, a cropped halter top and matching wide-leg trousers, with gold hoop earrings",
+      "wardrobe": "a burnt-orange satin slip dress with thin straps, big gold hoop earrings, a glossy brown-nude lip with a bronze sheen, voluminous '90s curls",
       "props": "",
       "emotion": "sing-aaa",
-      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 6, "wink": 0, "pupil_x": 0, "pupil_y": 0, "aaa": 70, "eee": 0, "woo": 0, "smile": 0},
+      "expression": {
+        "rotate_pitch": 0,
+        "rotate_yaw": 0,
+        "rotate_roll": 0,
+        "blink": 0,
+        "eyebrow": 6,
+        "wink": 0,
+        "pupil_x": 0,
+        "pupil_y": 0,
+        "aaa": 70,
+        "eee": 0,
+        "woo": 0,
+        "smile": 0
+      },
       "intensity": 100,
       "source_frame": "reference-master/tests/source_frame.png",
-      "renders": {"wardrobe": null, "expression": null},
-      "refs": [],
+      "renders": {
+        "wardrobe": null,
+        "expression": null
+      },
+      "refs": [
+        {
+          "path": "reference-master/refs/pinterest/s3_wardrobe/12.jpg",
+          "source_url": "https://i.pinimg.com/originals/6a/4b/8e/6a4b8ecee6affd72b38873fcc7191824.jpg",
+          "role": "wardrobe",
+          "starred": true,
+          "note": "red mermaid sweetheart dress"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s3_makeup/18.jpg",
+          "source_url": "https://i.pinimg.com/originals/b1/7b/59/b17b595c257d18d9fba57a6a4891814a.jpg",
+          "role": "mood",
+          "starred": false,
+          "note": "Tems glossy look"
+        }
+      ],
       "status": "draft",
       "notes": "The lead holds the gaze while the clones play."
     },
@@ -105,14 +331,66 @@
       "id": "s4-harmony.backup-left",
       "scene": "s4-harmony",
       "character": "backup-left",
-      "wardrobe": "a matching satin two-piece in deeper burnt amber, one shade darker than the lead's: cropped halter top, wide-leg trousers, small gold hoops, girl-group styling",
+      "wardrobe": "a matching amber-and-brown wax-print (ankara) wrap top with a coordinated headwrap, a shade darker than the lead, small gold hoops",
       "props": "",
       "emotion": "playful-wink",
-      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 2, "wink": 18, "pupil_x": 0, "pupil_y": 0, "aaa": 0, "eee": 0, "woo": 0, "smile": 1},
+      "expression": {
+        "rotate_pitch": 0,
+        "rotate_yaw": 0,
+        "rotate_roll": 0,
+        "blink": 0,
+        "eyebrow": 2,
+        "wink": 18,
+        "pupil_x": 0,
+        "pupil_y": 0,
+        "aaa": 0,
+        "eee": 0,
+        "woo": 0,
+        "smile": 1
+      },
       "intensity": 100,
       "source_frame": "reference-master/tests/source_frame.png",
-      "renders": {"wardrobe": null, "expression": null},
-      "refs": [],
+      "renders": {
+        "wardrobe": null,
+        "expression": null
+      },
+      "refs": [
+        {
+          "path": "reference-master/refs/pinterest/s4_wardrobe/13.jpg",
+          "source_url": "https://i.pinimg.com/originals/56/62/8c/56628c9970338d86a3617ecde8fac2b0.jpg",
+          "role": "wardrobe",
+          "starred": true,
+          "note": "head wraps / turbans"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s4_wardrobe/14.jpg",
+          "source_url": "https://i.pinimg.com/originals/ec/da/ff/ecdaffc559dbd9d45b3d1222e32736e7.jpg",
+          "role": "wardrobe",
+          "starred": false,
+          "note": "print floor-length dress"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s4_wardrobe/15.jpg",
+          "source_url": "https://i.pinimg.com/originals/0b/1b/ca/0b1bca3edd6511bcee1f8a0327d5a94d.jpg",
+          "role": "wardrobe",
+          "starred": false,
+          "note": "Natacha Baco look"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s4_wardrobe/16.jpg",
+          "source_url": "https://i.pinimg.com/originals/ca/9e/5f/ca9e5f37d87e37cb33a5d90ea04345ce.jpg",
+          "role": "wardrobe",
+          "starred": false,
+          "note": "draped wax print"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s4_wardrobe/17.jpg",
+          "source_url": "https://i.pinimg.com/originals/ae/4a/4d/ae4a4dbee2c9a273158d65db25d9c683.jpg",
+          "role": "wardrobe",
+          "starred": false,
+          "note": "wrap portrait"
+        }
+      ],
       "status": "draft",
       "notes": "Clone of the lead (same identity lock), stage left."
     },
@@ -120,14 +398,66 @@
       "id": "s4-harmony.backup-right",
       "scene": "s4-harmony",
       "character": "backup-right",
-      "wardrobe": "a matching satin two-piece in deeper burnt amber, one shade darker than the lead's: cropped halter top, wide-leg trousers, small gold hoops, girl-group styling",
+      "wardrobe": "a matching amber-and-brown wax-print (ankara) wrap top with a coordinated headwrap, a shade darker than the lead, small gold hoops",
       "props": "",
       "emotion": "playful-wink",
-      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 2, "wink": 18, "pupil_x": 0, "pupil_y": 0, "aaa": 0, "eee": 0, "woo": 0, "smile": 1},
+      "expression": {
+        "rotate_pitch": 0,
+        "rotate_yaw": 0,
+        "rotate_roll": 0,
+        "blink": 0,
+        "eyebrow": 2,
+        "wink": 18,
+        "pupil_x": 0,
+        "pupil_y": 0,
+        "aaa": 0,
+        "eee": 0,
+        "woo": 0,
+        "smile": 1
+      },
       "intensity": 100,
       "source_frame": "reference-master/tests/source_frame.png",
-      "renders": {"wardrobe": null, "expression": null},
-      "refs": [],
+      "renders": {
+        "wardrobe": null,
+        "expression": null
+      },
+      "refs": [
+        {
+          "path": "reference-master/refs/pinterest/s4_wardrobe/13.jpg",
+          "source_url": "https://i.pinimg.com/originals/56/62/8c/56628c9970338d86a3617ecde8fac2b0.jpg",
+          "role": "wardrobe",
+          "starred": true,
+          "note": "head wraps / turbans"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s4_wardrobe/14.jpg",
+          "source_url": "https://i.pinimg.com/originals/ec/da/ff/ecdaffc559dbd9d45b3d1222e32736e7.jpg",
+          "role": "wardrobe",
+          "starred": false,
+          "note": "print floor-length dress"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s4_wardrobe/15.jpg",
+          "source_url": "https://i.pinimg.com/originals/0b/1b/ca/0b1bca3edd6511bcee1f8a0327d5a94d.jpg",
+          "role": "wardrobe",
+          "starred": false,
+          "note": "Natacha Baco look"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s4_wardrobe/16.jpg",
+          "source_url": "https://i.pinimg.com/originals/ca/9e/5f/ca9e5f37d87e37cb33a5d90ea04345ce.jpg",
+          "role": "wardrobe",
+          "starred": false,
+          "note": "draped wax print"
+        },
+        {
+          "path": "reference-master/refs/pinterest/s4_wardrobe/17.jpg",
+          "source_url": "https://i.pinimg.com/originals/ae/4a/4d/ae4a4dbee2c9a273158d65db25d9c683.jpg",
+          "role": "wardrobe",
+          "starred": false,
+          "note": "wrap portrait"
+        }
+      ],
       "status": "draft",
       "notes": "Clone of the lead (same identity lock), stage right."
     }
@@ -137,49 +467,154 @@
       "label": "Neutral",
       "emoji": "😐",
       "note": "Her resting face. Let the light and the song do the work.",
-      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 0, "wink": 0, "pupil_x": 0, "pupil_y": 0, "aaa": 0, "eee": 0, "woo": 0, "smile": 0}
+      "expression": {
+        "rotate_pitch": 0,
+        "rotate_yaw": 0,
+        "rotate_roll": 0,
+        "blink": 0,
+        "eyebrow": 0,
+        "wink": 0,
+        "pupil_x": 0,
+        "pupil_y": 0,
+        "aaa": 0,
+        "eee": 0,
+        "woo": 0,
+        "smile": 0
+      }
     },
     "soft-smile": {
       "label": "Soft smile",
       "emoji": "😊",
       "note": "Warm closed-mouth smile with lifted brows: the cozy hook.",
-      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 4, "wink": 0, "pupil_x": 0, "pupil_y": 0, "aaa": 0, "eee": 0, "woo": 0, "smile": 1.2}
+      "expression": {
+        "rotate_pitch": 0,
+        "rotate_yaw": 0,
+        "rotate_roll": 0,
+        "blink": 0,
+        "eyebrow": 4,
+        "wink": 0,
+        "pupil_x": 0,
+        "pupil_y": 0,
+        "aaa": 0,
+        "eee": 0,
+        "woo": 0,
+        "smile": 1.2
+      }
     },
     "devagar-slow-blink": {
       "label": "Devagar",
       "emoji": "😌",
       "note": "Lazy head tilt and a half smile, slowly. Blink +4 keeps her eyes open; drag blink negative for heavy lids.",
-      "expression": {"rotate_pitch": -4, "rotate_yaw": 0, "rotate_roll": 6, "blink": 4, "eyebrow": 0, "wink": 0, "pupil_x": 0, "pupil_y": -6, "aaa": 0, "eee": 0, "woo": 0, "smile": 0.6}
+      "expression": {
+        "rotate_pitch": -4,
+        "rotate_yaw": 0,
+        "rotate_roll": 6,
+        "blink": 4,
+        "eyebrow": 0,
+        "wink": 0,
+        "pupil_x": 0,
+        "pupil_y": -6,
+        "aaa": 0,
+        "eee": 0,
+        "woo": 0,
+        "smile": 0.6
+      }
     },
     "sultry-gaze": {
       "label": "Sultry gaze",
       "emoji": "😏",
       "note": "Eyes slide off the lens, brows low, the smallest smile: come closer.",
-      "expression": {"rotate_pitch": 0, "rotate_yaw": 8, "rotate_roll": 0, "blink": 0, "eyebrow": -3, "wink": 0, "pupil_x": 8, "pupil_y": -3, "aaa": 0, "eee": 0, "woo": 0, "smile": 0.4}
+      "expression": {
+        "rotate_pitch": 0,
+        "rotate_yaw": 8,
+        "rotate_roll": 0,
+        "blink": 0,
+        "eyebrow": -3,
+        "wink": 0,
+        "pupil_x": 8,
+        "pupil_y": -3,
+        "aaa": 0,
+        "eee": 0,
+        "woo": 0,
+        "smile": 0.4
+      }
     },
     "playful-wink": {
       "label": "Playful wink",
       "emoji": "😉",
       "note": "A one-eye wink on a full smile: the in-joke.",
-      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 2, "wink": 18, "pupil_x": 0, "pupil_y": 0, "aaa": 0, "eee": 0, "woo": 0, "smile": 1}
+      "expression": {
+        "rotate_pitch": 0,
+        "rotate_yaw": 0,
+        "rotate_roll": 0,
+        "blink": 0,
+        "eyebrow": 2,
+        "wink": 18,
+        "pupil_x": 0,
+        "pupil_y": 0,
+        "aaa": 0,
+        "eee": 0,
+        "woo": 0,
+        "smile": 1
+      }
     },
     "ooh": {
       "label": "Ooh",
       "emoji": "😮",
       "note": "Rounded lips on the backing 'ooh', brows lifted.",
-      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 8, "wink": 0, "pupil_x": 0, "pupil_y": 0, "aaa": 0, "eee": 0, "woo": 14, "smile": 0}
+      "expression": {
+        "rotate_pitch": 0,
+        "rotate_yaw": 0,
+        "rotate_roll": 0,
+        "blink": 0,
+        "eyebrow": 8,
+        "wink": 0,
+        "pupil_x": 0,
+        "pupil_y": 0,
+        "aaa": 0,
+        "eee": 0,
+        "woo": 14,
+        "smile": 0
+      }
     },
     "sing-aaa": {
       "label": "Sing aaa",
       "emoji": "😃",
       "note": "Open-mouth vowel on the chorus line, brows up.",
-      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 6, "wink": 0, "pupil_x": 0, "pupil_y": 0, "aaa": 70, "eee": 0, "woo": 0, "smile": 0}
+      "expression": {
+        "rotate_pitch": 0,
+        "rotate_yaw": 0,
+        "rotate_roll": 0,
+        "blink": 0,
+        "eyebrow": 6,
+        "wink": 0,
+        "pupil_x": 0,
+        "pupil_y": 0,
+        "aaa": 70,
+        "eee": 0,
+        "woo": 0,
+        "smile": 0
+      }
     },
     "longing": {
       "label": "Longing",
       "emoji": "🥺",
       "note": "Brows knit up, eyes drift, a barely-there smile.",
-      "expression": {"rotate_pitch": 0, "rotate_yaw": 0, "rotate_roll": 0, "blink": 0, "eyebrow": 10, "wink": 0, "pupil_x": 0, "pupil_y": 6, "aaa": 0, "eee": 0, "woo": 0, "smile": 0.2}
+      "expression": {
+        "rotate_pitch": 0,
+        "rotate_yaw": 0,
+        "rotate_roll": 0,
+        "blink": 0,
+        "eyebrow": 10,
+        "wink": 0,
+        "pupil_x": 0,
+        "pupil_y": 6,
+        "aaa": 0,
+        "eee": 0,
+        "woo": 0,
+        "smile": 0.2
+      }
     }
-  }
+  },
+  "taste_profile": "docs/inspiration/pinterest.md"
 }

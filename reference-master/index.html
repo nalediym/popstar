@@ -1,0 +1,1688 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reference Master</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23d9622b'/%3E%3Ccircle cx='16' cy='16' r='6.5' fill='%23ffb347'/%3E%3C/svg%3E">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0d0d10;--bg2:#101014;--panel:#141418;--panel2:#1a1a20;--line:#24242c;--line2:#33333c;
+  --ink:#ede6dd;--dim:#968d81;--faint:#5f584f;
+  --amber:#ff9f43;--burnt:#d9622b;--gold:#ffb347;--tuscan:#7a4a2a;--bad:#ff6b57;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:12px/1.5 var(--mono);display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto;overflow:hidden;-webkit-font-smoothing:antialiased}
+body>*{min-width:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:var(--panel2);border:1px solid var(--line2);border-radius:5px;padding:5px 10px;cursor:pointer;transition:border-color .15s,background .15s,color .15s,filter .15s}
+button:hover:not(:disabled){border-color:var(--amber);color:#fff}
+button:disabled{opacity:.45;cursor:default}
+:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+button.primary{background:linear-gradient(180deg,#ea7634,#c9561f);border-color:#ea7634;color:#1a0b04;font-weight:700}
+button.primary:hover:not(:disabled){filter:brightness(1.1);color:#120802}
+button.ghost{background:transparent}
+kbd{font:10px var(--mono);border:1px solid currentColor;border-bottom-width:2px;border-radius:3px;padding:0 4px;margin-left:6px;opacity:.7}
+code{color:var(--gold)}
+a{color:var(--gold)}
+.label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.dim{color:var(--dim)}
+.small{font-size:10.5px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+[hidden]{display:none!important}
+
+/* header */
+header.top{display:flex;align-items:center;gap:18px;padding:9px 16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#131317,#0d0d10)}
+.brand b{display:block;color:var(--amber);letter-spacing:.34em;font-size:12px}
+.brand span{color:var(--dim);font-size:10.5px;letter-spacing:.05em}
+.palette{display:flex;gap:6px}
+.sw{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9px;color:var(--dim);background:none;border:0;padding:0}
+.sw i{width:30px;height:15px;border-radius:3px;border:1px solid rgba(255,255,255,.14);display:block}
+.sw:hover{color:var(--ink)}
+.idlock{flex:1;min-width:0;color:var(--faint);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.idlock b{color:var(--dim);font-weight:400;letter-spacing:.14em;margin-right:6px}
+.pill{border-radius:999px;padding:4px 12px;font-size:11px;letter-spacing:.08em}
+.pill.has{border-color:var(--gold);color:var(--gold)}
+.save-state{font-size:11px;color:var(--dim);min-width:118px;text-align:right}
+.save-state.unsaved{color:var(--amber)}.save-state.err{color:var(--bad)}
+
+/* next-step bar */
+.nextbar{display:flex;align-items:center;gap:14px;padding:7px 16px;border-bottom:1px solid var(--line);background:#0f0f13}
+.counts{display:flex;gap:6px}
+.count{font-size:10px;letter-spacing:.06em;padding:2px 8px;border-radius:999px;border:1px solid var(--line2);color:var(--dim);white-space:nowrap}
+.count b{color:var(--ink);margin-left:6px}
+.next{flex:1;min-width:0;font-size:12.5px}
+.next .arrow{color:var(--amber);margin-right:10px;letter-spacing:.12em;font-size:10.5px}
+.next a{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.next kbd{color:var(--gold)}
+
+/* layout */
+main.layout{display:grid;grid-template-columns:304px minmax(0,1fr);min-height:0}
+aside.timeline{border-right:1px solid var(--line);overflow:auto;padding:14px 12px 40px 16px;background:var(--bg2)}
+section.editor{overflow:auto;min-width:0;position:relative}
+
+/* timeline */
+.scene{position:relative;padding:0 0 18px 20px}
+.scene::before{content:"";position:absolute;left:4px;top:8px;bottom:-2px;width:1px;background:linear-gradient(var(--burnt),var(--line))}
+.scene:last-child::before{display:none}
+.scene-dot{position:absolute;left:0;top:4px;width:9px;height:9px;border-radius:50%;background:var(--bg);border:2px solid var(--amber)}
+.sc-time{font-size:10px;color:var(--amber);letter-spacing:.1em}
+.sc-time span{color:var(--faint);margin-left:6px}
+.sc-title{font-size:13px;font-weight:600;margin:1px 0 3px}
+.sc-line{font-size:10.5px;color:var(--dim);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:2px}
+.sc-line em{font-style:normal;color:var(--faint);letter-spacing:.12em;margin-right:5px;font-size:9.5px}
+.card{display:grid;grid-template-columns:86px minmax(0,1fr);gap:9px;align-items:center;width:100%;text-align:left;margin-top:8px;padding:6px;border-radius:7px;background:var(--panel);border:1px solid var(--line)}
+.card.sel{border-color:var(--amber);background:linear-gradient(90deg,rgba(255,159,67,.11),var(--panel) 70%);box-shadow:inset 0 0 0 1px rgba(255,159,67,.22)}
+.thumb{width:86px;aspect-ratio:16/9;border-radius:4px;overflow:hidden;background:#000;display:block}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.card-body{display:flex;flex-direction:column;gap:1px;min-width:0}
+.card-top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.card-name{font-size:11.5px;font-weight:600}
+.card-sub{font-size:10px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card.add{display:block;border-style:dashed;color:var(--dim);text-align:center}
+
+/* status chips */
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:1px 7px;border-radius:999px;border:1px solid var(--line2);color:var(--dim);white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.st-draft{color:#a0968a}
+.st-queued{color:var(--gold);border-color:rgba(255,179,71,.55)}
+.st-queued::before{animation:pulse 1.4s infinite}
+.st-wardrobe-done{color:var(--burnt);border-color:rgba(217,98,43,.65)}
+.st-done{color:#1a0b04;background:var(--amber);border-color:var(--amber)}
+.count.st-done{color:#1a0b04}.count.st-done b{color:#1a0b04}
+@keyframes pulse{50%{opacity:.2}}
+select.status{appearance:none;-webkit-appearance:none;border-radius:999px;padding:4px 12px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;background:var(--panel2);border:1px solid var(--line2);cursor:pointer}
+select.status.st-done{background:var(--amber)}
+
+/* editor */
+.look-head{position:sticky;top:0;z-index:6;display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;padding:13px 20px 11px;background:rgba(13,13,16,.93);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.look-head h1{margin:2px 0 0;font-size:20px;font-weight:600}
+.look-head h1 .id{font-size:11px;color:var(--dim);font-weight:400;margin-left:10px}
+.actions{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:5px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:transparent;padding:5px 9px;color:var(--dim)}
+.seg button+button{border-left:1px solid var(--line2)}
+.seg button[aria-pressed=true]{background:rgba(255,159,67,.15);color:var(--amber)}
+.seg.small button{padding:2px 8px;font-size:10.5px}
+.block{padding:16px 20px;border-bottom:1px solid var(--line)}
+.block-head{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.block-head .seg{margin-left:auto}
+.empty-state{padding:60px 30px;color:var(--dim);text-align:center}
+
+/* images */
+.slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.slot{margin:0;min-width:0}
+.slot .frame{position:relative;aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:repeating-linear-gradient(135deg,#121216 0 10px,#16161b 10px 20px);border:1px solid var(--line);cursor:zoom-in}
+.slot img{width:100%;height:100%;object-fit:contain;display:block;background:#000}
+.empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--faint);font-size:11px;text-align:center;padding:12px;white-space:pre-line}
+.slot.queued .empty{color:var(--gold);animation:pulse 1.6s infinite}
+.slot figcaption{display:flex;gap:8px;margin-top:6px;font-size:10px;color:var(--dim);min-width:0}
+.slot figcaption b{color:var(--ink);letter-spacing:.14em;font-weight:600;flex:none}
+.slot figcaption span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:rtl;text-align:left}
+.slot.fresh .frame{animation:fresh 2.4s ease-out}
+@keyframes fresh{0%{box-shadow:0 0 0 2px var(--amber),0 0 34px rgba(255,159,67,.7)}100%{box-shadow:0 0 0 0 transparent}}
+.compare{position:relative;width:min(100%,calc(62vh * 16 / 9));aspect-ratio:16/9;margin:0 auto;border-radius:6px;overflow:hidden;border:1px solid var(--line);background:#000;--split:50%}
+.compare img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill}
+.compare .after{clip-path:inset(0 0 0 var(--split))}
+.compare .line{position:absolute;top:0;bottom:0;left:var(--split);width:2px;margin-left:-1px;background:var(--amber);box-shadow:0 0 14px rgba(255,159,67,.85);pointer-events:none}
+.compare .line::after{content:"\2194";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;border-radius:50%;background:var(--amber);color:#1a0b04;display:grid;place-items:center;font-size:15px;font-weight:700}
+.compare input[type=range]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;margin:0}
+.cmp-tag{position:absolute;top:8px;font-size:10px;letter-spacing:.14em;padding:2px 7px;border-radius:3px;background:rgba(0,0,0,.62);pointer-events:none}
+.cmp-tag.l{left:8px}.cmp-tag.r{right:8px;color:var(--amber)}
+.cmp-pick{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:8px;color:var(--dim);font-size:10.5px}
+.framepick{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap;font-size:11px;color:var(--dim)}
+.framepick select,.framepick input{background:var(--panel);border:1px solid var(--line2);border-radius:5px;padding:4px 7px;color:var(--ink)}
+.framepick input{width:76px}
+
+/* references */
+.refs-row{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}
+.ref-list{display:contents}
+.ref{width:126px;border:1px solid var(--line);border-radius:6px;background:var(--panel);overflow:hidden;display:flex;flex-direction:column}
+.ref.star{border-color:var(--gold);box-shadow:0 0 0 1px rgba(255,179,71,.35),0 0 18px rgba(255,179,71,.15)}
+.ref .ri{display:block;width:100%;aspect-ratio:4/5;background:#000;border:0;padding:0;border-radius:0;cursor:zoom-in}
+.ref .ri img{width:100%;height:100%;object-fit:cover;display:block}
+.ref .rm{display:flex;align-items:center;gap:3px;padding:4px}
+.ref .rm button,.ref .rm a{padding:1px 5px;font-size:10.5px;line-height:1.4;border-radius:4px}
+.ref .rm a{text-decoration:none;border:1px solid var(--line2)}
+.ref .rm .role{flex:1;min-width:0}
+.ref .rm .starb{color:var(--gold)}
+.ref.loading .ri{background:linear-gradient(90deg,#15151a,#26262e,#15151a);background-size:200% 100%;animation:shimmer 1.1s infinite linear;cursor:default}
+.ref.loading .rm{color:var(--dim);font-size:10px;justify-content:center;padding:6px}
+@keyframes shimmer{to{background-position:-200% 0}}
+.ref-add{flex:1;min-width:270px;border:1px dashed var(--line2);border-radius:6px;display:flex;flex-direction:column;justify-content:center;gap:9px;padding:14px;color:var(--dim)}
+.ref-add form{display:flex;gap:6px}
+.ref-add input,.ref-add select{min-width:0;background:var(--panel);border:1px solid var(--line2);border-radius:5px;padding:6px 8px}
+.ref-add input{flex:1}
+.linkish{color:var(--gold);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+
+/* fields + emotion columns */
+.cols{display:grid;grid-template-columns:minmax(300px,1fr) minmax(430px,1.12fr)}
+.cols>.col{padding:16px 20px 30px;min-width:0}
+.cols>.col+.col{border-left:1px solid var(--line)}
+.field{display:block;margin-bottom:6px}
+.field>span{display:block;font-size:10px;letter-spacing:.16em;color:var(--dim);margin-bottom:4px}
+textarea{width:100%;resize:vertical;min-height:54px;background:var(--panel);border:1px solid var(--line2);border-radius:6px;padding:8px 10px;line-height:1.45}
+textarea:focus{border-color:var(--amber);outline:none;box-shadow:0 0 0 3px rgba(255,159,67,.13)}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 14px}
+.chips button{font-size:10.5px;padding:2px 9px;border-radius:999px;background:transparent;color:var(--dim)}
+.chips button:hover{color:var(--gold)!important;border-color:var(--gold)!important}
+.scene-box{margin-top:8px;padding:12px 12px 2px;border:1px solid var(--line);border-radius:8px;background:linear-gradient(180deg,rgba(122,74,42,.14),transparent 70%)}
+.prompt{white-space:pre-wrap;word-break:break-word;background:#0a0a0c;border:1px solid var(--line);border-radius:6px;padding:10px 12px;color:#d6ccbf;font:11px/1.55 var(--mono);max-height:300px;overflow:auto;margin:0}
+.emo-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.emo{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 4px 7px;border-radius:9px;background:var(--panel)}
+.emo .ico{font-size:25px;line-height:1.15}
+.emo .lbl{font-size:10px;color:var(--dim);text-align:center}
+.emo .key{position:absolute;top:3px;left:7px;font-size:9px;color:var(--faint)}
+.emo[aria-pressed=true]{border-color:var(--amber);background:linear-gradient(180deg,rgba(255,159,67,.17),var(--panel))}
+.emo[aria-pressed=true] .lbl{color:var(--amber)}
+.emo.edited::after{content:"edited";position:absolute;top:3px;right:6px;font-size:8px;color:var(--gold);letter-spacing:.06em}
+.emo-note{min-height:18px;margin:9px 0 12px;color:var(--dim);font-size:11px}
+.face-row{display:grid;grid-template-columns:220px minmax(0,1fr);gap:18px;align-items:center}
+.face{width:220px;height:238px;border-radius:10px;background:#0b0b0e;border:1px solid var(--line);display:block}
+.face .brow{fill:none;stroke:#22120a;stroke-width:3.1;stroke-linecap:round}
+.face .lash{fill:none;stroke:#140905;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
+.face .low{fill:none;stroke:#3a2216;stroke-width:.8}
+.face .crease{fill:none;stroke:#3a2216;stroke-width:.9}
+.face-cap{font-size:9.5px;color:var(--faint);margin-top:4px;text-align:center;width:220px}
+.int-big{font-size:30px;font-weight:700;color:var(--amber);line-height:1.1;margin:2px 0 6px}
+.int-big.off{color:var(--ink)}
+.int-btns{display:flex;gap:6px;margin-top:9px}
+.sliders{margin-top:16px;display:grid;gap:12px}
+.sl-group-head{font-size:10px;letter-spacing:.2em;color:var(--burnt);margin-bottom:3px;border-bottom:1px solid var(--line);padding-bottom:3px}
+.sl-row{display:grid;grid-template-columns:62px minmax(0,1fr) 60px 24px;align-items:center;gap:8px;height:26px}
+.sl-row label{font-size:11px;cursor:help}
+.sl-track{position:relative;height:18px}
+.tick{position:absolute;top:3px;width:1px;height:12px;margin-left:-.5px;background:var(--faint);pointer-events:none}
+.tick.preset{background:var(--gold);width:2px;margin-left:-1px;height:7px;top:-2px;border-radius:1px}
+.sl-num{width:60px;background:var(--panel);border:1px solid var(--line2);border-radius:4px;padding:2px 4px;text-align:right;font-size:11px}
+.sl-num.pinned{color:var(--gold);border-color:rgba(255,179,71,.55)}
+.sl-reset{padding:0;width:24px;height:22px;font-size:13px;color:var(--dim);background:transparent;border-color:transparent}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;background:transparent;margin:0;display:block;--lo:0%;--hi:0%}
+input[type=range]::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:linear-gradient(to right,var(--line2) var(--lo),var(--burnt) var(--lo),var(--amber) var(--hi),var(--line2) var(--hi))}
+input[type=range]::-moz-range-track{height:3px;border-radius:2px;background:linear-gradient(to right,var(--line2) var(--lo),var(--burnt) var(--lo),var(--amber) var(--hi),var(--line2) var(--hi))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--ink);border:2px solid var(--amber);margin-top:-4.5px;box-shadow:0 0 0 3px rgba(255,159,67,.12)}
+input[type=range]::-moz-range-thumb{width:9px;height:9px;border-radius:50%;background:var(--ink);border:2px solid var(--amber)}
+input[type=range]:focus-visible{outline:none}
+input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px rgba(255,159,67,.4)}
+input[type=range]:disabled{opacity:.35}
+#intensity{--lo:0%;--hi:50%}
+
+/* overlays */
+.hints{padding:5px 16px;border-top:1px solid var(--line);color:var(--faint);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hints b{color:var(--dim);font-weight:400}
+.toast{position:fixed;left:50%;bottom:42px;transform:translate(-50%,16px);opacity:0;pointer-events:none;background:#1d1d23;border:1px solid var(--line2);border-left:3px solid var(--amber);padding:8px 14px;border-radius:6px;box-shadow:0 10px 40px rgba(0,0,0,.55);transition:opacity .2s,transform .2s;z-index:60;max-width:min(760px,86vw)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.err{border-left-color:var(--bad)}
+.notice{display:flex;gap:8px;align-items:center;flex:none;max-width:60%;background:#241a10;border:1px solid var(--burnt);color:var(--gold);padding:3px 4px 3px 12px;border-radius:999px;box-shadow:0 0 18px rgba(217,98,43,.25);font-size:11.5px;white-space:nowrap;overflow:hidden}
+.notice .dim{overflow:hidden;text-overflow:ellipsis}
+.notice button{padding:3px 10px;border-radius:999px;font-size:11px}
+.pop{position:fixed;z-index:45;background:#16161b;border:1px solid var(--line2);border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.65);padding:12px;width:340px;max-height:72vh;overflow:auto}
+.pop-head{font-size:11px;letter-spacing:.12em;margin-bottom:8px}
+.pop-sec{margin:8px 0 10px;display:flex;flex-direction:column;gap:4px}
+.pop-sec label{display:flex;gap:7px;align-items:center;cursor:pointer}
+.pop-quick{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px}
+.pop-quick button{font-size:10px;padding:1px 7px}
+.pop-foot{display:flex;justify-content:flex-end;gap:6px;margin-top:10px}
+.q-row{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line)}
+.q-row a{cursor:pointer}
+.q-row .x{padding:0 7px}
+.lightbox{position:fixed;inset:0;z-index:50;background:rgba(6,6,8,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.lightbox img{max-width:94vw;max-height:84vh;object-fit:contain;border-radius:4px;box-shadow:0 20px 80px rgba(0,0,0,.6)}
+.lb-cap{color:var(--dim);font-size:11px;margin-top:10px;text-align:center}
+.lb-nav{position:fixed;top:50%;transform:translateY(-50%);font-size:22px;padding:8px 14px;background:rgba(22,22,27,.85)}
+.lb-nav.prev{left:16px}.lb-nav.next{right:16px}
+.lb-close{position:fixed;top:14px;right:16px}
+.drop{position:fixed;inset:10px;z-index:55;border:2px dashed var(--amber);border-radius:14px;background:rgba(255,159,67,.08);display:grid;place-items:center;font-size:16px;color:var(--gold);pointer-events:none}
+
+@media (max-width:1240px){.cols{grid-template-columns:minmax(0,1fr)}.cols>.col+.col{border-left:0;border-top:1px solid var(--line)}}
+@media (max-width:860px){
+  body{display:block;overflow:auto;height:auto}
+  main.layout{display:block}
+  aside.timeline{border-right:0;border-bottom:1px solid var(--line);max-height:none}
+  section.editor{overflow:visible}
+  .slots{grid-template-columns:minmax(0,1fr)}
+  .face-row{grid-template-columns:minmax(0,1fr)}
+  .idlock,.palette span{display:none}
+  .nextbar{flex-wrap:wrap}
+  .look-head{position:static}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><b>REFERENCE MASTER</b><span>In the Loop (Devagar) · wardrobe &amp; look dept.</span></div>
+  <div class="palette" id="palette" aria-label="Palette"></div>
+  <div class="idlock" id="idlock"></div>
+  <button class="pill" id="queueBtn" aria-haspopup="true">QUEUE <b id="queueCount">0</b></button>
+  <span class="save-state" id="saveState" role="status">loading…</span>
+</header>
+
+<div class="nextbar">
+  <div class="counts" id="counts"></div>
+  <div class="next" id="nextAction"></div>
+  <div class="notice" id="notice" role="alert" hidden></div>
+  <button id="copyAllBtn" disabled>Copy all queued for Claude</button>
+</div>
+
+<main class="layout">
+  <aside class="timeline" id="timeline" aria-label="Scenes and looks"></aside>
+
+  <section class="editor" id="editor" aria-label="Look editor">
+    <div class="empty-state" id="emptyState" hidden>No looks yet. Add a character to a scene in looks.json.</div>
+    <div id="editorBody">
+      <div class="look-head">
+        <div>
+          <div class="label" id="lookScene"></div>
+          <h1><span id="lookName"></span><span class="id" id="lookId"></span></h1>
+        </div>
+        <div class="actions">
+          <select class="status" id="statusSel" aria-label="Status">
+            <option value="draft">draft</option><option value="queued">queued</option><option value="wardrobe-done">wardrobe-done</option><option value="done">done</option>
+          </select>
+          <div class="seg" id="whatSeg" role="group" aria-label="What to render">
+            <button data-what="wardrobe">wardrobe</button><button data-what="expression">expression</button><button data-what="both">both</button>
+          </div>
+          <button class="primary" id="queueLookBtn">Queue render<kbd>Q</kbd></button>
+          <button id="copyBtn">Copy for Claude</button>
+          <button id="copyToBtn" aria-haspopup="true">Copy look to…</button>
+          <button id="saveBtn">Save<kbd>S</kbd></button>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-head">
+          <span class="label">Reference images</span>
+          <div class="seg small" id="viewSeg" role="group" aria-label="Image view">
+            <button data-view="side">side by side</button><button data-view="compare">before / after</button>
+          </div>
+        </div>
+        <div class="slots" id="slots">
+          <figure class="slot" data-slot="source"><div class="frame"><img alt="Source frame" draggable="false" hidden><div class="empty"></div></div><figcaption><b>SOURCE</b><span></span></figcaption></figure>
+          <figure class="slot" data-slot="wardrobe"><div class="frame"><img alt="Wardrobe render" draggable="false" hidden><div class="empty"></div></div><figcaption><b>WARDROBE</b><span></span></figcaption></figure>
+          <figure class="slot" data-slot="expression"><div class="frame"><img alt="Expression render" draggable="false" hidden><div class="empty"></div></div><figcaption><b>EXPRESSION</b><span></span></figcaption></figure>
+        </div>
+        <div id="compareWrap" hidden>
+          <div class="compare" id="compare">
+            <img id="cmpBefore" alt="Source frame" draggable="false" hidden>
+            <img id="cmpAfter" class="after" alt="Render" draggable="false" hidden>
+            <div class="line"></div>
+            <span class="cmp-tag l">← SOURCE</span><span class="cmp-tag r" id="cmpAfterTag"></span>
+            <input type="range" id="cmpRange" min="0" max="100" step="0.5" value="50" aria-label="Before and after split">
+            <div class="empty" id="cmpEmpty" hidden>No render to compare yet: queue one with Q.</div>
+          </div>
+          <div class="cmp-pick" id="cmpPick">compare the source with
+            <div class="seg small"><button data-after="wardrobe">wardrobe</button><button data-after="expression">expression</button></div>
+          </div>
+        </div>
+        <div class="framepick">
+          <span class="label">Source frame</span>
+          <label>clip <select id="clipSel" aria-label="Clip"></select></label>
+          <label>at <input id="clipT" type="number" min="0" step="0.1" value="1.0" aria-label="Time in seconds"> s</label>
+          <button id="grabBtn">Grab frame</button>
+          <span class="small">a neutral, lips-closed moment works best</span>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-head">
+          <span class="label">References</span>
+          <span class="dim small">paste (⌘V) or drop images anywhere on the page · <span style="color:var(--gold)">★</span> marks THE wardrobe reference</span>
+        </div>
+        <div class="refs-row">
+          <div class="ref-list" id="refList"></div>
+          <div class="ref-add">
+            <form id="refForm">
+              <input id="refUrl" type="url" placeholder="paste a Pinterest pin or image link" autocomplete="off" spellcheck="false" aria-label="Pinterest pin or image link">
+              <select id="refRole" aria-label="Role for new references"><option value="wardrobe">wardrobe</option><option value="mood">mood</option><option value="set">set</option></select>
+              <button>Add</button>
+            </form>
+            <div class="small">Pin links (pin.it, pinterest.com/pin/…) use the pin’s image. Or <label class="linkish">browse files<input type="file" id="refFile" accept="image/*" multiple hidden></label>.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cols">
+        <div class="col">
+          <label class="field"><span>WARDROBE</span><textarea id="f_wardrobe" rows="3" spellcheck="true"></textarea></label>
+          <div class="chips" data-chips="wardrobe"></div>
+          <label class="field"><span>PROPS</span><textarea id="f_props" rows="2"></textarea></label>
+          <label class="field"><span>NOTES</span><textarea id="f_notes" rows="2"></textarea></label>
+          <div class="scene-box">
+            <div class="block-head"><span class="label">Scene</span><span class="dim small" id="sceneShared"></span></div>
+            <label class="field"><span>SET</span><textarea id="f_set" rows="2"></textarea></label>
+            <div class="chips" data-chips="set"></div>
+            <label class="field"><span>LIGHT</span><textarea id="f_light" rows="2"></textarea></label>
+            <div class="chips" data-chips="light"></div>
+          </div>
+          <div class="block-head" style="margin-top:16px"><span class="label">Prompt preview</span><span class="dim small">what “Copy for Claude” copies</span></div>
+          <pre class="prompt" id="promptPreview"></pre>
+        </div>
+
+        <div class="col">
+          <div class="block-head"><span class="label">Emotion</span><span class="dim small" id="emoState"></span></div>
+          <div class="emo-grid" id="emoGrid"></div>
+          <div class="emo-note" id="emoNote"></div>
+          <div class="face-row">
+            <div>
+              <svg class="face" id="face" viewBox="0 0 240 260" role="img" aria-label="Live expression preview (schematic)">
+                <defs>
+                  <radialGradient id="gGlow" cx="50%" cy="40%" r="62%"><stop offset="0" stop-color="#ff9f43" stop-opacity=".2"/><stop offset=".6" stop-color="#d9622b" stop-opacity=".06"/><stop offset="1" stop-color="#0b0b0e" stop-opacity="0"/></radialGradient>
+                  <radialGradient id="gSkin" cx="44%" cy="36%" r="72%"><stop offset="0" stop-color="#7b4f31"/><stop offset=".5" stop-color="#6b4429"/><stop offset="1" stop-color="#56351f"/></radialGradient>
+                  <linearGradient id="gHair" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d06a33"/><stop offset=".55" stop-color="#a9461e"/><stop offset="1" stop-color="#743013"/></linearGradient>
+                  <linearGradient id="gNeck" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b2215"/><stop offset=".45" stop-color="#58371f"/></linearGradient>
+                  <radialGradient id="gIris" cx="42%" cy="38%" r="65%"><stop offset="0" stop-color="#5e3d24"/><stop offset="1" stop-color="#1b0e07"/></radialGradient>
+                  <radialGradient id="gBlush"><stop offset="0" stop-color="#e0703a" stop-opacity=".6"/><stop offset="1" stop-color="#e0703a" stop-opacity="0"/></radialGradient>
+                  <radialGradient id="gSheen"><stop offset="0" stop-color="#ffdcbc" stop-opacity=".55"/><stop offset="1" stop-color="#ffdcbc" stop-opacity="0"/></radialGradient>
+                  <clipPath id="clipL"><path id="f_eyeClipL" d="M0 0"/></clipPath>
+                  <clipPath id="clipR"><path id="f_eyeClipR" d="M0 0"/></clipPath>
+                  <clipPath id="clipM"><path id="f_mouthClip" d="M0 0"/></clipPath>
+                </defs>
+                <rect width="240" height="260" fill="url(#gGlow)"/>
+                <path d="M26 262 C38 232 80 222 102 219 L138 219 C160 222 202 232 214 262 Z" fill="#4c2d1c"/>
+                <path d="M50 262 C72 245 98 239 120 246 C142 239 168 245 190 262 Z" fill="#d9622b"/>
+                <path d="M62 254 C84 243 102 240 120 246" stroke="#ff9f43" stroke-opacity=".5" stroke-width="1.2" fill="none"/>
+                <path d="M101 174 C102 194 100 210 96 222 L144 222 C140 210 138 194 139 174 Z" fill="url(#gNeck)"/>
+                <g id="f_head">
+                  <g id="f_bun"><ellipse cx="120" cy="31" rx="30" ry="17" fill="url(#gHair)"/><path d="M98 30 Q120 18 142 30" stroke="#e58a52" stroke-opacity=".35" stroke-width=".9" fill="none"/></g>
+                  <g id="f_ears">
+                    <ellipse cx="59" cy="121" rx="7" ry="12" fill="#5d3a24"/><ellipse cx="59.5" cy="121" rx="3.3" ry="6.5" fill="#3d2415" opacity=".55"/>
+                    <ellipse cx="181" cy="121" rx="7" ry="12" fill="#5d3a24"/><ellipse cx="180.5" cy="121" rx="3.3" ry="6.5" fill="#3d2415" opacity=".55"/>
+                    <g fill="#f4f1ec"><ellipse cx="57.5" cy="123" rx="4.2" ry="4.6"/><ellipse cx="182.5" cy="123" rx="4.2" ry="4.6"/></g>
+                    <g stroke="#f4f1ec" stroke-width="2.6" stroke-linecap="round"><path d="M57.8 127 L58.6 139"/><path d="M182.2 127 L181.4 139"/></g>
+                  </g>
+                  <path id="f_faceShape" fill="url(#gSkin)"/>
+                  <g id="f_hairCap">
+                    <path d="M61 118 C55 68 86 33 120 33 C154 33 185 68 179 118 C175 96 166 74 147 66 C136 61 128 60 120 60.5 C112 60 104 61 93 66 C74 74 65 96 61 118 Z" fill="url(#gHair)"/>
+                    <g stroke="#f08f55" stroke-opacity=".28" stroke-width=".8" fill="none"><path d="M100 63 Q104 45 116 35"/><path d="M140 63 Q136 45 124 35"/><path d="M84 75 Q92 52 108 37"/><path d="M156 75 Q148 52 132 37"/><path d="M120 60 L120 34"/></g>
+                    <path d="M150 40 C170 53 181 80 179 112" stroke="#ffb347" stroke-opacity=".42" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+                  </g>
+                  <g id="f_features">
+                    <ellipse cx="118" cy="81" rx="22" ry="9" fill="url(#gSheen)" opacity=".4"/>
+                    <ellipse id="f_cheekL" cx="92" cy="139" rx="14" ry="9" fill="url(#gBlush)" opacity=".3"/>
+                    <ellipse id="f_cheekR" cx="148" cy="139" rx="14" ry="9" fill="url(#gBlush)" opacity=".3"/>
+                    <ellipse cx="88" cy="126" rx="12" ry="6" fill="url(#gSheen)" opacity=".35"/><ellipse cx="152" cy="126" rx="12" ry="6" fill="url(#gSheen)" opacity=".35"/>
+                    <path id="f_browL" class="brow"/><path id="f_browR" class="brow"/>
+                    <path id="f_eyeWhiteL" fill="#efe2d4"/>
+                    <g clip-path="url(#clipL)"><g id="f_irisL"><circle r="5.6" fill="url(#gIris)"/><circle r="2.5" fill="#080403"/><circle cx="1.7" cy="-1.9" r="1.15" fill="#fff" opacity=".9"/></g></g>
+                    <path id="f_creaseL" class="crease"/><path id="f_lowL" class="low"/><path id="f_lashL" class="lash"/>
+                    <path id="f_eyeWhiteR" fill="#efe2d4"/>
+                    <g clip-path="url(#clipR)"><g id="f_irisR"><circle r="5.6" fill="url(#gIris)"/><circle r="2.5" fill="#080403"/><circle cx="1.7" cy="-1.9" r="1.15" fill="#fff" opacity=".9"/></g></g>
+                    <path id="f_creaseR" class="crease"/><path id="f_lowR" class="low"/><path id="f_lashR" class="lash"/>
+                    <g id="f_nose">
+                      <ellipse cx="120" cy="141" rx="11" ry="4.6" fill="#3d2415" opacity=".26"/>
+                      <ellipse cx="120" cy="128" rx="2.6" ry="10" fill="url(#gSheen)" opacity=".45"/>
+                      <ellipse cx="120" cy="137.5" rx="5" ry="3" fill="url(#gSheen)" opacity=".6"/>
+                      <path d="M111.8 141.2 q3 3.4 6.6 1.7 M128.2 141.2 q-3 3.4 -6.6 1.7" stroke="#2a150c" stroke-width="1.3" stroke-linecap="round" fill="none" opacity=".75"/>
+                    </g>
+                    <path d="M117.6 147.5 L118.4 153.5 M122.4 147.5 L121.6 153.5" stroke="#3d2415" stroke-width="1" opacity=".3"/>
+                    <g id="f_mouth">
+                      <path id="f_mouthIn" fill="#1d0a07"/>
+                      <g clip-path="url(#clipM)"><rect id="f_teeth" fill="#efe5da" width="0" height="0"/><ellipse id="f_tongue" fill="#7f3330" opacity=".75"/></g>
+                      <path id="f_lipUp" fill="#4b2318"/>
+                      <path id="f_lipLo" fill="#683225"/>
+                      <path id="f_lipSeam" fill="none" stroke="#1d0a07" stroke-width="1.1" stroke-linecap="round"/>
+                      <ellipse id="f_gloss" fill="#ffe1c9" opacity=".22"/>
+                    </g>
+                    <ellipse cx="120" cy="182" rx="8" ry="3.5" fill="url(#gSheen)" opacity=".25"/>
+                  </g>
+                </g>
+              </svg>
+              <div class="face-cap">schematic preview · the render is the truth</div>
+            </div>
+            <div class="intensity">
+              <div class="label">Intensity</div>
+              <div class="int-big" id="intVal">100%</div>
+              <input type="range" id="intensity" min="0" max="200" step="5" value="100" aria-label="Expression intensity">
+              <div class="int-btns"><button id="softerBtn">− softer</button><button id="bolderBtn">+ bolder</button></div>
+              <p class="dim small">Scales all 12 sliders, clamped to their ranges. If the render looks too subtle, go bolder.</p>
+            </div>
+          </div>
+          <div class="sliders" id="sliders"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="hints"><b>↑↓</b> looks · <b>1–8</b> emotions · <b>S</b> save · <b>Q</b> queue both · <b>⌘Z</b> undo · <b>⇧⌘Z</b> redo · <b>⌘V</b> or drop = add reference · click an image to zoom</footer>
+
+<div class="pop" id="queuePop" hidden></div>
+<div class="pop" id="copyPop" hidden></div>
+<div class="lightbox" id="lightbox" hidden>
+  <button class="lb-close" data-lbx="close" aria-label="Close">✕</button>
+  <button class="lb-nav prev" data-lb="-1" aria-label="Previous image">‹</button>
+  <img id="lbImg" alt="">
+  <div class="lb-cap" id="lbCap"></div>
+  <button class="lb-nav next" data-lb="1" aria-label="Next image">›</button>
+</div>
+<div class="drop" id="drop" hidden>Drop to add a reference to&nbsp;<b id="dropLook"></b></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+(() => {
+  // ------------------------------------------------------------------ constants
+  const KEYS = ['rotate_pitch', 'rotate_yaw', 'rotate_roll', 'blink', 'eyebrow', 'wink', 'pupil_x', 'pupil_y', 'aaa', 'eee', 'woo', 'smile'];
+  const SLIDERS = {
+    EYES: [
+      { k: 'blink', min: -20, max: 5, step: 0.5, tip: 'negative closes the eyes (−20 = shut); positive opens them wider' },
+      { k: 'wink', min: 0, max: 25, step: 0.5, tip: 'closes her right eye (the one on screen-left)' },
+      { k: 'eyebrow', min: -10, max: 15, step: 0.5, tip: 'negative furrows, positive raises' },
+      { k: 'pupil_x', min: -15, max: 15, step: 0.5, tip: 'positive looks toward screen-right' },
+      { k: 'pupil_y', min: -15, max: 15, step: 0.5, tip: 'negative looks up, positive looks down' },
+    ],
+    MOUTH: [
+      { k: 'aaa', min: -30, max: 120, step: 1, tip: 'opens the mouth (negative presses the lips)' },
+      { k: 'eee', min: -20, max: 15, step: 0.2, tip: 'widens the mouth' },
+      { k: 'woo', min: -20, max: 15, step: 0.2, tip: 'rounds the lips' },
+      { k: 'smile', min: -0.3, max: 1.3, step: 0.01, tip: 'curves the mouth up' },
+    ],
+    HEAD: [
+      { k: 'rotate_pitch', label: 'pitch', min: -20, max: 20, step: 0.5, tip: 'negative tips the chin up' },
+      { k: 'rotate_yaw', label: 'yaw', min: -20, max: 20, step: 0.5, tip: 'positive turns toward screen-right' },
+      { k: 'rotate_roll', label: 'roll', min: -20, max: 20, step: 0.5, tip: 'positive tilts the head clockwise' },
+    ],
+  };
+  const ALL_SLIDERS = Object.values(SLIDERS).flat();
+  const RANGE = Object.fromEntries(ALL_SLIDERS.map((s) => [s.k, [s.min, s.max]]));
+  const LABEL = Object.fromEntries(ALL_SLIDERS.map((s) => [s.k, s.label || s.k]));
+  const STATUSES = ['draft', 'queued', 'wardrobe-done', 'done'];
+  const ROLES = ['wardrobe', 'mood', 'set'];
+  const SWATCH_NAMES = { '#7a4a2a': 'Tuscan brown', '#d9622b': 'burnt orange', '#ff9f43': 'orange', '#ffb347': 'warm amber' };
+  const CHIPS = {
+    wardrobe: [
+      ['satin slip dress', 'a burnt-orange satin slip dress'],
+      ['oversized leather jacket', 'an oversized cognac-brown leather jacket'],
+      ['bandana top', 'an amber paisley bandana top'],
+      ['tinted rimless glasses', 'tinted amber rimless glasses'],
+      ['gold hoops', 'gold hoop earrings'],
+      ['chunky knit', 'a chunky cream knit'],
+      ['satin cargos', 'low-slung Tuscan-brown satin cargos'],
+      ['girl-group satin set', 'a matching amber satin girl-group set'],
+    ],
+    set: [
+      ['fairy-light bokeh', 'fairy-light bokeh'],
+      ['wet backlit glitter', 'wet backlit glitter'],
+    ],
+    light: [
+      ['candlelight', 'candlelight'],
+      ['amber rim through haze', 'an amber rim through haze'],
+      ['silhouette', 'a backlit silhouette'],
+    ],
+  };
+
+  // ------------------------------------------------------------------ state + utils
+  const S = {
+    doc: null, baseDoc: null, baseHash: null, files: {}, queue: [], clips: [],
+    dirty: new Map(), seq: 0, pendingDisk: null, diskError: null,
+    saving: null, saveAgain: false, saveTimer: 0, saveErr: '', offline: false, lastSaved: null, polling: false, gen: 0, live: false,
+    sel: null, undo: [], redo: [], what: 'both', view: 'side', cmpAfter: 'auto',
+    anim: 0, lb: null, refLoading: 0, rows: {}, imgLook: null,
+  };
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const r2 = (v) => Math.round(v * 100) / 100;
+  const r4 = (v) => Math.round(v * 1e4) / 1e4;
+  const clone = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const canon = (v) => (Array.isArray(v) ? v.map(canon) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])])) : v);
+  const same = (a, b) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
+  const fmt = (v) => String(r2(v));
+  const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}${s % 1 ? `.${Math.round((s % 1) * 10)}` : ''}`;
+  const charName = (c) => String(c).split('-').map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w)).join(' ');
+  const plural = (n, one, many) => (n === 1 ? one : many);
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(`rm.${k}`); return v === null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(`rm.${k}`, JSON.stringify(v)); } catch { /* storage blocked: fine */ } },
+  };
+
+  async function api(method, url, body, headers = {}) {
+    const opt = { method, headers: { ...headers }, cache: 'no-store' };
+    if (body instanceof FormData) opt.body = body;
+    else if (body !== undefined) { opt.body = typeof body === 'string' ? body : JSON.stringify(body); opt.headers['content-type'] = 'application/json'; }
+    try {
+      const res = await fetch(url, opt);
+      const text = await res.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = { error: text.slice(0, 200) }; }
+      return { ok: res.ok, status: res.status, data };
+    } catch {
+      return { ok: false, status: 0, data: { error: 'the server is unreachable' } };
+    }
+  }
+
+  // ------------------------------------------------------------------ expression math
+  // `expression` in looks.json is always render-ready: expression = clamp(expression_base × intensity%).
+  const zeroExpr = () => Object.fromEntries(KEYS.map((k) => [k, 0]));
+  const normExpr = (e) => Object.fromEntries(KEYS.map((k) => { const v = Number(e?.[k]); return [k, Number.isFinite(v) ? r2(clamp(v, ...RANGE[k])) : 0]; }));
+  const derive = (base, g) => Object.fromEntries(KEYS.map((k) => [k, r2(clamp((Number(base?.[k]) || 0) * g, ...RANGE[k]))]));
+  const baseOf = (l) => l.expression_base || l.expression;
+  const baseFromEff = (eff, g) => Object.fromEntries(KEYS.map((k) => [k, g > 0 ? r4(eff[k] / g) : eff[k]]));
+  const exprClose = (a, b) => KEYS.every((k) => Math.abs((a[k] || 0) - (b[k] || 0)) < 0.011);
+
+  function normLook(l) {
+    for (const f of ['wardrobe', 'props', 'notes']) if (typeof l[f] !== 'string') l[f] = '';
+    if (typeof l.emotion !== 'string') l.emotion = '';
+    l.expression = normExpr(l.expression);
+    l.intensity = Number.isFinite(l.intensity) ? clamp(Math.round(l.intensity), 0, 200) : 100;
+    const g = l.intensity / 100;
+    if (g === 1) delete l.expression_base;
+    else {
+      const b = l.expression_base && typeof l.expression_base === 'object' ? Object.fromEntries(KEYS.map((k) => [k, Number(l.expression_base[k]) || 0])) : null;
+      if (b && exprClose(derive(b, g), l.expression)) l.expression_base = b;
+      else if (g > 0) l.expression_base = baseFromEff(l.expression, g); // someone edited `expression` by hand
+      else { l.intensity = 100; delete l.expression_base; }
+    }
+    if (!l.renders || typeof l.renders !== 'object') l.renders = {};
+    for (const k of ['wardrobe', 'expression']) if (typeof l.renders[k] !== 'string' || !l.renders[k]) l.renders[k] = null;
+    if (typeof l.source_frame !== 'string' || !l.source_frame) l.source_frame = null;
+    l.refs = (Array.isArray(l.refs) ? l.refs : []).filter((r) => r && typeof r.path === 'string')
+      .map((r) => ({ ...r, source_url: typeof r.source_url === 'string' ? r.source_url : null, role: ROLES.includes(r.role) ? r.role : 'mood', starred: r.starred === true }));
+    if (!STATUSES.includes(l.status)) l.status = l.renders.expression ? 'done' : l.renders.wardrobe ? 'wardrobe-done' : 'draft';
+  }
+  function normalizeDoc(d) {
+    d = clone(d) || {};
+    if (!Array.isArray(d.scenes)) d.scenes = [];
+    if (!Array.isArray(d.looks)) d.looks = [];
+    if (!d.emotions || typeof d.emotions !== 'object' || Array.isArray(d.emotions)) d.emotions = {};
+    if (!Array.isArray(d.palette)) d.palette = [];
+    if (typeof d.identity_lock !== 'string') d.identity_lock = '';
+    for (const s of d.scenes) {
+      for (const f of ['title', 'set', 'light']) if (typeof s[f] !== 'string') s[f] = '';
+      if (!Array.isArray(s.characters)) s.characters = [];
+      if (!Number.isFinite(s.start)) s.start = 0;
+      if (!Number.isFinite(s.end)) s.end = s.start;
+    }
+    for (const e of Object.values(d.emotions)) if (e && typeof e === 'object') e.expression = normExpr(e.expression);
+    for (const l of d.looks) normLook(l);
+    return d;
+  }
+
+  // ------------------------------------------------------------------ doc access by key ("L|<look>|<field>", "S|<scene>|<field>")
+  const LK = (id, f) => `L|${id}|${f}`;
+  const SK = (id, f) => `S|${id}|${f}`;
+  const findLook = (doc, id) => doc?.looks.find((l) => l.id === id);
+  const cur = () => findLook(S.doc, S.sel);
+  const sceneOf = (l) => S.doc.scenes.find((s) => s.id === l.scene);
+  function getVal(doc, key) {
+    const [kind, id, field] = key.split('|');
+    if (kind === 'L') { const l = findLook(doc, id); return field === '*' ? l : l?.[field]; }
+    return doc.scenes.find((s) => s.id === id)?.[field];
+  }
+  function setVal(doc, key, value) {
+    const [kind, id, field] = key.split('|');
+    if (kind === 'L' && field === '*') {
+      const i = doc.looks.findIndex((l) => l.id === id);
+      if (value === undefined) { if (i >= 0) doc.looks.splice(i, 1); } else if (i >= 0) doc.looks[i] = clone(value); else doc.looks.push(clone(value));
+      return;
+    }
+    const target = kind === 'L' ? findLook(doc, id) : doc.scenes.find((s) => s.id === id);
+    if (!target) return;
+    if (value === undefined) delete target[field]; else target[field] = clone(value);
+  }
+  /** Disk version + my unsaved fields on top (so neither side gets clobbered). */
+  function mergeDirty(base, src, keys) {
+    const out = clone(base);
+    const ks = [...keys.keys()].sort((a, b) => Number(b.endsWith('|*')) - Number(a.endsWith('|*')));
+    for (const k of ks) setVal(out, k, getVal(src, k));
+    return out;
+  }
+
+  // ------------------------------------------------------------------ edits, undo, redo
+  function markDirty(key) { S.dirty.set(key, ++S.seq); scheduleSave(); renderSaveState(); }
+  function edit(changes, { group = null, label = 'edit', record = true } = {}) {
+    const recs = [];
+    for (const c of changes) {
+      const before = clone(getVal(S.doc, c.key));
+      if (same(before, c.value)) continue;
+      setVal(S.doc, c.key, c.value);
+      recs.push({ key: c.key, before, after: clone(c.value) });
+      markDirty(c.key);
+    }
+    if (recs.length && record) pushUndo(recs, group, label);
+    return recs.length > 0;
+  }
+  function pushUndo(recs, group, label) {
+    const now = Date.now();
+    const top = S.undo[S.undo.length - 1];
+    if (group && top && top.group === group && now - top.t < 1500) {
+      for (const r of recs) { const ex = top.changes.find((c) => c.key === r.key); if (ex) ex.after = r.after; else top.changes.push(r); }
+      top.t = now;
+    } else {
+      S.undo.push({ group, label, changes: recs, t: now });
+      if (S.undo.length > 250) S.undo.shift();
+    }
+    S.redo.length = 0;
+  }
+  function closeGroup() { const top = S.undo[S.undo.length - 1]; if (top) top.group = null; }
+  function applyHistory(entry, which) {
+    const list = which === 'before' ? [...entry.changes].reverse() : entry.changes;
+    for (const c of list) { setVal(S.doc, c.key, c[which]); markDirty(c.key); }
+    const hit = entry.changes.map((c) => c.key.split('|')).find((p) => p[0] === 'L' && findLook(S.doc, p[1]));
+    if (hit && hit[1] !== S.sel) select(hit[1]); else renderAll();
+  }
+  function undo() { const e = S.undo.pop(); if (!e) return toast('nothing to undo'); closeGroup(); applyHistory(e, 'before'); S.redo.push(e); toast(`undid: ${e.label}`); }
+  function redo() { const e = S.redo.pop(); if (!e) return toast('nothing to redo'); applyHistory(e, 'after'); S.undo.push({ ...e, group: null, t: 0 }); toast(`redid: ${e.label}`); }
+
+  // ------------------------------------------------------------------ save + poll (never clobber either side)
+  function scheduleSave(ms = 800) { clearTimeout(S.saveTimer); S.saveTimer = setTimeout(() => save(), ms); }
+  function save() {
+    clearTimeout(S.saveTimer);
+    if (S.saving) { S.saveAgain = true; return S.saving; }
+    if (!S.dirty.size || !S.doc) return Promise.resolve();
+    S.saving = doSave().finally(() => { S.saving = null; afterSave(); });
+    renderSaveState();
+    return S.saving;
+  }
+  async function doSave() {
+    S.gen++; // any poll already in flight is now stale
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const snap = new Map(S.dirty);
+      const merged = S.pendingDisk ? mergeDirty(S.pendingDisk.looks, S.doc, snap) : null;
+      const text = JSON.stringify(merged || S.doc);
+      const base = S.pendingDisk ? S.pendingDisk.hash : S.baseHash;
+      const r = await api('PUT', '/looks', text, base ? { 'if-match': `"${base}"` } : {});
+      if (r.ok) {
+        S.baseHash = r.data.hash;
+        S.baseDoc = JSON.parse(text);
+        for (const [k, v] of snap) if (S.dirty.get(k) === v) S.dirty.delete(k);
+        if (merged) {
+          S.doc = mergeDirty(JSON.parse(text), S.doc, S.dirty);
+          S.pendingDisk = null; hideNotice(); renderAll();
+          toast('saved, merged with the changes on disk');
+        }
+        S.saveErr = ''; S.offline = false; S.lastSaved = new Date();
+        return;
+      }
+      if (r.status === 409 && r.data?.looks) { S.pendingDisk = { hash: r.data.hash, looks: normalizeDoc(r.data.looks) }; continue; }
+      if (r.status === 409) { S.saveErr = 'looks.json on disk is not valid JSON'; S.diskError = S.saveErr; showNotice('invalid'); return; }
+      if (r.status === 0) { S.offline = true; S.saveErr = 'the server is unreachable'; return; }
+      S.saveErr = r.data?.error || `HTTP ${r.status}`;
+      toast(`not saved: ${S.saveErr}`, true);
+      return;
+    }
+    S.saveErr = 'looks.json keeps changing on disk; try again';
+  }
+  function afterSave() {
+    renderSaveState(); renderNextBar();
+    const again = S.saveAgain; S.saveAgain = false;
+    if (S.offline && S.dirty.size) scheduleSave(3000);
+    else if (S.dirty.size && !S.saveErr) scheduleSave(again ? 0 : 150);
+  }
+  async function flush() {
+    for (let i = 0; i < 6 && (S.saving || S.dirty.size); i++) {
+      await (S.saving || save());
+      if (S.saveErr) return false;
+    }
+    return !S.dirty.size;
+  }
+  async function saveNow() {
+    if (!S.dirty.size && !S.saving) return toast('already saved');
+    const ok = await flush();
+    if (ok) toast('saved');
+  }
+
+  function adopt(disk, hash) {
+    S.doc = disk; S.baseDoc = clone(disk); S.baseHash = hash; S.pendingDisk = null; S.diskError = null;
+    hideNotice();
+    if (!findLook(S.doc, S.sel)) S.sel = lookOrder()[0] || null;
+    renderAll();
+  }
+  async function poll() {
+    if (S.polling || !S.doc) return;
+    S.polling = true;
+    try {
+      const gen = S.gen;
+      const [r, q] = await Promise.all([api('GET', '/looks?meta=1'), api('GET', '/queue')]);
+      if (r.status === 0) { if (!S.offline) { S.offline = true; renderSaveState(); renderNextBar(); } return; }
+      if (S.offline) { S.offline = false; if (S.saveErr === 'the server is unreachable') S.saveErr = ''; renderSaveState(); renderNextBar(); if (S.dirty.size) scheduleSave(100); }
+      if (q.ok && Array.isArray(q.data) && !same(q.data, S.queue)) { S.queue = q.data; renderQueue(); renderNextBar(); }
+      if (gen !== S.gen || S.saving) return; // we wrote looks.json while this poll was in flight: its copy is stale
+      if (r.status === 422) { if (!S.diskError) { S.diskError = r.data?.error || 'looks.json on disk is not valid JSON'; showNotice('invalid'); } return; }
+      if (!r.ok || !r.data) return;
+      if (S.diskError) { S.diskError = null; if ($('#notice').dataset.kind === 'invalid') hideNotice(); }
+      const files = r.data.files || {};
+      const filesChanged = !same(files, S.files);
+      S.files = files;
+      if (r.data.hash === S.baseHash) {
+        if (S.pendingDisk) { S.pendingDisk = null; hideNotice(); }
+        if (filesChanged) refreshImages();
+        return;
+      }
+      if (S.saving) return; // the save's response will settle it
+      const disk = normalizeDoc(r.data.looks);
+      if (!S.dirty.size) { const before = S.doc; adopt(disk, r.data.hash); announceDiskChanges(before, disk); return; }
+      if (!S.pendingDisk || S.pendingDisk.hash !== r.data.hash) { S.pendingDisk = { hash: r.data.hash, looks: disk }; showNotice('changed'); }
+      if (filesChanged) refreshImages();
+    } finally {
+      S.polling = false;
+    }
+  }
+  function announceDiskChanges(before, after) {
+    if (!before) return;
+    const changed = after.looks.filter((l) => { const b = findLook(before, l.id); return !b || !same(b.renders, l.renders) || b.status !== l.status; });
+    if (changed.length) toast(`from disk: ${changed.slice(0, 3).map((l) => `${l.id} → ${l.status}`).join(' · ')}${changed.length > 3 ? ' …' : ''}`);
+  }
+  function refreshImages() { if (!S.doc) return; renderImages(); renderRefs(); for (const l of S.doc.looks) updateCard(l); }
+
+  function showNotice(kind) {
+    const n = $('#notice');
+    n.dataset.kind = kind;
+    n.innerHTML = kind === 'changed'
+      ? `<span>updated on disk — reload?</span><span class="dim small">${esc(changedSummary())}</span><button data-n="reload" title="take the disk version and drop my unsaved edits">reload</button><button data-n="keep" class="primary" title="keep my edits and merge them onto the disk version">keep mine</button>`
+      : `<span>${esc(S.diskError || 'looks.json on disk is not valid JSON')}</span><button data-n="overwrite">overwrite with mine</button><button data-n="dismiss">dismiss</button>`;
+    n.hidden = false;
+  }
+  function hideNotice() { const n = $('#notice'); n.hidden = true; n.dataset.kind = ''; }
+  function changedSummary() {
+    const d = S.pendingDisk?.looks, b = S.baseDoc;
+    if (!d || !b) return '';
+    const ids = d.looks.filter((l) => !same(findLook(b, l.id), l)).map((l) => l.id);
+    const scenes = d.scenes.some((s) => !same(b.scenes.find((x) => x.id === s.id), s));
+    return [ids.slice(0, 3).join(', ') + (ids.length > 3 ? ` +${ids.length - 3}` : ''), scenes ? 'scenes' : ''].filter(Boolean).join(' · ');
+  }
+
+  // ------------------------------------------------------------------ images
+  const imgUrl = (p) => `/img?path=${encodeURIComponent(p)}&v=${encodeURIComponent(S.files[p] ?? '')}`;
+  const fileOk = (p) => !!p && S.files[p] !== null;
+  /** Swap an <img> to a new path after it loads (no flash). Returns true when the URL changed. */
+  function setImg(img, path) {
+    const url = path ? imgUrl(path) : '';
+    if (img.dataset.url === url) return false;
+    img.dataset.url = url;
+    if (!url) { img.hidden = true; img.removeAttribute('src'); return true; }
+    const pre = new Image();
+    pre.onload = () => { if (img.dataset.url === url) { img.src = url; img.hidden = false; } };
+    pre.onerror = () => { if (img.dataset.url === url) { img.hidden = true; img.removeAttribute('src'); } };
+    pre.src = url;
+    return true;
+  }
+  const bestImage = (l) => [l.renders.expression, l.renders.wardrobe, l.source_frame].find(fileOk) || null;
+
+  // ------------------------------------------------------------------ prompts for Claude
+  const trimDot = (s) => String(s || '').trim().replace(/[.\s]+$/, '');
+  function wardrobePrompt(l) {
+    const s = sceneOf(l) || {};
+    const ward = trimDot(l.wardrobe) || 'her current outfit';
+    const props = trimDot(l.props);
+    const set = trimDot(s.set), light = trimDot(s.light);
+    return `Keep ${trimDot(S.doc.identity_lock) || 'the same woman'}, her exact pose, hand position and camera framing. Change only her wardrobe and the set. She now wears ${ward}${props ? `, with ${props}` : ''}.${set ? ` The background becomes ${set}.` : ''}${light ? ` Lighting: ${light}.` : ''}`;
+  }
+  const exprJson = (e) => JSON.stringify(Object.fromEntries(KEYS.map((k) => [k, e[k]])));
+  function lookInstruction(l, what, n) {
+    const pad = n ? '   ' : '';
+    const e = l.expression;
+    const moves = e.rotate_pitch || e.rotate_yaw || e.rotate_roll;
+    const star = l.refs.find((r) => r.starred);
+    const others = l.refs.filter((r) => !r.starred);
+    const lines = [`${n ? `${n}. ` : 'Reference Master: '}render look ${l.id} (${what}). Wardrobe prompt: ${wardrobePrompt(l)} Expression: ${exprJson(e)}`];
+    const input = what === 'expression' ? ` · expression input: ${l.renders.wardrobe || l.source_frame || '(pick a source frame)'}` : '';
+    lines.push(`${pad}Source frame: ${l.source_frame || '(none yet: grab one first)'}${input} · sample_parts ${moves ? '"All" (the head moves)' : '"OnlyExpression"'}${l.intensity !== 100 ? ` · slider values already include ${l.intensity}% intensity` : ''}`);
+    if (star) lines.push(`${pad}Wardrobe reference image: ${star.path} — dress her in the outfit from this reference (Qwen Image Edit image_2).`);
+    if (others.length) lines.push(`${pad}Other references (look only): ${others.map((r) => `${r.path} (${r.role})`).join(', ')}`);
+    if (!n) lines.push(`Write back: renders to reference-master/renders/${l.id}/, then update only this look's renders + status in looks.json.`);
+    return lines.join('\n');
+  }
+  function queueInstruction() {
+    const items = S.queue.map((q) => ({ q, l: findLook(S.doc, q.look_id) })).filter((x) => x.l);
+    if (!items.length) return null;
+    return [
+      `Reference Master: render the queue (${items.length} ${plural(items.length, 'look', 'looks')}). For each one: render it, save to reference-master/renders/<look_id>/ (wardrobe.png, expression.png), update only that look's renders + status in looks.json, then remove its entry from reference-master/queue.json.`,
+      '',
+      ...items.map((x, i) => lookInstruction(x.l, x.q.what, i + 1)),
+    ].join('\n');
+  }
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch { /* fall back below */ }
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+      document.body.append(ta); ta.select();
+      const ok = document.execCommand('copy'); ta.remove(); return ok;
+    } catch { return false; }
+  }
+
+  // ------------------------------------------------------------------ face preview (schematic, calibrated against the test renders)
+  const F = {};
+  const f2 = (v) => (Math.round(v * 100) / 100).toString();
+  const P = (p) => `${f2(p[0])} ${f2(p[1])}`;
+  const thru = (p0, m, p2) => [2 * m[0] - (p0[0] + p2[0]) / 2, 2 * m[1] - (p0[1] + p2[1]) / 2]; // quad control so the curve passes m at t=.5
+  function initFace() {
+    for (const el of $$('#face [id^="f_"]')) F[el.id.slice(2)] = el;
+  }
+  const facePath = (j) => `M120 46 C157 46 177 76 177 112 C177 150 157 ${f2(181 + j * 0.8)} 120 ${f2(189 + j)} C83 ${f2(181 + j * 0.8)} 63 150 63 112 C63 76 83 46 120 46 Z`;
+  function browPath(s, br) {
+    const up = br >= 0 ? br * 0.55 : br * 0.32;
+    const knit = br < 0 ? -br : 0;
+    const a = [120 + s * (9 - knit * 0.25), 97 - up * 0.9 + knit * 0.32];
+    const m = [120 + s * 23, 89 - up * 1.05 - (br > 0 ? br * 0.12 : 0)];
+    const b = [120 + s * 35, 96.5 - up * 0.7];
+    return `M ${P(a)} Q ${P(thru(a, m, b))} ${P(b)}`;
+  }
+  function eye(side, s, close, widen, squint, e) {
+    const cx = 120 + s * 22, y0 = 113, hw = 12.5;
+    const xi = cx - s * hw, xo = cx + s * hw, yi = y0 + 0.6, yo = y0 - 1.2;
+    const mx = cx + s * 0.8, midY = (yi + yo) / 2;
+    const lowH = 5.2 * (1 - squint * 0.55);
+    const upOpen = 7.2 + widen * 2.6;
+    const up = upOpen * (1 - close) - (lowH + 0.8) * close;
+    const topMid = midY - up, botMid = midY + lowH;
+    const cTop = 2 * topMid - midY, cBot = 2 * botMid - midY;
+    const topD = `M ${f2(xi)} ${f2(yi)} Q ${f2(mx)} ${f2(cTop)} ${f2(xo)} ${f2(yo)}`;
+    const shape = `${topD} Q ${f2(mx)} ${f2(cBot)} ${f2(xi)} ${f2(yi)} Z`;
+    const visible = topMid < botMid - 0.6;
+    F[`eyeWhite${side}`].setAttribute('d', visible ? shape : 'M0 0');
+    F[`eyeClip${side}`].setAttribute('d', visible ? shape : 'M0 0');
+    F[`iris${side}`].setAttribute('transform', `translate(${f2(cx + e.pupil_x * 0.3)} ${f2(y0 - 0.6 + e.pupil_y * 0.2)})`);
+    F[`lash${side}`].setAttribute('d', `${topD} l ${f2(s * 2.6)} -1.8`);
+    F[`low${side}`].setAttribute('d', `M ${f2(xi)} ${f2(yi)} Q ${f2(mx)} ${f2(cBot)} ${f2(xo)} ${f2(yo)}`);
+    F[`low${side}`].style.opacity = visible ? '0.55' : '0';
+    const cm = topMid - 4.2;
+    F[`crease${side}`].setAttribute('d', `M ${f2(xi - s)} ${f2(yi - 3)} Q ${f2(mx)} ${f2(2 * cm - midY + 3)} ${f2(xo + s * 0.5)} ${f2(yo - 3.5)}`);
+    F[`crease${side}`].style.opacity = f2(0.35 * (1 - close * 0.7));
+  }
+  function mouth(e, open) {
+    const round = clamp(e.woo / 15, 0, 1), purse = clamp(-e.woo / 20, 0, 1);
+    const spread = clamp(e.eee / 15, -1.33, 1), sm = e.smile, press = clamp(-Math.min(e.aaa, 0) / 30, 0, 1);
+    const cx = 120, cy = 163 + open * 3;
+    const hw = clamp(17.5 + spread * 5 + sm * 3.4 - round * 6.5 + purse * 1.5, 8.5, 27);
+    const gap = clamp(open * 21 + round * 4.6 + (Math.max(0, e.eee) / 15) * 2.4, 0, 28);
+    const cy0 = cy - (sm * 5.5 - open * 1.2);
+    const upT = (4.4 + round * 1.6) * (1 - press * 0.45), loT = (6 + round * 1.9) * (1 - press * 0.4);
+    const mid = cy + sm * 0.75, top = mid - gap * 0.3, bot = mid + gap * 0.7;
+    const ihw = Math.max(3, hw * (1 - 0.42 * round) - gap * 0.06), icy = cy0 + gap * 0.16;
+    const yTop = (x) => { const u = clamp((x - cx) / ihw, -1, 1); return icy + (top - icy) * (1 - u * u); };
+    const L = [cx - hw, cy0], R = [cx + hw, cy0], iL = [cx - ihw, icy], iR = [cx + ihw, icy];
+    const cT = thru(iL, [cx, top], iR), cB = thru(iL, [cx, bot], iR);
+    const bow = Math.max(2.6, ihw * 0.22), dip = 1.9 * (1 - round);
+    const pkL = [cx - bow, yTop(cx - bow) - upT], pkR = [cx + bow, yTop(cx + bow) - upT], dp = [cx, yTop(cx) - upT + dip];
+    const shL = [cx - hw * 0.58, yTop(cx - hw * 0.58) - upT * 0.72], shR = [cx + hw * 0.58, yTop(cx + hw * 0.58) - upT * 0.72];
+    F.lipUp.setAttribute('d', `M ${P(L)} Q ${P(shL)} ${P(pkL)} Q ${P([cx - bow * 0.4, dp[1]])} ${P(dp)} Q ${P([cx + bow * 0.4, dp[1]])} ${P(pkR)} Q ${P(shR)} ${P(R)} L ${P(iR)} Q ${P(cT)} ${P(iL)} Z`);
+    F.lipLo.setAttribute('d', `M ${P(L)} L ${P(iL)} Q ${P(cB)} ${P(iR)} L ${P(R)} Q ${P(thru(R, [cx, bot + loT], L))} ${P(L)} Z`);
+    const inner = gap > 0.4 ? `M ${P(iL)} Q ${P(cT)} ${P(iR)} Q ${P(cB)} ${P(iL)} Z` : 'M0 0';
+    F.mouthIn.setAttribute('d', inner); F.mouthClip.setAttribute('d', inner);
+    F.lipSeam.setAttribute('d', `M ${P(iL)} Q ${P(cT)} ${P(iR)}`);
+    F.lipSeam.style.opacity = gap > 2 ? '0.35' : '0.9';
+    const th = gap > 2.5 ? Math.min(gap * 0.32, 5.5) + (Math.max(0, e.eee) / 15) * 1.5 : 0;
+    Object.entries({ x: cx - ihw, y: top - 1.5, width: ihw * 2, height: th ? th + 1.5 : 0 }).forEach(([k, v]) => F.teeth.setAttribute(k, f2(v)));
+    Object.entries({ cx, cy: bot - gap * 0.08, rx: ihw * 0.6, ry: gap > 8 ? gap * 0.22 : 0 }).forEach(([k, v]) => F.tongue.setAttribute(k, f2(v)));
+    Object.entries({ cx: cx + 1.5, cy: bot + loT * 0.42, rx: hw * 0.32, ry: loT * 0.2 }).forEach(([k, v]) => F.gloss.setAttribute(k, f2(v)));
+  }
+  function renderFace(e) {
+    // Couplings copied from the ExpressionEditor node: wink tilts/turns the head, aaa tips it back,
+    // and pupil_y moves the lids with the gaze.
+    const pitch = e.rotate_pitch - e.aaa * 0.05, yaw = e.rotate_yaw - e.wink * 0.1, roll = e.rotate_roll - e.wink * 0.1;
+    const open = clamp(Math.max(0, e.aaa) / 120, 0, 1);
+    F.head.setAttribute('transform', `rotate(${f2(roll)} 120 206)`);
+    F.features.setAttribute('transform', `translate(${f2(yaw * 0.85)} ${f2(pitch * 0.6)})`);
+    F.faceShape.setAttribute('d', facePath(open * 9));
+    F.faceShape.setAttribute('transform', `translate(${f2(yaw * 0.1)} 0)`);
+    F.hairCap.setAttribute('transform', `translate(${f2(-yaw * 0.12)} ${f2(pitch * 0.22)})`);
+    F.bun.setAttribute('transform', `translate(${f2(-yaw * 0.35)} ${f2(pitch * 0.35)})`);
+    F.ears.setAttribute('transform', `translate(${f2(-yaw * 0.45)} ${f2(-pitch * 0.35)})`);
+    F.nose.setAttribute('transform', `translate(${f2(yaw * 0.3)} 0)`);
+    F.browL.setAttribute('d', browPath(-1, e.eyebrow));
+    F.browR.setAttribute('d', browPath(1, e.eyebrow));
+    const bEff = e.blink - e.pupil_y / 2; // −20 closes, +5 widens (verified on tests/chorus_devagar.png)
+    const blinkClose = bEff < 0 ? Math.min(1, -bEff / 20) : 0;
+    const widen = bEff > 0 ? Math.min(1, bEff / 5) : 0;
+    const wink = Math.min(1, e.wink / 16); // wink shuts her right eye = screen-left (tests/chorus_playful-wink.png)
+    const smileSquint = Math.max(0, e.smile) * 0.32;
+    eye('L', -1, Math.min(1, blinkClose + wink), widen * (1 - wink), Math.min(0.85, smileSquint), e);
+    eye('R', 1, blinkClose, widen, Math.min(0.85, smileSquint + (e.wink / 25) * 0.35), e);
+    const lift = Math.max(0, e.smile);
+    for (const c of [F.cheekL, F.cheekR]) { c.setAttribute('cy', f2(139 - lift * 3)); c.setAttribute('opacity', f2(0.28 + lift * 0.42)); }
+    mouth(e, open);
+  }
+
+  // ------------------------------------------------------------------ render: header, next bar, timeline
+  function renderHeader() {
+    const pal = $('#palette');
+    const key = S.doc.palette.join(',');
+    if (pal.dataset.key !== key) {
+      pal.dataset.key = key;
+      pal.innerHTML = S.doc.palette.map((c) => `<button class="sw" data-hex="${esc(c)}" title="${esc(SWATCH_NAMES[c.toLowerCase()] || c)} · click to copy"><i style="background:${esc(c)}"></i><span>${esc(c)}</span></button>`).join('');
+    }
+    const il = $('#idlock');
+    il.innerHTML = `<b>ID LOCK</b>${esc(S.doc.identity_lock)}`;
+    il.title = `Identity lock, used in every prompt: ${S.doc.identity_lock}`;
+  }
+  function renderSaveState() {
+    const el = $('#saveState');
+    let t; let cls = '';
+    if (S.offline) { t = '● offline'; cls = 'err'; }
+    else if (S.saveErr) { t = '● not saved'; cls = 'err'; }
+    else if (S.saving) t = 'saving…';
+    else if (S.dirty.size) { t = '● unsaved'; cls = 'unsaved'; }
+    else t = S.lastSaved ? `saved ${S.lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'in sync';
+    el.textContent = t; el.className = `save-state ${cls}`; el.title = S.saveErr || '';
+  }
+  function nextStep() {
+    const looks = lookOrder().map((id) => findLook(S.doc, id));
+    const go = (id) => `<a data-goto="${esc(id)}">${esc(id)}</a>`;
+    if (S.offline) return 'The server is offline. Restart it: <code>bun reference-master/server.ts</code>';
+    if (S.saveErr) return `Not saved: ${esc(S.saveErr)}`;
+    if (!looks.length) return 'No looks yet.';
+    const noWard = looks.filter((l) => !l.wardrobe.trim());
+    if (noWard.length) return `${noWard.length} ${plural(noWard.length, 'look has', 'looks have')} no wardrobe yet. Click ${go(noWard[0].id)}`;
+    const noSrc = looks.filter((l) => !fileOk(l.source_frame));
+    if (noSrc.length) return `${noSrc.length} ${plural(noSrc.length, 'look has', 'looks have')} no source frame. Click ${go(noSrc[0].id)} and grab one`;
+    const drafts = looks.filter((l) => l.status === 'draft');
+    if (drafts.length) return `${drafts.length} ${plural(drafts.length, 'look is', 'looks are')} designed but not rendered. Click ${go(drafts[0].id)}, then press <kbd>Q</kbd> to queue it`;
+    if (S.queue.length) return `${S.queue.length} ${plural(S.queue.length, 'render is', 'renders are')} queued. Click <b>Copy all queued for Claude</b>, then paste it to Claude`;
+    const wd = looks.filter((l) => l.status === 'wardrobe-done');
+    if (wd.length) return `${go(wd[0].id)} has its wardrobe render. Pick “expression” and press Queue render for its emotion pass`;
+    const lost = looks.filter((l) => l.status === 'queued');
+    if (lost.length) return `${go(lost[0].id)} says queued but isn’t in the queue. Press <kbd>Q</kbd> on it to queue it again`;
+    return `All ${looks.length} looks are done. Check each before / after, then hand the board to SHOOT`;
+  }
+  function renderNextBar() {
+    if (!S.doc) return;
+    const n = Object.fromEntries(STATUSES.map((s) => [s, S.doc.looks.filter((l) => l.status === s).length]));
+    $('#counts').innerHTML = STATUSES.map((s) => `<span class="count st-${s}">${s === 'wardrobe-done' ? 'wardrobe' : s}<b>${n[s]}</b></span>`).join('');
+    $('#nextAction').innerHTML = `<span class="arrow">NEXT</span>${nextStep()}`;
+    $('#copyAllBtn').disabled = !S.queue.length;
+    $('#copyAllBtn').className = S.queue.length ? 'primary' : '';
+  }
+  function lookOrder() {
+    if (!S.doc) return [];
+    const out = [];
+    for (const s of S.doc.scenes) {
+      const mine = S.doc.looks.filter((l) => l.scene === s.id);
+      out.push(...s.characters.map((c) => mine.find((l) => l.character === c)).filter(Boolean).map((l) => l.id));
+      out.push(...mine.filter((l) => !s.characters.includes(l.character)).map((l) => l.id));
+    }
+    for (const l of S.doc.looks) if (!out.includes(l.id)) out.push(l.id);
+    return out;
+  }
+  function cardHtml(l) {
+    return `<button class="card" data-look="${esc(l.id)}"><span class="thumb"><img alt="" draggable="false" hidden></span>
+      <span class="card-body"><span class="card-top"><span class="card-name">${esc(charName(l.character))}</span><span class="chip"></span></span>
+      <span class="card-sub c-emo"></span><span class="card-sub c-ward"></span></span></button>`;
+  }
+  function renderTimeline() {
+    const el = $('#timeline');
+    const key = JSON.stringify([S.doc.scenes.map((s) => [s.id, s.characters]), S.doc.looks.map((l) => [l.id, l.scene, l.character])]);
+    if (el.dataset.key !== key) {
+      el.dataset.key = key;
+      const known = new Set(S.doc.scenes.map((s) => s.id));
+      const orphans = S.doc.looks.filter((l) => !known.has(l.scene));
+      el.innerHTML = S.doc.scenes.map((s) => {
+        const ids = lookOrder().filter((id) => findLook(S.doc, id).scene === s.id);
+        const missing = s.characters.filter((c) => !S.doc.looks.some((l) => l.scene === s.id && l.character === c));
+        return `<section class="scene" data-scene="${esc(s.id)}"><i class="scene-dot"></i>
+          <div class="sc-time"></div><div class="sc-title"></div>
+          <div class="sc-line"><em>SET</em><span class="sl-set"></span></div>
+          <div class="sc-line"><em>LIGHT</em><span class="sl-light"></span></div>
+          ${ids.map((id) => cardHtml(findLook(S.doc, id))).join('')}
+          ${missing.map((c) => `<button class="card add" data-add="${esc(s.id)}" data-char="${esc(c)}">+ add a look for ${esc(charName(c))}</button>`).join('')}
+        </section>`;
+      }).join('') + (orphans.length ? `<section class="scene"><i class="scene-dot"></i><div class="sc-title">Not in a scene</div>${orphans.map(cardHtml).join('')}</section>` : '');
+    }
+    for (const s of S.doc.scenes) {
+      const sec = el.querySelector(`.scene[data-scene="${CSS.escape(s.id)}"]`);
+      if (!sec) continue;
+      $('.sc-time', sec).innerHTML = `${mmss(s.start)}–${mmss(s.end)}<span>${esc(s.id)}</span>`;
+      $('.sc-title', sec).textContent = s.title;
+      $('.sl-set', sec).textContent = s.set;
+      $('.sl-light', sec).textContent = s.light;
+    }
+    for (const l of S.doc.looks) updateCard(l);
+  }
+  function updateCard(l) {
+    const c = document.querySelector(`.card[data-look="${CSS.escape(l.id)}"]`);
+    if (!c) return;
+    c.classList.toggle('sel', l.id === S.sel);
+    const chip = $('.chip', c);
+    chip.className = `chip st-${l.status}`; chip.textContent = l.status;
+    const emo = S.doc.emotions[l.emotion];
+    $('.c-emo', c).textContent = `${emo?.emoji || '◦'} ${emo?.label || l.emotion || 'custom'}${l.intensity !== 100 ? ` · ${l.intensity}%` : ''}${l.refs.length ? ` · ${l.refs.length} ref${l.refs.length > 1 ? 's' : ''}` : ''}`;
+    $('.c-ward', c).textContent = l.wardrobe || 'no wardrobe yet';
+    setImg($('img', c), bestImage(l));
+  }
+
+  // ------------------------------------------------------------------ render: editor
+  function setField(sel, v) {
+    const el = $(sel);
+    if (el.value === v) return;
+    const focused = document.activeElement === el;
+    const a = el.selectionStart, b = el.selectionEnd;
+    el.value = v;
+    if (focused) { try { el.setSelectionRange(Math.min(a, v.length), Math.min(b, v.length)); } catch { /* ignore */ } }
+  }
+  function renderEditorHead() {
+    const l = cur(); if (!l) return;
+    const s = sceneOf(l);
+    $('#lookScene').textContent = s ? `${s.id} · ${s.title} · ${mmss(s.start)}–${mmss(s.end)}` : l.scene;
+    $('#lookName').textContent = charName(l.character);
+    $('#lookId').textContent = l.id;
+    const st = $('#statusSel'); st.value = l.status; st.className = `status st-${l.status}`;
+    $$('#whatSeg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.what === S.what)));
+    $('#queueLookBtn').title = `Queue a “${S.what}” render (the Q key always queues both)`;
+  }
+  function renderEditor() {
+    const l = cur();
+    $('#emptyState').hidden = !!l; $('#editorBody').hidden = !l;
+    if (!l) return;
+    const s = sceneOf(l);
+    renderEditorHead();
+    setField('#f_wardrobe', l.wardrobe); setField('#f_props', l.props); setField('#f_notes', l.notes);
+    setField('#f_set', s?.set ?? ''); setField('#f_light', s?.light ?? '');
+    $('#f_set').disabled = $('#f_light').disabled = !s;
+    const n = s ? S.doc.looks.filter((x) => x.scene === s.id).length : 0;
+    $('#sceneShared').textContent = s ? `${s.id} · shared by ${n} ${plural(n, 'look', 'looks')} in this scene` : 'this look has no scene';
+    renderImages(); renderRefs(); renderEmotions(); renderExpression(); renderPrompt();
+  }
+  function renderPrompt() { const l = cur(); if (l) $('#promptPreview').textContent = lookInstruction(l, S.what); }
+  function slotPath(l, name) { return name === 'source' ? l.source_frame : l.renders[name]; }
+  function renderImages() {
+    const l = cur(); if (!l) return;
+    const same_look = S.imgLook === l.id;
+    for (const name of ['source', 'wardrobe', 'expression']) {
+      const fig = $(`.slot[data-slot="${name}"]`);
+      const p = slotPath(l, name);
+      const missing = p && S.files[p] === null;
+      const changed = setImg($('img', fig), missing ? null : p);
+      const empty = $('.empty', fig);
+      empty.hidden = !!(p && !missing);
+      empty.textContent = missing ? `file not found\n${p}` : name === 'source' ? 'no source frame yet: grab one below' : l.status === 'queued' ? 'queued: waiting for Claude…' : 'not rendered yet';
+      fig.classList.toggle('queued', !p && name !== 'source' && l.status === 'queued');
+      const cap = $('figcaption span', fig); cap.textContent = p || '—'; cap.title = p || '';
+      if (changed && same_look && p && name !== 'source') { fig.classList.remove('fresh'); void fig.offsetWidth; fig.classList.add('fresh'); }
+    }
+    S.imgLook = l.id;
+    renderCompare();
+  }
+  function renderCompare() {
+    const l = cur(); if (!l) return;
+    const side = S.view !== 'compare';
+    $('#slots').hidden = !side; $('#compareWrap').hidden = side;
+    $$('#viewSeg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === (side ? 'side' : 'compare'))));
+    if (side) return;
+    const pick = S.cmpAfter === 'wardrobe' ? l.renders.wardrobe : S.cmpAfter === 'expression' ? l.renders.expression : null;
+    const after = [pick, l.renders.expression, l.renders.wardrobe].find(fileOk) || null;
+    const which = after && after === l.renders.expression ? 'expression' : 'wardrobe';
+    const before = fileOk(l.source_frame) ? l.source_frame : null;
+    setImg($('#cmpBefore'), before); setImg($('#cmpAfter'), after);
+    $('#cmpEmpty').hidden = !!(after && before);
+    $('#cmpEmpty').textContent = !before ? 'No source frame yet: grab one below.' : 'No render to compare yet: queue one with Q.';
+    $('#cmpAfterTag').textContent = after ? `${which.toUpperCase()} RENDER →` : '';
+    $$('#cmpPick button').forEach((b) => { b.disabled = !fileOk(l.renders[b.dataset.after]); b.setAttribute('aria-pressed', String(after && b.dataset.after === which)); });
+  }
+  function renderRefs() {
+    const l = cur(); if (!l) return;
+    const list = $('#refList');
+    list.innerHTML = l.refs.map((r, i) => `<div class="ref${r.starred ? ' star' : ''}" data-i="${i}">
+        <button class="ri" data-act="zoom" title="${esc(r.path)}"><img alt="reference ${i + 1}" draggable="false" hidden></button>
+        <div class="rm">
+          <button class="starb" data-act="star" title="${r.starred ? 'THE wardrobe reference (click to unstar)' : 'Star as THE wardrobe reference'}" aria-label="star">${r.starred ? '★' : '☆'}</button>
+          <button class="role" data-act="role" title="click to switch: wardrobe → mood → set">${esc(r.role)}</button>
+          ${/^https?:\/\//i.test(r.source_url || '') ? `<a href="${esc(r.source_url)}" target="_blank" rel="noopener noreferrer" title="${esc(r.source_url)}">↗</a>` : ''}
+          <button data-act="del" title="Remove from this look (the file stays in refs/)" aria-label="remove">×</button>
+        </div></div>`).join('') +
+      Array.from({ length: S.refLoading }, () => '<div class="ref loading"><div class="ri"></div><div class="rm">fetching…</div></div>').join('');
+    $$('.ref[data-i]', list).forEach((el) => { const r = l.refs[Number(el.dataset.i)]; if (r) setImg($('img', el), r.path); });
+  }
+  function isEdited(l) {
+    const p = S.doc.emotions[l.emotion];
+    return !!p && !exprClose(baseOf(l), p.expression);
+  }
+  function renderEmotions() {
+    const grid = $('#emoGrid');
+    const ids = Object.keys(S.doc.emotions);
+    const key = ids.map((id) => `${id}:${S.doc.emotions[id].emoji}:${S.doc.emotions[id].label}`).join('|');
+    if (grid.dataset.key !== key) {
+      grid.dataset.key = key;
+      grid.innerHTML = ids.map((id, i) => {
+        const e = S.doc.emotions[id];
+        return `<button class="emo" data-emo="${esc(id)}" title="${esc(e.note || '')}">${i < 8 ? `<span class="key">${i + 1}</span>` : ''}<span class="ico" aria-hidden="true">${esc(e.emoji || '◦')}</span><span class="lbl">${esc(e.label || id)}</span></button>`;
+      }).join('');
+    }
+    const l = cur(); if (!l) return;
+    for (const b of $$('.emo', grid)) {
+      const on = b.dataset.emo === l.emotion;
+      b.setAttribute('aria-pressed', String(on));
+      b.classList.toggle('edited', on && isEdited(l));
+    }
+    const e = S.doc.emotions[l.emotion];
+    $('#emoNote').textContent = e ? e.note || '' : l.emotion ? `custom emotion “${l.emotion}”` : 'pick an emotion';
+    $('#emoState').textContent = `${e ? e.label : l.emotion || 'custom'}${isEdited(l) ? ' · edited' : ''} · ${l.intensity}% intensity`;
+  }
+  function renderExpression(override) {
+    const l = cur(); if (!l) return;
+    const eff = override || l.expression;
+    const g = l.intensity / 100;
+    const preset = S.doc.emotions[l.emotion];
+    const presetEff = preset ? derive(preset.expression, g) : null;
+    for (const sd of ALL_SLIDERS) {
+      const r = S.rows[sd.k];
+      const v = eff[sd.k];
+      const [mn, mx] = RANGE[sd.k];
+      const pct = (x) => ((x - mn) / (mx - mn)) * 100;
+      r.range.value = String(v);
+      r.range.style.setProperty('--lo', `${Math.min(pct(0), pct(v))}%`);
+      r.range.style.setProperty('--hi', `${Math.max(pct(0), pct(v))}%`);
+      r.zero.style.left = `calc(6px + (100% - 12px) * ${pct(0) / 100})`;
+      r.tick.hidden = !presetEff;
+      if (presetEff) r.tick.style.left = `calc(6px + (100% - 12px) * ${pct(presetEff[sd.k]) / 100})`;
+      if (document.activeElement !== r.num || override) r.num.value = fmt(v);
+      r.num.classList.toggle('pinned', v !== 0 && (v <= mn || v >= mx));
+      r.num.title = r.num.classList.contains('pinned') ? 'pinned at the end of its range' : '';
+      r.range.disabled = r.num.disabled = g === 0;
+      r.reset.title = presetEff ? `reset to ${preset.label} (${fmt(presetEff[sd.k])})` : 'reset to 0';
+    }
+    renderFace(eff);
+    if (!override) {
+      const int = $('#intensity');
+      int.value = String(l.intensity);
+      int.style.setProperty('--lo', '0%'); int.style.setProperty('--hi', `${l.intensity / 2}%`);
+      const big = $('#intVal'); big.textContent = `${l.intensity}%`; big.classList.toggle('off', l.intensity === 100);
+      $('#softerBtn').disabled = l.intensity <= 0; $('#bolderBtn').disabled = l.intensity >= 200;
+      renderEmotions();
+    }
+  }
+  function buildSliders() {
+    const wrap = $('#sliders');
+    wrap.innerHTML = Object.entries(SLIDERS).map(([group, list]) => `<div class="sl-group"><div class="sl-group-head">${group}</div>${list.map((s) => `
+      <div class="sl-row" data-k="${s.k}">
+        <label for="sl_${s.k}" title="${esc(s.tip)}">${esc(LABEL[s.k])}</label>
+        <div class="sl-track"><i class="tick zero"></i><i class="tick preset"></i><input type="range" id="sl_${s.k}" min="${s.min}" max="${s.max}" step="${s.step}" aria-describedby="tip_${s.k}"></div>
+        <input class="sl-num" type="number" min="${s.min}" max="${s.max}" step="${s.step}" aria-label="${esc(LABEL[s.k])} value">
+        <button class="sl-reset" aria-label="reset ${esc(LABEL[s.k])}">↺</button>
+        <span class="sr" id="tip_${s.k}">${esc(s.tip)}</span>
+      </div>`).join('')}</div>`).join('');
+    for (const s of ALL_SLIDERS) {
+      const row = $(`.sl-row[data-k="${s.k}"]`, wrap);
+      const r = { range: $('input[type=range]', row), num: $('.sl-num', row), reset: $('.sl-reset', row), zero: $('.tick.zero', row), tick: $('.tick.preset', row) };
+      S.rows[s.k] = r;
+      let drag = 0;
+      r.range.addEventListener('pointerdown', () => { drag = Date.now(); });
+      r.range.addEventListener('input', () => onSlider(s.k, Number(r.range.value), `slider:${s.k}:${drag}`));
+      r.range.addEventListener('change', closeGroup);
+      r.num.addEventListener('change', () => { onSlider(s.k, Number(r.num.value)); const l = cur(); if (l) r.num.value = fmt(l.expression[s.k]); });
+      r.reset.addEventListener('click', () => resetSlider(s.k));
+    }
+  }
+  function renderClips() {
+    const sel = $('#clipSel');
+    const want = store.get('clip', null);
+    sel.innerHTML = S.clips.length
+      ? S.clips.map((c) => `<option value="${esc(c.name)}">${esc(c.name)}${c.duration ? ` (${c.duration}s)` : ''}</option>`).join('')
+      : '<option value="">no clips in clips/</option>';
+    if (want && S.clips.some((c) => c.name === want)) sel.value = want;
+    $('#clipT').value = store.get('clipT', '1.0');
+  }
+  function renderQueue() {
+    $('#queueCount').textContent = String(S.queue.length);
+    $('#queueBtn').classList.toggle('has', S.queue.length > 0);
+    const pop = $('#queuePop');
+    if (pop.hidden) return;
+    const time = (iso) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); };
+    pop.innerHTML = `<div class="pop-head">RENDER QUEUE <span class="dim">· ${S.queue.length} waiting for Claude</span></div>` +
+      (S.queue.length ? S.queue.map((q) => `<div class="q-row"><a data-goto="${esc(q.look_id)}">${esc(q.look_id)}</a><span class="chip">${esc(q.what)}</span><span class="dim small">${esc(time(q.requested_at))}</span><button class="x" data-unq="${esc(q.look_id)}" title="remove from the queue">×</button></div>`).join('')
+        : '<div class="dim">Empty. Select a look and press Q.</div>') +
+      `<div class="pop-foot"><button class="primary" data-act="copyall" ${S.queue.length ? '' : 'disabled'}>Copy all queued for Claude</button></div>`;
+  }
+  function renderAll() {
+    if (!S.doc) return;
+    renderHeader(); renderTimeline(); renderEditor(); renderNextBar(); renderQueue(); renderSaveState();
+  }
+
+  // ------------------------------------------------------------------ actions
+  function select(id, scroll = true) {
+    if (!id || !findLook(S.doc, id)) return;
+    closeGroup();
+    cancelAnimationFrame(S.anim);
+    S.sel = id; S.imgLook = null;
+    store.set('sel', id);
+    renderAll();
+    if (scroll) document.querySelector(`.card[data-look="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'nearest' });
+  }
+  function stepLook(d) {
+    const order = lookOrder();
+    const i = order.indexOf(S.sel);
+    const next = order[clamp((i < 0 ? 0 : i) + d, 0, order.length - 1)];
+    if (next && next !== S.sel) select(next);
+  }
+  function setExpression(l, base, intensity, opts, emotion) {
+    cancelAnimationFrame(S.anim);
+    const g = intensity / 100;
+    const nb = Object.fromEntries(KEYS.map((k) => [k, r4(Number(base[k]) || 0)]));
+    const changes = [
+      { key: LK(l.id, 'expression'), value: derive(nb, g) },
+      { key: LK(l.id, 'intensity'), value: intensity },
+      { key: LK(l.id, 'expression_base'), value: g === 1 ? undefined : nb },
+    ];
+    if (emotion !== undefined) changes.push({ key: LK(l.id, 'emotion'), value: emotion });
+    const changed = edit(changes, opts);
+    renderExpression(); renderPrompt(); updateCard(l);
+    return changed;
+  }
+  function onSlider(k, v, group = null) {
+    const l = cur(); if (!l || !Number.isFinite(v)) return;
+    const g = l.intensity / 100; if (g <= 0) return;
+    v = clamp(v, ...RANGE[k]);
+    setExpression(l, { ...baseOf(l), [k]: g === 1 ? v : v / g }, l.intensity, { group, label: `${LABEL[k]} ${fmt(v)}` });
+  }
+  function resetSlider(k) {
+    const l = cur(); if (!l) return;
+    const p = S.doc.emotions[l.emotion];
+    setExpression(l, { ...baseOf(l), [k]: p ? p.expression[k] : 0 }, l.intensity, { label: `reset ${LABEL[k]}` });
+  }
+  function setIntensity(n, group = null) {
+    const l = cur(); if (!l) return;
+    n = clamp(Math.round(n), 0, 200);
+    setExpression(l, { ...baseOf(l) }, n, { group, label: `intensity ${n}%` });
+  }
+  function applyPreset(id) {
+    const l = cur(); const p = S.doc.emotions[id];
+    if (!l || !p) return;
+    const from = { ...l.expression };
+    setExpression(l, clone(p.expression), l.intensity, { label: `emotion: ${p.label}` }, id);
+    animateFace(from, l.expression);
+  }
+  function animateFace(from, to) {
+    cancelAnimationFrame(S.anim);
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const t0 = performance.now(), dur = 260;
+    const step = (now) => {
+      const t = Math.min(1, (now - t0) / dur), k = 1 - (1 - t) ** 3;
+      const mid = Object.fromEntries(KEYS.map((key) => [key, from[key] + (to[key] - from[key]) * k]));
+      if (t < 1) { renderExpression(mid); S.anim = requestAnimationFrame(step); } else renderExpression();
+    };
+    S.anim = requestAnimationFrame(step);
+  }
+  function onText(field, value) {
+    const l = cur(); if (!l) return;
+    if (field === 'set' || field === 'light') {
+      const s = sceneOf(l); if (!s) return;
+      edit([{ key: SK(s.id, field), value }], { group: `text:${s.id}:${field}`, label: `${s.id} ${field}` });
+      const sec = document.querySelector(`.scene[data-scene="${CSS.escape(s.id)}"] .sl-${field}`);
+      if (sec) sec.textContent = value;
+    } else {
+      edit([{ key: LK(l.id, field), value }], { group: `text:${l.id}:${field}`, label: `${field} edit` });
+      updateCard(l);
+    }
+    renderPrompt(); renderNextBar();
+  }
+  function appendChip(field, text) {
+    const l = cur(); if (!l) return;
+    const scene = field === 'set' || field === 'light';
+    const s = sceneOf(l);
+    if (scene && !s) return;
+    const now = String((scene ? s[field] : l[field]) || '').trim();
+    if (now.toLowerCase().includes(text.toLowerCase())) return toast(`already in ${field}`);
+    const next = now ? `${now.replace(/[,;.]\s*$/, '')}, ${text}` : text;
+    edit([{ key: scene ? SK(s.id, field) : LK(l.id, field), value: next }], { label: `+ ${text}` });
+    renderEditor(); updateCard(l);
+    if (scene) renderTimeline();
+    toast(`added to ${field}: ${text}`);
+  }
+  function derivedStatus(l) { return l.renders.expression ? 'done' : l.renders.wardrobe ? 'wardrobe-done' : 'draft'; }
+  async function queueLook(what) {
+    const l = cur(); if (!l) return;
+    if (what !== 'expression' && !l.wardrobe.trim()) return toast('write a wardrobe first', true);
+    const prev = l.status;
+    edit([{ key: LK(l.id, 'status'), value: 'queued' }], { record: false });
+    updateCard(l); renderEditorHead(); renderImages();
+    const saved = await flush();
+    const r = saved ? await api('POST', '/queue', { look_id: l.id, what, requested_at: new Date().toISOString() }) : null;
+    if (!r || !r.ok) {
+      edit([{ key: LK(l.id, 'status'), value: prev }], { record: false });
+      updateCard(l); renderEditorHead(); renderImages();
+      return toast(`not queued: ${r?.data?.error || S.saveErr || 'save failed'}`, true);
+    }
+    S.queue = r.data; renderQueue(); renderNextBar();
+    toast(`queued ${l.id} (${what}) · ${S.queue.length} in the queue. When ready: Copy all queued → paste to Claude`);
+  }
+  async function unqueue(id) {
+    const r = await api('DELETE', `/queue?look_id=${encodeURIComponent(id)}`);
+    if (!r.ok) return toast(r.data?.error || 'could not remove it', true);
+    S.queue = r.data;
+    const l = findLook(S.doc, id);
+    if (l && l.status === 'queued') { edit([{ key: LK(id, 'status'), value: derivedStatus(l) }], { record: false }); updateCard(l); if (id === S.sel) { renderEditorHead(); renderImages(); } }
+    renderQueue(); renderNextBar();
+    toast(`removed ${id} from the queue`);
+  }
+  async function copyOne() {
+    const l = cur(); if (!l) return;
+    await flush();
+    const ok = await copyText(lookInstruction(l, S.what));
+    toast(ok ? `copied ${l.id} (${S.what}): paste it to Claude` : 'clipboard blocked: copy it from the prompt preview', !ok);
+  }
+  async function copyAll() {
+    await flush();
+    const text = queueInstruction();
+    if (!text) return toast('the queue is empty: select a look and press Q', true);
+    const ok = await copyText(text);
+    if (!ok) $('#promptPreview').textContent = text;
+    toast(ok ? `copied ${S.queue.length} queued ${plural(S.queue.length, 'render', 'renders')}: paste it to Claude` : 'clipboard blocked: the text is in the prompt preview now', !ok);
+    closePops();
+  }
+  async function grabFrame() {
+    const l = cur(); if (!l) return;
+    const clip = $('#clipSel').value, t = $('#clipT').value.trim() || '0';
+    if (!clip) return toast('no clips found in clips/', true);
+    store.set('clip', clip); store.set('clipT', t);
+    $('#grabBtn').disabled = true; $('#grabBtn').textContent = 'grabbing…';
+    const r = await api('GET', `/frames?clip=${encodeURIComponent(clip)}&t=${encodeURIComponent(t)}`);
+    $('#grabBtn').disabled = false; $('#grabBtn').textContent = 'Grab frame';
+    if (!r.ok) return toast(r.data?.error || 'frame grab failed', true);
+    S.files[r.data.path] = `grab${Date.now()}`; // force a reload when the same frame is re-grabbed
+    edit([{ key: LK(l.id, 'source_frame'), value: r.data.path }], { label: `source frame ${clip} @ ${t}s` });
+    renderImages(); updateCard(l); renderPrompt(); renderNextBar();
+    toast(`source frame → ${r.data.path}`);
+  }
+  function addLook(sceneId, character) {
+    const id = `${sceneId}.${character}`;
+    if (findLook(S.doc, id)) return select(id);
+    const sib = S.doc.looks.find((l) => l.scene === sceneId) || S.doc.looks[0];
+    const emo = S.doc.emotions.neutral ? 'neutral' : Object.keys(S.doc.emotions)[0] || '';
+    const look = { id, scene: sceneId, character, wardrobe: '', props: '', emotion: emo, expression: emo ? clone(S.doc.emotions[emo].expression) : zeroExpr(), intensity: 100, source_frame: sib?.source_frame ?? null, renders: { wardrobe: null, expression: null }, refs: [], status: 'draft', notes: '' };
+    edit([{ key: LK(id, '*'), value: look }], { label: `added ${id}` });
+    select(id);
+  }
+
+  // ------------------------------------------------------------------ references
+  async function addRefUrl(raw) {
+    const l = cur(); if (!l) return;
+    const url = String(raw || '').trim();
+    if (!url) return;
+    if (!/^https?:\/\//i.test(url)) return toast('paste an http(s) link', true);
+    if (url.startsWith(location.origin)) return toast('that image is already in Reference Master', true);
+    S.refLoading++; renderRefs();
+    await flush();
+    const r = await api('POST', '/refs', { look_id: l.id, url, role: $('#refRole').value });
+    S.refLoading--;
+    afterRefs(r, l.id);
+  }
+  async function addRefFiles(fileList) {
+    const l = cur(); if (!l) return;
+    const files = [...fileList].filter((f) => /^image\//.test(f.type) || /\.(png|jpe?g|webp|gif|avif)$/i.test(f.name));
+    if (!files.length) return toast('that isn’t an image', true);
+    const fd = new FormData();
+    fd.append('look_id', l.id); fd.append('role', $('#refRole').value);
+    for (const f of files) fd.append('file', f, f.name || 'pasted.png');
+    S.refLoading += files.length; renderRefs();
+    await flush();
+    const r = await api('POST', '/refs', fd);
+    S.refLoading -= files.length;
+    afterRefs(r, l.id);
+  }
+  function afterRefs(r, lookId) {
+    if (!r.ok) { renderRefs(); return toast(r.data?.error || 'could not add that reference', true); }
+    S.gen++;
+    const disk = normalizeDoc(r.data.looks);
+    if (!S.dirty.size) adopt(disk, r.data.hash);
+    else { S.doc = mergeDirty(disk, S.doc, S.dirty); S.baseDoc = disk; S.baseHash = r.data.hash; S.pendingDisk = null; hideNotice(); renderAll(); scheduleSave(); }
+    const n = r.data.added?.length || 1;
+    toast(`${n} ${plural(n, 'reference', 'references')} added to ${lookId}${n === 1 && !findLook(S.doc, lookId)?.refs.some((x) => x.starred) ? ' · ★ it to make it THE wardrobe reference' : ''}`);
+    poll();
+  }
+  function refAction(i, act) {
+    const l = cur(); if (!l) return;
+    const refs = clone(l.refs);
+    const r = refs[i]; if (!r) return;
+    if (act === 'zoom') { const items = lbItems(l); return openLightbox(items, Math.max(0, items.findIndex((x) => x[1] === r.path))); }
+    let label = '';
+    if (act === 'star') { const on = !r.starred; refs.forEach((x) => { x.starred = false; }); r.starred = on; if (on) r.role = 'wardrobe'; label = on ? 'starred the wardrobe reference' : 'unstarred the reference'; }
+    if (act === 'role') { r.role = ROLES[(ROLES.indexOf(r.role) + 1) % ROLES.length]; if (r.role !== 'wardrobe') r.starred = false; label = `reference role: ${r.role}`; }
+    if (act === 'del') { refs.splice(i, 1); label = 'removed a reference'; }
+    edit([{ key: LK(l.id, 'refs'), value: refs }], { label });
+    renderRefs(); renderPrompt(); updateCard(l);
+    if (act === 'del') toast('reference removed from this look (⌘Z brings it back; the file stays in refs/)');
+    if (act === 'star' && r.starred) toast('★ THE wardrobe reference: Copy for Claude now includes it as image_2');
+  }
+
+  // ------------------------------------------------------------------ popovers, lightbox
+  function openPop(sel, anchor) {
+    closePops();
+    const pop = $(sel); const rect = anchor.getBoundingClientRect();
+    pop.hidden = false;
+    pop.style.top = `${Math.round(rect.bottom + 6)}px`;
+    pop.style.left = `${Math.round(clamp(rect.right - pop.offsetWidth, 8, window.innerWidth - pop.offsetWidth - 8))}px`;
+    pop.dataset.anchor = anchor.id;
+  }
+  function closePops() { let any = false; for (const p of $$('.pop')) { if (!p.hidden) any = true; p.hidden = true; } return any; }
+  function buildCopyTo() {
+    const l = cur(); if (!l) return false;
+    const others = lookOrder().filter((id) => id !== l.id).map((id) => findLook(S.doc, id));
+    if (!others.length) { toast('there are no other looks yet', true); return false; }
+    $('#copyPop').innerHTML = `<div class="pop-head">COPY FROM <b style="color:var(--amber)">${esc(l.id)}</b></div>
+      <div class="pop-sec"><div class="label">What</div>
+        <label><input type="checkbox" name="what" value="wardrobe" checked> wardrobe</label>
+        <label><input type="checkbox" name="what" value="props" checked> props</label>
+        <label><input type="checkbox" name="what" value="emotion" checked> emotion + sliders + intensity</label>
+        <label><input type="checkbox" name="what" value="source_frame"> source frame</label>
+        <label><input type="checkbox" name="what" value="refs"> references</label></div>
+      <div class="pop-sec"><div class="label">To</div>
+        <div class="pop-quick"><button data-q="scene">this scene</button><button data-q="char">same character</button><button data-q="all">all</button><button data-q="none">none</button></div>
+        ${others.map((o) => `<label><input type="checkbox" name="to" value="${esc(o.id)}" data-scene="${esc(o.scene)}" data-char="${esc(o.character)}" ${o.scene === l.scene ? 'checked' : ''}> ${esc(o.id)}</label>`).join('')}</div>
+      <div class="pop-foot"><button class="ghost" data-act="cancel">cancel</button><button class="primary" data-act="apply">Copy</button></div>`;
+    return true;
+  }
+  function applyCopyTo() {
+    const l = cur(); const pop = $('#copyPop');
+    const what = $$('input[name=what]:checked', pop).map((i) => i.value);
+    const to = $$('input[name=to]:checked', pop).map((i) => i.value);
+    if (!what.length || !to.length) return toast('tick what to copy and at least one look', true);
+    const fields = what.flatMap((w) => (w === 'emotion' ? ['emotion', 'expression', 'expression_base', 'intensity'] : [w]));
+    const changes = to.flatMap((id) => fields.map((f) => ({ key: LK(id, f), value: clone(l[f]) })));
+    const did = edit(changes, { label: `copied ${what.join(' + ')} to ${to.length} ${plural(to.length, 'look', 'looks')}` });
+    closePops(); renderTimeline(); renderNextBar();
+    toast(did ? `copied ${what.join(' + ')} → ${to.join(', ')} (⌘Z to undo)` : 'nothing changed: they already match');
+  }
+  function lbItems(l) {
+    const out = [];
+    if (fileOk(l.source_frame)) out.push(['SOURCE', l.source_frame]);
+    if (fileOk(l.renders.wardrobe)) out.push(['WARDROBE RENDER', l.renders.wardrobe]);
+    if (fileOk(l.renders.expression)) out.push(['EXPRESSION RENDER', l.renders.expression]);
+    l.refs.forEach((r, i) => out.push([`REF ${i + 1} · ${r.role}${r.starred ? ' ★' : ''}`, r.path]));
+    return out;
+  }
+  function openLightbox(items, i) { if (!items.length) return; S.lb = { items, i }; renderLightbox(); $('#lightbox').hidden = false; }
+  function closeLightbox() { $('#lightbox').hidden = true; S.lb = null; }
+  function lbStep(d) { if (!S.lb) return; S.lb.i = (S.lb.i + d + S.lb.items.length) % S.lb.items.length; renderLightbox(); }
+  function renderLightbox() {
+    const [label, p] = S.lb.items[S.lb.i];
+    const img = $('#lbImg'), cap = $('#lbCap');
+    const tail = `${S.lb.i + 1}/${S.lb.items.length} · ←/→ · esc`;
+    img.onload = () => { cap.textContent = `${label} · ${p} · ${img.naturalWidth}×${img.naturalHeight} · ${tail}`; };
+    img.src = imgUrl(p); img.alt = label;
+    cap.textContent = `${label} · ${p} · ${tail}`;
+  }
+  function showDrop(on) { $('#drop').hidden = !on; if (on) $('#dropLook').textContent = S.sel || ''; }
+
+  // ------------------------------------------------------------------ wiring
+  const typingIn = (el) => !!el && (el.isContentEditable || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || (el.tagName === 'INPUT' && !/^(checkbox|radio|button|range|submit|file)$/i.test(el.type)));
+  function wire() {
+    for (const f of ['wardrobe', 'props', 'notes', 'set', 'light']) {
+      const el = $(`#f_${f}`);
+      el.addEventListener('input', () => onText(f, el.value));
+      el.addEventListener('blur', closeGroup);
+    }
+    for (const box of $$('[data-chips]')) {
+      const f = box.dataset.chips;
+      box.innerHTML = CHIPS[f].map(([label, text]) => `<button type="button" data-text="${esc(text)}" title="adds “${esc(text)}”">+ ${esc(label)}</button>`).join('');
+      box.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) appendChip(f, b.dataset.text); });
+    }
+    $('#statusSel').addEventListener('change', (e) => {
+      const l = cur(); if (!l) return;
+      edit([{ key: LK(l.id, 'status'), value: e.target.value }], { label: `status: ${e.target.value}` });
+      updateCard(l); renderEditorHead(); renderImages(); renderNextBar();
+    });
+    $('#whatSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; S.what = b.dataset.what; store.set('what', S.what); renderEditorHead(); renderPrompt(); });
+    $('#queueLookBtn').addEventListener('click', () => queueLook(S.what));
+    $('#copyBtn').addEventListener('click', copyOne);
+    $('#saveBtn').addEventListener('click', saveNow);
+    $('#copyAllBtn').addEventListener('click', copyAll);
+    $('#copyToBtn').addEventListener('click', (e) => { const a = e.currentTarget; if (!$('#copyPop').hidden) return closePops(); if (buildCopyTo()) openPop('#copyPop', a); });
+    $('#queueBtn').addEventListener('click', (e) => { const a = e.currentTarget; if (!$('#queuePop').hidden) return closePops(); $('#queuePop').hidden = false; renderQueue(); openPop('#queuePop', a); });
+    $('#copyPop').addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      const pop = $('#copyPop'); const l = cur();
+      const boxes = $$('input[name=to]', pop);
+      if (b.dataset.q === 'scene') boxes.forEach((i) => { i.checked = i.dataset.scene === l.scene; });
+      if (b.dataset.q === 'char') boxes.forEach((i) => { i.checked = i.dataset.char === l.character; });
+      if (b.dataset.q === 'all') boxes.forEach((i) => { i.checked = true; });
+      if (b.dataset.q === 'none') boxes.forEach((i) => { i.checked = false; });
+      if (b.dataset.act === 'cancel') closePops();
+      if (b.dataset.act === 'apply') applyCopyTo();
+    });
+    $('#queuePop').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-unq]'); if (b) return unqueue(b.dataset.unq);
+      if (e.target.closest('[data-act=copyall]')) copyAll();
+    });
+    document.addEventListener('click', (e) => {
+      const g = e.target.closest('[data-goto]'); if (g) { e.preventDefault(); closePops(); select(g.dataset.goto); }
+      const sw = e.target.closest('.sw'); if (sw) copyText(sw.dataset.hex).then((ok) => toast(ok ? `copied ${sw.dataset.hex}` : sw.dataset.hex));
+    });
+    document.addEventListener('pointerdown', (e) => {
+      for (const p of $$('.pop')) if (!p.hidden && !p.contains(e.target) && !e.target.closest(`#${p.dataset.anchor}`)) p.hidden = true;
+    });
+    $('#timeline').addEventListener('click', (e) => {
+      const add = e.target.closest('[data-add]'); if (add) return addLook(add.dataset.add, add.dataset.char);
+      const c = e.target.closest('.card[data-look]'); if (c) select(c.dataset.look, false);
+    });
+    $('#viewSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; S.view = b.dataset.view; store.set('view', S.view); renderCompare(); });
+    $('#cmpPick').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || b.disabled) return; S.cmpAfter = b.dataset.after; renderCompare(); });
+    $('#cmpRange').addEventListener('input', (e) => $('#compare').style.setProperty('--split', `${e.target.value}%`));
+    $('#slots').addEventListener('click', (e) => {
+      const fig = e.target.closest('.slot'); const l = cur(); if (!fig || !l) return;
+      const p = slotPath(l, fig.dataset.slot); const items = lbItems(l);
+      const i = items.findIndex((x) => x[1] === p);
+      if (i >= 0) openLightbox(items, i);
+    });
+    $('#lightbox').addEventListener('click', (e) => {
+      const nav = e.target.closest('[data-lb]'); if (nav) return lbStep(Number(nav.dataset.lb));
+      if (e.target.id !== 'lbImg') closeLightbox();
+    });
+    $('#grabBtn').addEventListener('click', grabFrame);
+    $('#clipT').addEventListener('keydown', (e) => { if (e.key === 'Enter') grabFrame(); });
+    $('#refForm').addEventListener('submit', (e) => { e.preventDefault(); const v = $('#refUrl').value; $('#refUrl').value = ''; addRefUrl(v); });
+    $('#refFile').addEventListener('change', (e) => { addRefFiles(e.target.files); e.target.value = ''; });
+    $('#refList').addEventListener('click', (e) => { const b = e.target.closest('[data-act]'); const card = e.target.closest('.ref[data-i]'); if (b && card) refAction(Number(card.dataset.i), b.dataset.act); });
+    $('#emoGrid').addEventListener('click', (e) => { const b = e.target.closest('.emo'); if (b) applyPreset(b.dataset.emo); });
+    let intDrag = 0;
+    $('#intensity').addEventListener('pointerdown', () => { intDrag = Date.now(); });
+    $('#intensity').addEventListener('input', (e) => setIntensity(Number(e.target.value), `intensity:${intDrag}`));
+    $('#intensity').addEventListener('change', closeGroup);
+    $('#softerBtn').addEventListener('click', () => { const l = cur(); if (l) setIntensity(l.intensity - 20); });
+    $('#bolderBtn').addEventListener('click', () => { const l = cur(); if (l) setIntensity(l.intensity + 20); });
+    $('#notice').addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-n]'); if (!b) return;
+      const act = b.dataset.n;
+      if (act === 'reload' && S.pendingDisk) {
+        const p = S.pendingDisk;
+        S.dirty.clear(); clearTimeout(S.saveTimer); S.undo = []; S.redo = [];
+        adopt(p.looks, p.hash);
+        toast('reloaded from disk (your unsaved edits were dropped)');
+      } else if (act === 'keep') {
+        if (S.dirty.size) await save(); else if (S.pendingDisk) adopt(S.pendingDisk.looks, S.pendingDisk.hash);
+      } else if (act === 'overwrite') {
+        S.gen++;
+        const r = await api('PUT', '/looks', S.doc);
+        if (r.ok) { S.baseHash = r.data.hash; S.baseDoc = clone(S.doc); S.dirty.clear(); S.diskError = null; S.saveErr = ''; hideNotice(); toast('looks.json overwritten with your version (the broken one is in looks.backup.json)'); }
+        else toast(r.data?.error || 'overwrite failed', true);
+        renderSaveState(); renderNextBar();
+      } else hideNotice();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const mod = e.metaKey || e.ctrlKey;
+      const k = e.key;
+      if (mod && (k === 'z' || k === 'Z')) { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+      if (mod && (k === 'y' || k === 'Y')) { e.preventDefault(); redo(); return; }
+      if (mod && (k === 's' || k === 'S')) { e.preventDefault(); saveNow(); return; }
+      if (!$('#lightbox').hidden) {
+        if (k === 'Escape') closeLightbox(); else if (k === 'ArrowLeft') lbStep(-1); else if (k === 'ArrowRight') lbStep(1); else return;
+        e.preventDefault(); return;
+      }
+      if (k === 'Escape') { if (!closePops() && typingIn(document.activeElement)) document.activeElement.blur(); return; }
+      if (mod || e.altKey || !S.doc) return;
+      const t = document.activeElement;
+      if (typingIn(t)) return;
+      const onRange = t && t.tagName === 'INPUT' && t.type === 'range';
+      if ((k === 'ArrowDown' || k === 'ArrowUp') && !onRange) { e.preventDefault(); stepLook(k === 'ArrowDown' ? 1 : -1); return; }
+      if (/^[1-8]$/.test(k)) { const id = Object.keys(S.doc.emotions)[Number(k) - 1]; if (id) { e.preventDefault(); applyPreset(id); } return; }
+      if (k === 's' || k === 'S') { e.preventDefault(); saveNow(); return; }
+      if (k === 'q' || k === 'Q') { e.preventDefault(); queueLook('both'); }
+    }, true);
+
+    document.addEventListener('paste', (e) => {
+      if (!cur() || !e.clipboardData) return;
+      const files = [...e.clipboardData.files].filter((f) => f.type.startsWith('image/'));
+      if (files.length) { e.preventDefault(); addRefFiles(files); return; }
+      const t = document.activeElement;
+      if (t && t.id === 'refUrl') {
+        setTimeout(() => { const v = t.value.trim(); if (/^https?:\/\/\S+$/i.test(v)) { t.value = ''; addRefUrl(v); } }, 0);
+        return;
+      }
+      if (typingIn(t)) return;
+      const text = (e.clipboardData.getData('text/plain') || '').trim();
+      if (/^https?:\/\/\S+$/i.test(text)) { e.preventDefault(); addRefUrl(text); }
+    });
+
+    let dragDepth = 0;
+    const external = (e) => [...(e.dataTransfer?.types || [])].some((t) => t === 'Files' || t === 'text/uri-list' || t === 'text/html');
+    window.addEventListener('dragenter', (e) => { if (!cur() || !external(e)) return; e.preventDefault(); dragDepth++; showDrop(true); });
+    window.addEventListener('dragover', (e) => { if (!cur() || !external(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+    window.addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) showDrop(false); });
+    window.addEventListener('drop', (e) => {
+      if (!external(e)) return;
+      e.preventDefault(); dragDepth = 0; showDrop(false);
+      if (!cur()) return;
+      const dt = e.dataTransfer;
+      const files = [...dt.files].filter((f) => f.type.startsWith('image/'));
+      if (files.length) return addRefFiles(files);
+      const src = /<img[^>]+src=["']([^"']+)["']/i.exec(dt.getData('text/html') || '')?.[1];
+      const uri = (dt.getData('text/uri-list') || '').split(/\r?\n/).find((x) => x && !x.startsWith('#'));
+      const link = [src, uri, dt.getData('text/plain')].map((x) => String(x || '').trim()).find((x) => /^https?:\/\//i.test(x));
+      if (link) addRefUrl(link.replace(/&amp;/g, '&')); else toast('drop an image file or an image link', true);
+    });
+
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') poll(); else if (S.dirty.size) save(); });
+    window.addEventListener('beforeunload', (e) => { if (S.dirty.size || S.saving) { e.preventDefault(); e.returnValue = ''; } });
+  }
+
+  function toast(msg, err = false) {
+    const t = $('#toast');
+    t.textContent = msg; t.className = `toast show${err ? ' err' : ''}`;
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => { t.className = 'toast'; }, err ? 5200 : 2800);
+  }
+
+  async function load() {
+    const r = await api('GET', '/looks?meta=1');
+    if (!r.ok) {
+      $('#saveState').textContent = '● offline'; $('#saveState').className = 'save-state err';
+      $('#nextAction').innerHTML = `<span class="arrow">NEXT</span>${esc(r.data?.error || 'Could not load looks.json')}. Retrying every 3s…`;
+      setTimeout(load, 3000);
+      return;
+    }
+    S.files = r.data.files || {};
+    S.sel = store.get('sel', null);
+    adopt(normalizeDoc(r.data.looks), r.data.hash);
+    const [q, c] = await Promise.all([api('GET', '/queue'), api('GET', '/clips')]);
+    if (q.ok && Array.isArray(q.data)) S.queue = q.data;
+    if (c.ok && Array.isArray(c.data)) S.clips = c.data;
+    renderClips(); renderQueue(); renderNextBar();
+    if (!S.live) { S.live = true; setInterval(() => { if (document.visibilityState === 'visible') poll(); }, 5000); }
+  }
+  function init() {
+    initFace(); buildSliders(); wire();
+    S.what = store.get('what', 'both');
+    if (!['wardrobe', 'expression', 'both'].includes(S.what)) S.what = 'both';
+    S.view = store.get('view', 'side') === 'compare' ? 'compare' : 'side';
+    load();
+  }
+  init();
+})();
+</script>
+</body>
+</html>

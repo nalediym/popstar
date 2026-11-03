@@ -138,11 +138,12 @@ def fallback_cues(lines, beats, downbeats, song_end):
     final_beat = max(b for b in beats if b < song_end - 0.1)
     come = final_beat - 0.5
     keep = phrase_t("keep me", final_beat - 1.4)
-    reach_d = max(0.4, min(0.75, come - keep - 0.6))
-    cues.append(dict(t=keep, dur=reach_d, move="reach_to_lens", text="Reach to Lens: keep me in the loop"))
-    if come - (keep + reach_d) > 0.35:
-        cues.append(dict(t=keep + reach_d + 0.05, dur=max(0.2, come - keep - reach_d - 0.3), move="pull_back",
-                         text="Pull Back: meu bem"))
+    if come - keep > 1.9:      # room for the full Reach to Lens -> Pull Back -> Come Here
+        cues.append(dict(t=keep, dur=0.9, move="reach_to_lens", text="Reach to Lens: keep me in the loop"))
+        cues.append(dict(t=keep + 0.95, dur=max(0.3, come - keep - 1.4), move="pull_back", text="Pull Back: meu bem"))
+    else:                       # tight: the travel from the reach into the beckon *is* the pull back
+        cues.append(dict(t=keep, dur=max(0.55, come - keep - 0.15), move="reach_to_lens",
+                         text="Reach to Lens: keep me in the loop"))
     cues.append(dict(t=come, dur=song_end - come, move="come_here", text="Come Here (final beat)"))
     return cues
 
@@ -197,9 +198,17 @@ def find_key(obj, names, depth=0):
 
 
 def parse_timing(data):
-    out = dict(downbeats=None, beats=None, lines=[])
+    out = dict(downbeats=None, beats=None, lines=[], sections=[])
     if not data:
         return out
+    sc = data.get("sections") if isinstance(data, dict) else None
+    if isinstance(sc, list):
+        for s in sc:
+            if isinstance(s, dict) and isinstance(s.get("name"), str):
+                a = _num(s, ("start", "t0", "start_s"))
+                b = _num(s, ("end", "t1", "end_s"))
+                if a is not None and b is not None:
+                    out["sections"].append(dict(name=s["name"], start=a, end=b))
     db = find_key(data, ["downbeats", "downbeat_times", "downbeats_s", "bars"])
     if isinstance(db, list):
         vals = sorted(v for v in (_num(x) for x in db) if v is not None)
@@ -506,12 +515,12 @@ def steam_material(name):
     a = math_node(nt, "MULTIPLY", mr.outputs[0], fade_in.outputs[0])
     a = math_node(nt, "MULTIPLY", a, math_node(nt, "MULTIPLY", math_node(nt, "SUBTRACT", nz.outputs["Fac"], value_b=0.35),
                                                     value_b=1.6))
-    a = math_node(nt, "MULTIPLY", a, value_b=0.55)
+    a = math_node(nt, "MULTIPLY", a, value_b=0.9)
     a = math_node(nt, "MAXIMUM", a, value_b=0.0)
     tr = nt.nodes.new("ShaderNodeBsdfTransparent")
     em = nt.nodes.new("ShaderNodeEmission")
     em.inputs["Color"].default_value = (1.0, 0.86, 0.72, 1)
-    em.inputs["Strength"].default_value = 0.35
+    em.inputs["Strength"].default_value = 1.4
     mix = nt.nodes.new("ShaderNodeMixShader")
     nt.links.new(a, mix.inputs["Fac"])
     nt.links.new(tr.outputs[0], mix.inputs[1])
@@ -545,10 +554,10 @@ def build_materials():
                            sheen_tint=(1.0, 0.65, 0.42, 1), sheen_rough=0.35)
     M["gold"] = principled("gold", srgb("e0a84e"), rough=0.22, metal=1.0)
     M["earbud"] = principled("earbud_white", srgb("eeeae4"), rough=0.3)
-    M["wall"] = principled("wall_tuscan_plaster", srgb("4a2e1e"), rough=0.92, spec=0.3)
+    M["wall"] = principled("wall_tuscan_plaster", srgb("38231a"), rough=0.92, spec=0.3)
     M["floor"] = principled("floor_dark_wood", srgb("2f1d12"), rough=0.38, coat=0.2)
     M["wood"] = principled("wood_walnut", srgb("3a2416"), rough=0.42, coat=0.25)
-    M["suede"] = principled("suede_tan", srgb("a0714a"), rough=0.9, spec=0.35, sheen=0.7,
+    M["suede"] = principled("suede_tan", srgb("8c5f3d"), rough=0.9, spec=0.35, sheen=0.7,
                             sheen_tint=(1.0, 0.86, 0.72, 1), sheen_rough=0.4)
     M["rug"] = principled("rug_rust", srgb("7a3313"), rough=1.0, sheen=0.5, sheen_tint=(1, 0.7, 0.5, 1))
     M["pillow_orange"] = principled("pillow_burnt_orange", srgb("b04a17"), rough=0.85, sheen=0.6)
@@ -563,9 +572,9 @@ def build_materials():
     M["steam"] = steam_material("steam")
     M["alu"] = principled("laptop_alu", srgb("3e3a37"), rough=0.35, metal=1.0)
     M["screen"] = logs_screen_material("laptop_logs_amber_terminal")
-    M["garland"] = principled("garland_pine", srgb("2b3420"), rough=0.8, sheen=0.4)
+    M["garland"] = principled("garland_pine", srgb("1f2817"), rough=0.8, sheen=0.4)
     M["ornament_orange"] = principled("ornament_burnt_orange", srgb("c05a1c"), rough=0.18, coat=0.8)
-    M["velvet"] = principled("velvet_tuscan_brown", srgb("5a2c15"), rough=0.92, spec=0.25, sheen=1.0,
+    M["velvet"] = principled("velvet_tuscan_brown", srgb("6e3a1d"), rough=0.92, spec=0.25, sheen=1.0,
                              sheen_tint=(1.0, 0.55, 0.32, 1), sheen_rough=0.32)
     M["velvet_dark"] = principled("velvet_dark", srgb("33180b"), rough=0.95, spec=0.2, sheen=1.0,
                                   sheen_tint=(1.0, 0.5, 0.3, 1), sheen_rough=0.3)
@@ -579,7 +588,7 @@ def build_materials():
 # Wardrobe ------------------------------------------------------------------------------------------------------
 
 COLOR_WORDS = [  # longest first
-    ("burnt orange", "b5501c"), ("burnt-orange", "b5501c"), ("tuscan brown", "6b3f22"), ("dark amber", "a8661c"),
+    ("burnt orange", "a8481a"), ("burnt-orange", "a8481a"), ("tuscan brown", "6b3f22"), ("dark amber", "a8661c"),
     ("rust", "9c3f16"), ("copper", "b4582a"), ("terracotta", "b0532e"), ("cream", "e4d4ba"), ("ivory", "ece2cf"),
     ("oatmeal", "d6c4a6"), ("camel", "b08354"), ("caramel", "b0702e"), ("tan", "b08a62"), ("cocoa", "4e2e1c"),
     ("chocolate", "3e2416"), ("espresso", "2e1a10"), ("mocha", "5e3d2a"), ("brown", "5a3720"), ("amber", "d2861f"),
@@ -666,9 +675,9 @@ DEFAULT_WARDROBE = {
                bottom="pants", top_hex="e4d4ba", bottom_hex="4e2e1c", fabric_top="knit", fabric_bottom="knit",
                oversized=True),
     "S2": dict(text="fitted burnt-orange ribbed top, camel trousers", neckline="crew", sleeves="none",
-               bottom="pants", top_hex="b5501c", bottom_hex="9b7048", fabric_top="ribbed", fabric_bottom="cotton"),
+               bottom="pants", top_hex="a8481a", bottom_hex="9b7048", fabric_top="ribbed", fabric_bottom="cotton"),
     "S3": dict(text="burnt-orange satin slip dress, gold hoops", neckline="cami", sleeves="none", bottom="skirt",
-               top_hex="b5501c", bottom_hex="b5501c", fabric_top="satin", fabric_bottom="satin"),
+               top_hex="a8481a", bottom_hex="a8481a", fabric_top="satin", fabric_bottom="satin"),
     "S4": dict(text="amber satin cami + wide-leg satin pants (matching set)", neckline="cami", sleeves="none",
                bottom="pants", top_hex="d2861f", bottom_hex="d2861f", fabric_top="satin", fabric_bottom="satin",
                wide=True),
@@ -796,11 +805,22 @@ def box_obj(name, coll, size, loc, mat, rot=(0, 0, 0), bevel=0.0, parent=None):
     return ob
 
 
+def recenter(ob):
+    """Geometry built in world coordinates: move the origin to its centre so the object is tidy to grab."""
+    me = ob.data
+    if ob.parent is not None or not len(me.vertices):
+        return ob
+    c = sum((v.co for v in me.vertices), Vector()) / len(me.vertices)
+    me.transform(Matrix.Translation(-c))
+    ob.location = Vector(ob.location) + c
+    return ob
+
+
 def bulbs_obj(name, coll, points, mat, r=0.011, parent=None, loc=(0, 0, 0)):
     bm = bmesh.new()
     for p in points:
         add_ico(bm, r, p, subdiv=1)
-    ob = bm_object(name, bm, coll, [mat], loc, parent=parent)
+    ob = recenter(bm_object(name, bm, coll, [mat], loc, parent=parent))
     ob.visible_shadow = False
     return ob
 
@@ -854,8 +874,10 @@ def aim_rot(loc, target):
 
 
 def add_light(name, coll, kind, loc, target=None, energy=100.0, color=KEY_RGB, size=1.0, size_y=None, spot_deg=40,
-              blend=0.5, radius=0.05, cutoff=14.0, shadow=True, volume=1.0, spec=1.0):
+              blend=0.5, radius=0.05, cutoff=14.0, shadow=True, volume=1.0, spec=1.0, spread_deg=None):
     ld = bpy.data.lights.new(name, kind)
+    if kind == "AREA" and spread_deg is not None:
+        ld.spread = math.radians(spread_deg)   # a gridded softbox: keeps the key off the walls
     ld.energy = energy
     ld.color = color
     ld.use_shadow = shadow
@@ -939,7 +961,7 @@ def key_pair(owner, path, f0, v0, f1, v1, interp="SINE", easing="EASE_IN_OUT"):
 
 L1, L2, HAND = 0.28, 0.25, 0.17          # upper arm, forearm, hand
 HIP_STAND, HIP_SEAT = 0.95, 0.56          # hip-joint height above the root
-SHOULDER = {"R": Vector((-0.175, 0.0, 0.425)), "L": Vector((0.175, 0.0, 0.425))}  # in the hips frame
+SHOULDER = {"R": Vector((-0.168, 0.0, 0.425)), "L": Vector((0.168, 0.0, 0.425))}  # in the hips frame
 NECK_Z = 0.47
 
 
@@ -1081,7 +1103,7 @@ def build_mannequin(name, coll, root_loc, facing, outfit, skin, seated=False, da
     for side in ("R", "L"):
         sh = new_empty(f"{name}_shoulder_{side}", coll, SHOULDER[side], parent=r.hips, size=0.06)
         bm = bmesh.new()
-        add_sphere(bm, (0.053 * over, 0.05 * over, 0.05 * over), (0, 0, -0.005), u=16, v=10)
+        add_sphere(bm, (0.046 * over, 0.044 * over, 0.045 * over), (0, 0, -0.005), u=16, v=10)
         bm_object(f"{name}_deltoid_{side}", bm, coll, [top if sleeve_long else skin], parent=sh)
         bm = bmesh.new()
         add_lathe(bm, limb_rings(L1, 0.045 * over, 0.037 * over), segs=16)
@@ -1151,16 +1173,16 @@ REST = {
 
 # Gesture library: right-arm targets (wrist position, hips frame), elbow pole, palm direction.
 GESTURES = {
-    "heart_press": dict(ain=0.45, aout=0.55, tgt=(-0.085, -0.17, 0.215), pole=(-1.0, 0.2, -0.8), palm=(0.2, 1.0, 0.1)),
-    "pull_back": dict(ain=0.40, aout=0.55, tgt=(-0.10, -0.18, 0.20), pole=(-1.0, 0.2, -0.8), palm=(0.2, 1.0, 0.3)),
+    "heart_press": dict(ain=0.45, aout=0.55, tgt=(-0.10, -0.165, 0.265), pole=(-1.0, 0.0, -1.0), palm=(0.2, 1.0, 0.1)),
+    "pull_back": dict(ain=0.40, aout=0.55, tgt=(-0.11, -0.19, 0.25), pole=(-1.0, 0.1, -1.0), palm=(0.2, 1.0, 0.3)),
     "reach_to_lens": dict(ain=0.65, aout=0.55, tgt="camera", reach=0.94, pole=(-0.5, 0.25, -1.0), palm=(0, 0, 1)),
     "come_here": dict(ain=0.45, aout=0.6, tgt=(-0.15, -0.37, 0.245), pole=(-1.0, 0.3, -1.0), palm=(0, 0, 1),
                       curl=True),
     "jaw_trace": dict(ain=0.5, aout=0.5, path=((-0.135, -0.07, 0.455), (-0.07, -0.11, 0.405)),
                       pole=(-0.8, -0.1, -1.0), palm=(1.0, -0.3, 0.0)),
-    "backbeat_snap": dict(ain=0.35, aout=0.45, tgt=(-0.25, -0.20, 0.22), pole=(-0.4, 0.4, -1.0),
+    "backbeat_snap": dict(ain=0.35, aout=0.45, tgt=(-0.31, -0.15, 0.30), pole=(-0.5, 0.3, -1.0),
                           palm=(0.6, -0.6, 0.2), snap=True),
-    "loop_circle": dict(ain=0.4, aout=0.5, circle=((-0.13, -0.36, 0.33), 0.065), pole=(-1.0, 0.2, -1.0),
+    "loop_circle": dict(ain=0.4, aout=0.5, circle=((-0.12, -0.33, 0.21), 0.075), pole=(-1.0, 0.1, -1.0),
                         palm=(0.0, -1.0, 0.3)),
     "palm_roll": dict(ain=0.4, aout=0.5, tgt=(-0.17, -0.34, 0.20), pole=(-1.0, 0.2, -1.0), palm_from=(0, 0, 1),
                       palm_to=(0, 0, -1)),
@@ -1216,7 +1238,12 @@ class Performer:
         self.hips_inv = self.hips_world.inverted()
 
     def add_gesture(self, t0, dur, name, side=None):
-        side = side or ("L" if self.mirror_arm else "R")
+        if side is None:
+            if name in ("reach_to_lens", "come_here"):
+                # reach with the arm on the camera's side, so the move reads instead of crossing the body
+                side = "L" if self.cam_local(t0 + min(dur, 0.6)).x > 0.4 else "R"
+            else:
+                side = "L" if self.mirror_arm else "R"
         self.gestures.append((t0, t0 + dur, name, side))
 
     # -- channels ---------------------------------------------------------------------------------------------
@@ -1443,7 +1470,7 @@ def build_living_room(key, O, variant, coll, f0, f1, rnd):
                                         (-0.47, -0.12, 0.09, 0.034))):
         lights.append(candle(coll, key, i, (tx + dx, ty + dy, 0.43), h, r, rnd, f0))
     # steaming mug (front right of the coffee table)
-    mx, my, mz = tx + 0.30, ty - 0.12, 0.43
+    mx, my, mz = tx + 0.14, ty - 0.12, 0.43
     bm = bmesh.new()
     add_cyl(bm, 0.043, 0.040, 0.095, (0, 0, 0.0475), segs=24)
     for f in bm.faces:
@@ -1475,21 +1502,21 @@ def build_living_room(key, O, variant, coll, f0, f1, rnd):
 
     # console table behind the couch + table lamp (camera-left practical)
     lx, ly = O.x - 0.80, O.y + 2.33
-    box_obj(f"{key}_console", coll, (1.3, 0.22, 0.04), (lx + 0.25, ly, 0.90), M["wood"])
+    box_obj(f"{key}_console", coll, (1.3, 0.22, 0.04), (lx + 0.25, ly, 0.82), M["wood"])
     bm = bmesh.new()
     for x in (-0.6, 0.6):
         for y in (-0.08, 0.08):
-            add_box(bm, (0.035, 0.035, 0.88), (x, y, 0.44))
+            add_box(bm, (0.035, 0.035, 0.80), (x, y, 0.40))
     bm_object(f"{key}_console_legs", bm, coll, [M["wood"]], (lx + 0.25, ly, 0), smooth=False)
     bm = bmesh.new()
-    add_sphere(bm, (0.085, 0.085, 0.11), (0, 0, 1.03), u=20, v=12)
-    add_cyl(bm, 0.012, 0.012, 0.22, (0, 0, 1.20), segs=10)
+    add_sphere(bm, (0.085, 0.085, 0.11), (0, 0, 0.95), u=20, v=12)
+    add_cyl(bm, 0.012, 0.012, 0.22, (0, 0, 1.12), segs=10)
     bm_object(f"{key}_lamp_base", bm, coll, [M["ceramic"]], (lx, ly, 0))
     bm = bmesh.new()
     add_cyl(bm, 0.21, 0.14, 0.26, (0, 0, 0), segs=32, caps=False)
-    shade = bm_object(f"{key}_lamp_shade", bm, coll, [M["shade"]], (lx, ly, 1.38))
+    shade = bm_object(f"{key}_lamp_shade", bm, coll, [M["shade"]], (lx, ly, 1.30))
     shade.visible_shadow = False
-    lights.append(add_light(f"{key}_lamp_light", coll, "POINT", (lx, ly, 1.36), energy=55, color=(1.0, 0.64, 0.34),
+    lights.append(add_light(f"{key}_lamp_light", coll, "POINT", (lx, ly, 1.28), energy=55, color=(1.0, 0.64, 0.34),
                             radius=0.10, cutoff=9.0, volume=0.4))
     # a dim floor lamp, camera-right back corner
     fx, fy = O.x + 2.05, O.y + 2.05
@@ -1506,16 +1533,14 @@ def build_living_room(key, O, variant, coll, f0, f1, rnd):
 
     # fairy-light swags on the back wall
     pts = []
-    swags = [(-2.6, -1.1, 1.92, 1.95, 0.24), (-1.1, 0.5, 1.95, 1.93, 0.28), (0.5, 2.0, 1.93, 1.96, 0.22),
-             (2.0, 3.0, 1.96, 1.90, 0.18)]
+    # swags low enough to sit in the S1 eye-level frame, above the couch back
+    swags = [(-2.6, -1.25, 1.52, 1.55, 0.18), (-1.25, 0.15, 1.55, 1.53, 0.21), (0.15, 1.55, 1.53, 1.56, 0.19),
+             (1.55, 3.0, 1.56, 1.50, 0.17)]
     for (x0, x1, z0, z1, sag) in swags:
         pts += swag_points(O.x + x0, O.x + x1, z0, z1, sag, O.y + 2.42, 26, rnd, 0.006)
         lights.append(add_light(f"{key}_fairy_wash_{len(lights)}", coll, "POINT",
                                 (O.x + (x0 + x1) / 2, O.y + 2.25, (z0 + z1) / 2 - sag * 0.8), energy=7.0,
                                 color=BULB_RGB, radius=0.35, cutoff=3.5, shadow=False, volume=0.2))
-    # two vertical drops down the wall corner for depth
-    for x in (-2.35, 2.55):
-        pts += [(O.x + x + rnd.uniform(-0.01, 0.01), O.y + 2.42, 0.55 + 0.085 * i) for i in range(16)]
     bulbs_obj(f"{key}_fairy_bulbs", coll, pts, M["bulb"])
 
     if variant == "jam":
@@ -1532,17 +1557,17 @@ def build_living_room(key, O, variant, coll, f0, f1, rnd):
                 orn.append((p[0], p[1] - 0.06, p[2] - 0.06))
             if i % 3 == 1:
                 warm.append((p[0] + rnd.uniform(-0.03, 0.03), p[1] - 0.065, p[2] + rnd.uniform(-0.04, 0.04)))
-        gob = bm_object(f"{key}_garland", bm, coll, [M["garland"]], (0, 0, 0))
+        recenter(bm_object(f"{key}_garland", bm, coll, [M["garland"]], (0, 0, 0)))
         bm = bmesh.new()
         for i, p in enumerate(orn):
             add_sphere(bm, (0.035, 0.035, 0.035), p, u=12, v=8, mi=i % 2)
-        bm_object(f"{key}_ornaments", bm, coll, [M["gold"], M["ornament_orange"]], (0, 0, 0))
+        recenter(bm_object(f"{key}_ornaments", bm, coll, [M["gold"], M["ornament_orange"]], (0, 0, 0)))
         bulbs_obj(f"{key}_garland_bulbs", coll, warm, M["bulb"], r=0.010)
         lights.append(add_light(f"{key}_garland_wash", coll, "AREA", (O.x, O.y + 2.15, 2.0),
-                                target=(O.x, O.y + 2.5, 2.1), energy=30, color=BULB_RGB, size=4.0, size_y=0.3,
+                                target=(O.x, O.y + 2.5, 2.1), energy=12, color=BULB_RGB, size=4.0, size_y=0.3,
                                 cutoff=4.0, shadow=False, volume=0.2))
         # laptop on a tall plant-stand table at camera-right, screen angled to camera and to her
-        sx, sy = O.x + 0.88, O.y + 1.00
+        sx, sy = O.x + 0.78, O.y + 1.02
         bm = bmesh.new()
         add_cyl(bm, 0.24, 0.24, 0.03, (0, 0, 0.96), segs=28)
         add_cyl(bm, 0.025, 0.025, 0.95, (0, 0, 0.475), segs=10)
@@ -1605,19 +1630,19 @@ def build_stage(key, O, variant, coll, f0, f1, rnd, performers_xy):
     w = 8.0 if trio else 6.2
     lights = []
     box_obj(f"{key}_house_floor", coll, (18.0, 16.0, 0.04), O + Vector((0, -1.0, -0.02)), M["house_floor"])
-    box_obj(f"{key}_riser_top", coll, (w, 3.9, 0.04), O + Vector((0, 1.05, 0.28)), M["stage_top"])
-    box_obj(f"{key}_riser_body", coll, (w, 3.9, 0.27), O + Vector((0, 1.05, 0.13)), M["velvet_dark"])
+    box_obj(f"{key}_riser_top", coll, (w, 5.1, 0.04), O + Vector((0, 1.65, 0.28)), M["stage_top"])
+    box_obj(f"{key}_riser_body", coll, (w, 5.1, 0.27), O + Vector((0, 1.65, 0.13)), M["velvet_dark"])
     # backdrop + side legs (Tuscan-brown velvet)
-    curtain_obj(f"{key}_backdrop", coll, w + 4.0, 6.0, O + Vector((0, 3.05, 0.0)), M["velvet"], pleat=0.30,
+    curtain_obj(f"{key}_backdrop", coll, w + 4.0, 6.0, O + Vector((0, 4.30, 0.0)), M["velvet"], pleat=0.30,
                 depth=0.12, gather_bottom=0.3)
     for i, sx in enumerate((-1, 1)):
-        curtain_obj(f"{key}_leg_{i}", coll, 1.4, 6.0, O + Vector((sx * (w / 2 + 0.1), 1.6, 0.0)), M["velvet"],
+        curtain_obj(f"{key}_leg_{i}", coll, 1.4, 6.0, O + Vector((sx * (w / 2 + 0.1), 2.0, 0.0)), M["velvet"],
                     pleat=0.22, depth=0.16, rot=(0, 0, sx * 0.25))
     # fairy-light strands hanging in front of the backdrop: the bokeh wall
     pts = []
     xs = [-w / 2 + 0.35 + i * 0.30 for i in range(int((w - 0.7) / 0.30) + 1)]
     for x in xs:
-        y = 2.62 + rnd.uniform(-0.18, 0.12)
+        y = 3.85 + rnd.uniform(-0.18, 0.12)
         z = rnd.uniform(0.7, 1.1)
         top = rnd.uniform(4.2, 5.2)
         while z < top:
@@ -1643,22 +1668,30 @@ def build_stage(key, O, variant, coll, f0, f1, rnd, performers_xy):
             ci += 1
     # curtain washes from above: colour as the set
     for i, x in enumerate([-w / 3, 0.0, w / 3]):
-        lights.append(add_light(f"{key}_curtain_wash_{i}", coll, "SPOT", O + Vector((x, 1.6, 5.2)),
-                                target=O + Vector((x * 1.1, 3.05, 1.3)), energy=520, color=BURNT_RGB, spot_deg=55,
-                                blend=0.9, radius=0.3, cutoff=12.0, shadow=False, volume=0.35))
+        lights.append(add_light(f"{key}_curtain_wash_{i}", coll, "SPOT", O + Vector((x, 2.6, 5.4)),
+                                target=O + Vector((x * 1.1, 4.3, 1.4)), energy=1100, color=BURNT_RGB, spot_deg=55,
+                                blend=0.9, radius=0.3, cutoff=12.0, shadow=False, volume=0.08))
     # haze
     bm = bmesh.new()
-    add_box(bm, (w + 4.0, 10.0, 6.5))
-    hz = bm_object(f"{key}_haze", bm, coll, [haze_material(f"{key}_haze", 0.028 if not trio else 0.024)],
-                   O + Vector((0, -0.6, 3.2)), smooth=False)
+    add_box(bm, (w + 4.0, 11.5, 6.5))
+    hz = bm_object(f"{key}_haze", bm, coll, [haze_material(f"{key}_haze", 0.016 if not trio else 0.014)],
+                   O + Vector((0, -0.4, 3.2)), smooth=False)
     hz.visible_shadow = False
-    # mic stands
+    # mic stands. Solo: just off her left shoulder, in front. Trio: side-address, beside each singer, so the
+    # quarter orbit never parks a stand in front of the lead's gestures.
     for i, (px, py) in enumerate(performers_xy):
-        side = 1 if px >= 0 else -1
         if not trio:
-            side = 1
-        base = (O.x + px + side * 0.24, O.y + py - 0.30, 0.30)
+            base = (O.x + px + 0.24, O.y + py - 0.30, 0.30)
+        else:
+            side = -1 if px <= 0 else 1
+            base = (O.x + px + side * 0.40, O.y + py - 0.05, 0.30)
         mic_stand(coll, key, i, base, 1.38, (O.x + px, O.y + py - 0.06, 0.30 + 1.56))
+    # amber backlight straight through the haze toward the lens: the glow behind her head
+    for i, (px, py) in enumerate(performers_xy[:1] if not trio else performers_xy):
+        lights.append(add_light(f"{key}_BACKLIGHT_haze_{i}", coll, "SPOT", O + Vector((px * 1.2, py + 2.6, 3.0)),
+                                target=O + Vector((px, py - 1.0, 1.75)), energy=420 if i == 0 else 260,
+                                color=AMBER_RGB, spot_deg=24, blend=0.8, radius=0.2, cutoff=12.0, shadow=True,
+                                volume=3.0))
     return lights
 
 
@@ -1820,9 +1853,10 @@ def looks_wardrobe(looks):
     for o, sid in found:
         lid = str(o.get("id", ""))
         scene_id = sid or (lid.split(".")[0] if "." in lid else "")
-        role_txt = " ".join(str(o.get(k, "")) for k in ("character", "role", "who", "name")) + " " + lid
-        role = "backup" if any(k in role_txt.lower() for k in ("backup", "clone", "harmony", "left", "right")) \
-            else "lead"
+        # role from the character field (or the id suffix after the last "."), never from the scene id:
+        # "s4-harmony.lead" is the lead even though the scene is called harmony.
+        role_txt = next((str(o[k]) for k in ("character", "role", "who") if o.get(k)), lid.rsplit(".", 1)[-1])
+        role = "backup" if any(k in role_txt.lower() for k in ("backup", "clone", "left", "right")) else "lead"
         out.setdefault(scene_id, {})
         out[scene_id].setdefault(role, text_of(o["wardrobe"]))
     return out, scene_info
@@ -1957,34 +1991,34 @@ def build(args):
         # ---- key / bounce / rim (soft warm key from camera-left, gold bounce, amber rim) -----------------------
         if p["set"] == "living":
             key_loc = face + Vector((-1.55, -1.45, 0.55))
-            lights.append(add_light(f"{key}_KEY", coll, "AREA", key_loc, target=face + Vector((0, 0, -0.05)),
-                                    energy=150 if p["variant"] == "couch" else 170, color=KEY_RGB, size=1.5,
-                                    cutoff=10.0, volume=0.25))
+            lights.append(add_light(f"{key}_KEY", coll, "AREA", key_loc, target=face + Vector((0, 0, -0.08)),
+                                    energy=145 if p["variant"] == "couch" else 160, color=KEY_RGB, size=1.5,
+                                    cutoff=10.0, volume=0.25, spread_deg=55))
             lights.append(add_light(f"{key}_BOUNCE_gold", coll, "AREA", face + Vector((-0.1, -1.0, -0.85)),
-                                    target=face, energy=22, color=GOLD_RGB, size=1.0, size_y=0.45, cutoff=6.0,
-                                    shadow=False, volume=0.1))
+                                    target=face, energy=16, color=GOLD_RGB, size=1.0, size_y=0.45, cutoff=6.0,
+                                    shadow=False, volume=0.1, spread_deg=70))
             lights.append(add_light(f"{key}_RIM_amber", coll, "SPOT", face + Vector((0.75, 0.55, 1.15)),
-                                    target=face + Vector((0, 0.05, -0.25)), energy=210, color=AMBER_RGB,
-                                    spot_deg=45, blend=0.7, radius=0.15, cutoff=8.0, volume=0.6))
+                                    target=face + Vector((0, 0.05, -0.25)), energy=260, color=AMBER_RGB,
+                                    spot_deg=38, blend=0.7, radius=0.15, cutoff=8.0, volume=0.6))
         else:
             trio = p["variant"] == "trio"
             key_loc = face + Vector((-1.75, -1.75, 0.55))
-            lights.append(add_light(f"{key}_KEY", coll, "AREA", key_loc, target=face + Vector((0, 0, -0.05)),
-                                    energy=300 if not trio else 380, color=KEY_RGB, size=1.8 if not trio else 2.6,
-                                    cutoff=12.0, volume=0.2))
+            lights.append(add_light(f"{key}_KEY", coll, "AREA", key_loc, target=face + Vector((0, 0, -0.08)),
+                                    energy=280 if not trio else 340, color=KEY_RGB, size=1.8 if not trio else 2.6,
+                                    cutoff=12.0, volume=0.15, spread_deg=55 if not trio else 70))
             lights.append(add_light(f"{key}_BOUNCE_gold", coll, "AREA", face + Vector((0.0, -1.15, -1.25)),
-                                    target=face, energy=45, color=GOLD_RGB, size=1.3, size_y=0.5, cutoff=6.0,
-                                    shadow=False, volume=0.1))
+                                    target=face, energy=30, color=GOLD_RGB, size=1.3, size_y=0.5, cutoff=6.0,
+                                    shadow=False, volume=0.05, spread_deg=70))
             for k, (rg, kind) in enumerate(rigs):
                 fpos = rg.root_loc + Vector((0, 0, rg.hip_z + NECK_Z + 0.165))
                 sx = 0.55 if k != 1 else -0.55
                 lights.append(add_light(f"{key}_RIM_amber_{k}", coll, "SPOT", fpos + Vector((sx, 1.55, 1.75)),
-                                        target=fpos + Vector((0, 0.0, -0.35)), energy=900 if k == 0 else 650,
-                                        color=AMBER_RGB, spot_deg=32, blend=0.6, radius=0.12, cutoff=12.0,
-                                        volume=2.2))
+                                        target=fpos + Vector((0, 0.0, -0.35)), energy=1000 if k == 0 else 700,
+                                        color=AMBER_RGB, spot_deg=30, blend=0.6, radius=0.12, cutoff=12.0,
+                                        volume=2.5))
             lights.append(add_light(f"{key}_KICKER", coll, "SPOT", face + Vector((-1.4, 1.4, 1.4)),
-                                    target=face + Vector((0, 0, -0.2)), energy=300, color=BURNT_RGB, spot_deg=35,
-                                    blend=0.7, radius=0.15, cutoff=10.0, volume=1.2))
+                                    target=face + Vector((0, 0, -0.2)), energy=320, color=BURNT_RGB, spot_deg=32,
+                                    blend=0.7, radius=0.15, cutoff=10.0, volume=1.0))
 
         # ---- camera rig ---------------------------------------------------------------------------------------
         ccoll = new_collection(f"{key}_camera", cams_coll)
@@ -2002,15 +2036,15 @@ def build(args):
         info = dict(height_m=None, slide_m=0.0, orbit_deg=0.0)
         if p["set"] == "living":
             if p["variant"] == "couch":
-                target = O + Vector((0.12, 1.62, 0.86))
+                target = O + Vector((0.12, 1.62, 0.78))
                 d0, d1 = 3.40, 3.40 / (p["post"][1] if p["post"][1] > 0 else 1.08)
-                eye_h = 1.12
+                eye_h = 1.14
                 dirn = Vector((-0.06, -1.0, 0.0)).normalized()
                 fstop = 2.8
             else:
-                target = O + Vector((0.08, 1.10, 1.36))
-                d0 = d1 = 1.78
-                eye_h = 1.46
+                target = O + Vector((0.08, 1.10, 1.42))
+                d0 = d1 = 1.80
+                eye_h = 1.50
                 dirn = Vector((0.0, -1.0, 0.0))
                 fstop = 2.8
         else:
@@ -2020,11 +2054,11 @@ def build(args):
                 d1 = d0 / (p["post"][1] if p["post"][1] > 0 else 1.12)
                 eye_h = 1.02
                 dirn = Vector((0.07, -1.0, 0.0)).normalized()
-                fstop = 1.4
+                fstop = 1.0     # exaggerated so the fairy-light wall reads as bokeh in a 480p animatic
             else:
-                target = O + Vector((0.0, 0.0, 1.38))
-                d0 = d1 = 3.25
-                eye_h = 1.42
+                target = O + Vector((0.0, 0.05, 1.42))
+                d0 = d1 = 2.60
+                eye_h = 1.45
                 dirn = Vector((0.0, -1.0, 0.0))
                 fstop = 2.8
         # Generic: honour the move from the shots file even if it differs from the set's default.
@@ -2087,6 +2121,10 @@ def build(args):
         pf = ctx.cam_pos(t0)
         pl = ctx.cam_pos(t1)
         subj = face
+        # small eye light beside the lens: a catchlight + a little lift so dark skin doesn't fall to mud
+        add_light(f"{key}_EYELIGHT", coll, "AREA", pf + Vector((0.0, 0.0, 0.14)), target=face, energy=40 if
+                  p["set"] == "living" else 60, color=KEY_RGB, size=0.3, cutoff=8.0, shadow=False, volume=0.0,
+                  spread_deg=25)
         p["camera_object"] = cam.name
         p["dolly_start_m"] = round((pf - subj).length, 3)
         p["dolly_end_m"] = round((pl - subj).length, 3)
@@ -2149,12 +2187,12 @@ def build(args):
     vs = sc.view_settings
     vs.view_transform = "AgX"
     try:
-        vs.look = "AgX - Medium High Contrast"
+        vs.look = "AgX - Punchy"
     except Exception:
         pass
-    vs.exposure = 0.0
+    vs.exposure = -0.9
     setup_compositor(sc)
-    return sc, plan, dict(beats=beats, downbeats=downbeats, lines=lines, plan_src=plan_src, cue_src=cue_src,
+    return sc, plan, dict(beats=beats, downbeats=downbeats, lines=lines, sections=timing["sections"], plan_src=plan_src, cue_src=cue_src,
                           song_end=song_end, total_frames=total_frames, sound=snd)
 
 
@@ -2171,9 +2209,9 @@ def setup_compositor(sc):
                 break
             except Exception:
                 continue
-        gl.inputs["Threshold"].default_value = 1.2
-        gl.inputs["Strength"].default_value = 0.45
-        gl.inputs["Size"].default_value = 0.6
+        gl.inputs["Threshold"].default_value = 2.0
+        gl.inputs["Strength"].default_value = 0.22
+        gl.inputs["Size"].default_value = 0.45
         try:
             gl.inputs["Quality"].default_value = "Medium"
         except Exception:
@@ -2241,11 +2279,13 @@ def stamp(sc, on, font=12):
 
 def make_note_fn(plan, meta):
     lines = meta["lines"]
+    secs = meta.get("sections") or []
 
     def note(frame):
         t = frame / FPS
         p = next((q for q in plan if q["start_frame"] <= frame <= q["end_frame"]), plan[-1])
-        parts = [f"PREVIS  {p['key']} {p['title']} ({p['section']})"]
+        sec = next((s["name"] for s in secs if s["start"] <= t < s["end"]), p["section"])
+        parts = [f"PREVIS  {p['key']} {p['title']}", sec]
         ln = next((l for l in lines if l["t0"] - 0.1 <= t <= l["t1"] + 0.1), None)
         if ln:
             parts.append('"%s"' % ln["text"][:48])
@@ -2337,10 +2377,26 @@ def render_still(sc, frame, path):
 
 def main():
     args = parse_args()
-    log("Blender", bpy.app.version_string, "| engines:",
-        [e.identifier for e in bpy.types.RenderSettings.bl_rna.properties["engine"].enum_items])
+    log("Blender", bpy.app.version_string)
     sc, plan, meta = build(args)
     engine_used = "BLENDER_EEVEE" if args.engine == "eevee" else "BLENDER_WORKBENCH"
+
+    # save the .blend (paths relative so the file can move with the repo). The per-frame lyric/cue note is a
+    # Python handler that lives only in this run, so the saved file carries a static note instead.
+    os.makedirs(os.path.dirname(args.out_blend), exist_ok=True)
+    set_engine(sc, args.engine, args.samples, stills=False)
+    w, h = parse_res(args.res)
+    sc.render.resolution_x, sc.render.resolution_y, sc.render.resolution_percentage = w, h, 100
+    stamp(sc, True, font=max(11, int(h / 36)))
+    sc.render.stamp_note_text = "PREVIS  In the Loop (Devagar)  (lyric + cue burn-in: re-run build_previs.py)"
+    bpy.ops.wm.save_as_mainfile(filepath=args.out_blend, compress=True)
+    try:
+        bpy.ops.file.make_paths_relative()
+        bpy.ops.wm.save_mainfile()
+    except Exception as ex:
+        log("WARN make_paths_relative:", ex)
+    log("saved", args.out_blend)
+    write_camera_plan(args.camera_plan, plan, meta, args, engine_used)
 
     note_fn = make_note_fn(plan, meta)
 
@@ -2350,22 +2406,6 @@ def main():
         except Exception:
             pass
     bpy.app.handlers.frame_change_pre.append(_note_handler)
-    sc.render.stamp_note_text = note_fn(0)
-
-    # save the .blend (paths relative so the file can move with the repo)
-    os.makedirs(os.path.dirname(args.out_blend), exist_ok=True)
-    set_engine(sc, args.engine, args.samples, stills=False)
-    w, h = parse_res(args.res)
-    sc.render.resolution_x, sc.render.resolution_y, sc.render.resolution_percentage = w, h, 100
-    stamp(sc, True, font=max(11, int(h / 36)))
-    bpy.ops.wm.save_as_mainfile(filepath=args.out_blend, compress=True)
-    try:
-        bpy.ops.file.make_paths_relative()
-        bpy.ops.wm.save_mainfile()
-    except Exception as ex:
-        log("WARN make_paths_relative:", ex)
-    log("saved", args.out_blend)
-    write_camera_plan(args.camera_plan, plan, meta, args, engine_used)
 
     # stills: a clean mid-scene frame per scene
     if not args.skip_stills:

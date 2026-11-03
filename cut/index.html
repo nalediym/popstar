@@ -1,0 +1,1182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Director's Cut</title>
+<style>
+:root {
+  --bg: #0d0d10; --panel: #131318; --panel2: #1a1a21; --line: #2a2a33; --line2: #3a3a45;
+  --text: #efebe5; --dim: #a39d94; --faint: #6c6760;
+  --amber: #ff9f43; --rust: #d9622b; --gold: #ffbe6b; --ok: #8fd694; --bad: #ff6b5b;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --serif: Georgia, "Times New Roman", serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 12px/1.45 var(--mono); }
+body { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100vh; overflow: hidden; }
+button, input, select { font: inherit; color: inherit; }
+button { background: var(--panel2); border: 1px solid var(--line2); border-radius: 4px; padding: 4px 9px; cursor: pointer; }
+button:hover:not(:disabled) { border-color: var(--amber); color: #fff; }
+button:disabled { opacity: .45; cursor: default; }
+button.primary { background: var(--amber); color: #1a0f05; border-color: var(--amber); font-weight: 700; }
+button.primary:hover:not(:disabled) { background: #ffb366; color: #000; }
+input[type=number], input[type=text], select { background: #0b0b0e; border: 1px solid var(--line2); border-radius: 3px; padding: 3px 6px; min-width: 0; }
+input[type=number] { width: 78px; }
+input:focus, select:focus, button:focus-visible { outline: 1px solid var(--amber); outline-offset: 0; }
+input[type=checkbox] { accent-color: var(--amber); }
+input[type=range] { accent-color: var(--amber); width: 120px; }
+input[type=color] { width: 34px; height: 22px; padding: 0; border: 1px solid var(--line2); background: none; }
+
+header { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--line); background: #09090c; min-width: 0; }
+.brand { font-weight: 800; letter-spacing: .18em; color: var(--amber); white-space: nowrap; }
+.brand small { color: var(--dim); letter-spacing: .04em; font-weight: 400; margin-left: 8px; }
+.spacer { flex: 1; }
+.chip { border: 1px solid var(--line2); border-radius: 999px; padding: 1px 8px; color: var(--dim); white-space: nowrap; font-size: 11px; }
+.chip.ok { color: var(--ok); border-color: #2f4a33; }
+.chip.warn { color: var(--gold); border-color: #5a4220; }
+.chip.bad { color: var(--bad); border-color: #5a2a24; }
+.seg { display: inline-flex; border: 1px solid var(--line2); border-radius: 4px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; padding: 4px 10px; }
+.seg button.on { background: var(--amber); color: #1a0f05; font-weight: 700; }
+
+main { display: grid; grid-template-columns: minmax(0, 1fr) 372px; min-height: 0; }
+#left { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 10px 12px 10px 14px; gap: 8px; }
+#stageWrap { flex: 1 1 auto; min-height: 200px; position: relative; display: flex; align-items: center; justify-content: center; }
+#stage { position: relative; background: #000; overflow: hidden; border-radius: 3px; container-type: size;
+  box-shadow: 0 0 0 1px #24242c, 0 24px 70px rgba(0,0,0,.6); }
+#stage > * { position: absolute; inset: 0; }
+#pool video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.slot { isolation: isolate; opacity: 0; }
+.slot canvas { width: 100%; height: 100%; display: block; }
+.slot .warm { position: absolute; inset: 0; mix-blend-mode: multiply; pointer-events: none; }
+#flash { opacity: 0; pointer-events: none; }
+.bar { position: absolute; left: 0; right: 0; height: 0; background: #000; inset: auto 0 auto 0; }
+#barTop { top: 0; } #barBot { bottom: 0; }
+#caption { inset: auto 0 auto 0; text-align: center; font-family: var(--serif); font-style: italic; white-space: nowrap;
+  pointer-events: none; transform: translateY(-50%); opacity: 0; }
+#phBadge { inset: 8px auto auto 8px; padding: 2px 8px; border-radius: 3px; background: rgba(13,13,16,.78); color: var(--gold);
+  border: 1px solid #6a4a1c; font-size: 11px; letter-spacing: .06em; pointer-events: none; display: none; max-width: 70%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#phBadge b { color: #1a0f05; background: var(--gold); padding: 0 5px; border-radius: 2px; margin-right: 6px; }
+#finalVideo { width: 100%; height: 100%; background: #000; display: none; }
+#renderOverlay { display: none; background: rgba(8,8,10,.82); padding: 18px 22px; flex-direction: column; justify-content: flex-end; gap: 8px; }
+#renderOverlay .log { font-size: 11px; color: var(--dim); white-space: pre-wrap; overflow: hidden; max-height: 70%; }
+#renderOverlay .ttl { color: var(--amber); font-weight: 700; letter-spacing: .12em; }
+.progress { height: 6px; background: #222; border-radius: 3px; overflow: hidden; }
+.progress > div { height: 100%; width: 0; background: linear-gradient(90deg, var(--rust), var(--amber)); transition: width .25s; }
+#stageMsg { inset: auto 12px 12px auto; display: none; color: var(--bad); background: rgba(0,0,0,.75); padding: 4px 8px; border-radius: 3px; }
+
+#transport { display: flex; align-items: center; gap: 10px; min-width: 0; flex-wrap: wrap; }
+#playBtn { width: 76px; font-weight: 700; }
+#clock { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: .02em; }
+#clock span { color: var(--faint); font-weight: 400; }
+.meta { color: var(--dim); }
+.meta b { color: var(--gold); font-weight: 400; }
+.keys { color: var(--faint); font-size: 11px; margin-left: auto; white-space: nowrap; }
+.keys kbd { border: 1px solid var(--line2); border-bottom-width: 2px; border-radius: 3px; padding: 0 4px; color: var(--dim); font: inherit; }
+#receiptBar { display: none; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--dim); }
+#receiptBar a { color: var(--amber); }
+#timelineWrap { position: relative; flex: 0 0 auto; }
+#timeline { width: 100%; height: 178px; display: block; background: #0a0a0d; border: 1px solid var(--line); border-radius: 3px; cursor: crosshair; }
+#tip { position: absolute; pointer-events: none; background: #000; border: 1px solid var(--amber); color: #fff; padding: 1px 6px; border-radius: 3px; font-size: 11px; display: none; white-space: nowrap; }
+
+aside { border-left: 1px solid var(--line); background: var(--panel); overflow-y: auto; min-height: 0; }
+aside section { padding: 12px 14px; border-bottom: 1px solid var(--line); }
+aside h2 { margin: 0 0 8px; font-size: 11px; letter-spacing: .16em; color: var(--amber); font-weight: 700; display: flex; align-items: center; gap: 8px; }
+aside h3 { margin: 12px 0 6px; font-size: 10.5px; letter-spacing: .14em; color: var(--dim); font-weight: 700; }
+.row { display: flex; align-items: center; gap: 8px; margin: 5px 0; flex-wrap: wrap; }
+.row > label:first-child { width: 92px; color: var(--dim); flex: 0 0 auto; }
+.hint { color: var(--faint); font-size: 11px; }
+.note { color: var(--dim); font-size: 11px; border-left: 2px solid var(--line2); padding-left: 8px; margin-top: 8px; }
+.badge-ph { background: var(--gold); color: #1a0f05; font-weight: 800; letter-spacing: .08em; padding: 1px 6px; border-radius: 2px; font-size: 10px; }
+.badge-real { background: var(--ok); color: #06210b; font-weight: 800; letter-spacing: .08em; padding: 1px 6px; border-radius: 2px; font-size: 10px; }
+.scene-title { font-size: 13px; color: #fff; font-weight: 700; }
+.src { display: grid; grid-template-columns: 112px 1fr; gap: 10px; align-items: center; margin: 6px 0; }
+.src img, .src .noimg { width: 112px; height: 63px; object-fit: cover; border-radius: 3px; border: 1px solid var(--line2); background: #000; }
+.src .path { word-break: break-all; color: #fff; }
+.callout { border: 1px solid #5a4220; background: #1d150b; color: var(--gold); padding: 6px 8px; border-radius: 4px; margin: 6px 0; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.tchip { border: 1px solid var(--line2); border-radius: 3px; padding: 1px 4px 1px 7px; display: inline-flex; gap: 4px; align-items: center; }
+.tchip button { border: 0; padding: 0 4px; background: none; color: var(--faint); }
+.tchip button:hover { color: var(--bad); }
+.warnlist { color: var(--gold); font-size: 11px; margin: 0; padding-left: 16px; }
+
+#picker { position: fixed; inset: 0; background: rgba(5,5,7,.82); display: none; z-index: 20; padding: 40px; }
+#picker .box { background: var(--panel); border: 1px solid var(--line2); border-radius: 6px; height: 100%; display: flex; flex-direction: column; max-width: 1200px; margin: 0 auto; }
+#picker .top { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+#picker .grid { overflow-y: auto; padding: 14px; }
+#picker h4 { margin: 12px 0 8px; color: var(--amber); letter-spacing: .14em; font-size: 11px; }
+#picker .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.tile { background: #0b0b0e; border: 1px solid var(--line2); border-radius: 4px; padding: 6px; cursor: pointer; text-align: left; }
+.tile:hover { border-color: var(--amber); }
+.tile.cur { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+.tile img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; border-radius: 2px; background: #000; }
+.tile .nm { margin-top: 5px; color: #fff; word-break: break-all; font-size: 11px; }
+.tile .mt { color: var(--faint); font-size: 10.5px; }
+#toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: #000; border: 1px solid var(--amber); color: #fff;
+  padding: 6px 12px; border-radius: 4px; display: none; z-index: 30; max-width: 80vw; }
+@media (max-width: 1000px) { main { grid-template-columns: 1fr; overflow-y: auto; } body { overflow: auto; height: auto; } aside { border-left: 0; } #stageWrap { min-height: 260px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">DIRECTOR'S CUT<small id="songName">In the Loop (Devagar)</small></div>
+  <div class="seg" role="group" aria-label="Stage mode">
+    <button id="modeLive" class="on" title="The live preview, driven by the song">LIVE</button>
+    <button id="modeRendered" title="Play outputs/final.mp4" disabled>RENDERED</button>
+  </div>
+  <span class="spacer"></span>
+  <span id="chipTiming" class="chip">timing…</span>
+  <span id="chipShots" class="chip">shots…</span>
+  <span id="chipSave" class="chip">loading…</span>
+  <button id="undoBtn" title="Undo (⌘Z)" disabled>↶</button>
+  <button id="redoBtn" title="Redo (⇧⌘Z)" disabled>↷</button>
+  <button id="renderBtn" class="primary" title="Render outputs/final.mp4 with tools/stitch.ts">Render final</button>
+</header>
+<main>
+  <section id="left">
+    <div id="stageWrap">
+      <div id="stage">
+        <div id="pool" aria-hidden="true"></div>
+        <div class="slot" id="slotA"><canvas width="1280" height="720"></canvas><div class="warm"></div></div>
+        <div class="slot" id="slotB"><canvas width="1280" height="720"></canvas><div class="warm"></div></div>
+        <div id="flash"></div>
+        <div id="bars"><div class="bar" id="barTop"></div><div class="bar" id="barBot"></div></div>
+        <div id="caption"></div>
+        <div id="phBadge"></div>
+        <video id="finalVideo" controls playsinline preload="metadata"></video>
+        <div id="renderOverlay"><div class="ttl">RENDERING outputs/final.mp4</div><div class="log" id="renderLog"></div><div class="progress"><div id="renderBar"></div></div></div>
+        <div id="stageMsg"></div>
+      </div>
+    </div>
+    <div id="transport">
+      <button id="playBtn" title="Play / pause (space)">▶ PLAY</button>
+      <div id="clock">00:00.000 <span>/ 00:32.000</span></div>
+      <div class="meta" id="metaPos">bar – · frame 0</div>
+      <div class="meta" id="metaScene"></div>
+      <div class="keys"><kbd>space</kbd> play · <kbd>J</kbd><kbd>L</kbd> bar · <kbd>K</kbd> stop · <kbd>←</kbd><kbd>→</kbd> frame · <kbd>⌘Z</kbd> undo</div>
+    </div>
+    <div id="receiptBar"></div>
+    <div id="timelineWrap"><canvas id="timeline"></canvas><div id="tip"></div></div>
+  </section>
+  <aside>
+    <section id="inspector"><h2>SCENE</h2><div class="hint">loading…</div></section>
+    <section id="globals"><h2>GLOBALS</h2></section>
+    <section id="notes"><h2>NOTES</h2><div id="notesBody" class="hint"></div></section>
+  </aside>
+</main>
+<div id="picker"><div class="box">
+  <div class="top"><b id="pickerTitle" style="color:var(--amber);letter-spacing:.12em">SOURCE</b><span class="hint" id="pickerHint"></span><span class="spacer"></span><button id="pickerRefresh">rescan</button><button id="pickerClose">close (esc)</button></div>
+  <div class="grid" id="pickerGrid"></div>
+</div></div>
+<div id="toast"></div>
+
+<!-- The frame plan + effect math. MIRRORS tools/stitch.ts (planEdl, letterboxP, camera, sourceTime).
+     No DOM in this block: the tests evaluate it outside the browser and compare it with stitch.ts. -->
+<script id="cut-core">
+(function (root) {
+  "use strict";
+  const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+  /** A musical time to a frame, cut_lead_frames early (the new image is settled on the beat). */
+  function leadFrame(t, fps, lead, total) { return t <= 0 ? 0 : clamp(Math.round(t * fps) - lead, 0, total); }
+  function planEdl(edl) {
+    const F = edl.fps, W = edl.size[0], H = edl.size[1], total = Math.round(edl.duration_s * F), L = edl.globals.cut_lead_frames;
+    const sc = edl.scenes, n = sc.length;
+    const c = sc.map((s, i) => (i === 0 ? 0 : leadFrame(s.t0, F, L, total)));
+    const e = c.map((_, i) => (i === n - 1 ? total : c[i + 1]));
+    const x = sc.map((s, i) => {
+      if (!s.transition_in || s.transition_in.type !== "dissolve") return 0;
+      const N = Math.max(0, Math.round(s.transition_in.frames || 0));
+      if (i === 0) return Math.min(N, Math.max(0, e[0] - c[0] - 1));
+      return Math.min(N, Math.max(0, Math.min(e[i - 1] - c[i - 1], e[i] - c[i]) - 2));
+    });
+    const half = (i) => (i === 0 ? 0 : Math.floor(x[i] / 2));
+    const segs = sc.map((s, i) => ({
+      i, id: s.id,
+      start: i === 0 ? 0 : c[i] - half(i),
+      end: i === n - 1 ? total : x[i + 1] > 0 ? c[i + 1] - half(i + 1) + x[i + 1] : e[i],
+      cut: c[i], sceneEnd: e[i], xIn: x[i], xStart: i === 0 ? 0 : c[i] - half(i),
+    }));
+    const fl = edl.globals.flash;
+    const flashes = fl.on ? fl.at.map((t) => ({ start: leadFrame(t, F, L, total), frames: Math.max(1, Math.round(fl.frames)) })) : [];
+    const lb = edl.globals.letterbox;
+    const barH = lb.on && lb.ratio > 0 ? Math.max(0, Math.round((H - W / lb.ratio) / 2)) : 0;
+    return { fps: F, W, H, total, barH, segs, flashes };
+  }
+  /** Which scenes show on frame f, bottom first, with the top one's opacity (xfade=fade weights k/N). */
+  function layersAt(plan, f) {
+    const segs = plan.segs;
+    let i = segs.length - 1;
+    while (i > 0 && f < segs[i].cut) i--;
+    const nx = segs[i + 1];
+    if (nx && nx.xIn > 0 && f >= nx.xStart) return [{ i, alpha: 1 }, { i: i + 1, alpha: (f - nx.xStart) / nx.xIn }];
+    const me = segs[i];
+    if (i > 0 && me.xIn > 0 && f < me.xStart + me.xIn) return [{ i: i - 1, alpha: 1 }, { i, alpha: (f - me.xStart) / me.xIn }];
+    if (i === 0 && me.xIn > 0 && f < me.xIn) return [{ i: 0, alpha: f / me.xIn }];
+    return [{ i, alpha: 1 }];
+  }
+  function leadTime(t, edl) { return leadFrame(t, edl.fps, edl.globals.cut_lead_frames, Math.round(edl.duration_s * edl.fps)) / edl.fps; }
+  function letterboxP(g, t, duration) {
+    const lb = g.letterbox;
+    if (!lb.on) return 0;
+    const ss = (v) => { const u = clamp(v, 0, 1); return u * u * (3 - 2 * u); };
+    const dIn = Math.max(1e-3, lb.wipe_dur_s), dOut = Math.max(1e-3, Math.min(lb.wipe_dur_s, duration - lb.wipe_out_s));
+    return ss((t - lb.wipe_in_s) / dIn) * (1 - ss((t - lb.wipe_out_s) / dOut));
+  }
+  /** Post camera scale at output time T: slow push/drift from->to, times punch-in and beat-punch bumps. */
+  function cameraScale(edl, scene, T, beats) {
+    const cp = scene.camera_post, g = edl.globals;
+    let S = 1;
+    if (cp.fx !== "none" && (cp.from !== 1 || cp.to !== 1)) S *= cp.from + (cp.to - cp.from) * clamp((T - scene.t0) / (scene.t1 - scene.t0), 0, 1);
+    const bump = (times, amount, decay) => {
+      if (!times.length || !(amount > 0)) return 1;
+      let s = 0;
+      for (const p of times) if (T >= p) s += Math.exp(-Math.max(T - p, 0) / decay);
+      return 1 + amount * s;
+    };
+    S *= bump(scene.punch_in_at.filter((p) => p >= scene.t0 && p < scene.t1).map((p) => leadTime(p, edl)), g.punch.amount, g.punch.decay_s);
+    if (g.beat_punch.on) {
+      const lo = scene.t0 - 1, hi = scene.t1 + 1;
+      S *= bump((beats || []).map((b) => b + edl.sync_offset_s).filter((b) => b >= lo && b <= hi).map((b) => leadTime(b, edl)), g.beat_punch.amount, g.beat_punch.decay_s);
+    }
+    return S;
+  }
+  /** The crop window in the normalized W x H frame, exactly like stitch's scale(eval=frame) + crop. */
+  function cameraWindow(edl, scene, T, S) {
+    const W = edl.size[0], H = edl.size[1];
+    if (S === 1) return { x: 0, y: 0, w: W, h: H };
+    const sw = 2 * Math.round((W * S) / 2), sh = 2 * Math.round((H * S) / 2);
+    const mx = (sw - W) / 2, my = (sh - H) / 2;
+    let x = mx;
+    if (scene.camera_post.fx === "drift") x = Math.floor(mx * (1 + 0.8 * (2 * clamp((T - scene.t0) / (scene.t1 - scene.t0), 0, 1) - 1)));
+    return { x: (x * W) / sw, y: (my * H) / sh, w: (W * W) / sw, h: (H * H) / sh };
+  }
+  /** Source time at output time T: in_s + (T - t0) * rate; holds frame 0 before, loops or holds after. */
+  function sourceTime(scene, T, D) {
+    const s = scene.source.in_s + (T - scene.t0) * scene.source.rate;
+    if (s < 0) return { s: 0, state: "pre" };
+    if (Number.isFinite(D) && D > 0 && s >= D) {
+      if (scene.source.loop === "loop") return { s: s % D, state: "loop" };
+      return { s: Math.max(0, D - 0.02), state: "post" };
+    }
+    return { s, state: "play" };
+  }
+  /** Caption frames [a, b) from a lyric line, and its fade alpha on frame f (same as stitch's two fades). */
+  function captionSpan(line, edl) {
+    const F = edl.fps, total = Math.round(edl.duration_s * F);
+    return { a: clamp(Math.round((line.start + edl.sync_offset_s) * F), 0, total), b: clamp(Math.round((line.end + edl.sync_offset_s) * F), 0, total) };
+  }
+  function captionAlpha(f, a, b, fd) { return clamp((f - a) / fd, 0, 1) * clamp((b - f) / fd, 0, 1); }
+  /** Caption font px at frame height H: shrinks long lines like stitch's captionPng(). */
+  function captionPx(text, size, W, H, style) {
+    const s = Math.round((size * H) / 720);
+    return Math.max(10, Math.min(s, Math.floor((W * style.max_width) / Math.max(1, text.length * style.char_w))));
+  }
+  root.CutCore = { clamp, leadFrame, planEdl, layersAt, leadTime, letterboxP, cameraScale, cameraWindow, sourceTime, captionSpan, captionAlpha, captionPx };
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
+
+<script>
+"use strict";
+const C = window.CutCore;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const r4 = (x) => Math.round(x * 1e4) / 1e4;
+const fmtT = (t) => { const s = Math.max(0, t); const m = Math.floor(s / 60); return `${String(m).padStart(2, "0")}:${(s - m * 60).toFixed(3).padStart(6, "0")}`; };
+const fmtS = (t) => (Math.round(t * 1000) / 1000).toFixed(3).replace(/\.?0+$/, "") + "s";
+
+// Fallbacks if /presets is unreachable (stitch.ts is the source of truth).
+const FALLBACK_PRESETS = {
+  grade: { amber_soft: { label: "amber soft", sepia: 0.22, saturate: 1.15, contrast: 1.06, brightness: 0.98, warm: "#ffb066", warm_opacity: 0.16 }, none: { label: "no grade", sepia: 0, saturate: 1, contrast: 1, brightness: 1, warm: "#ffffff", warm_opacity: 0 } },
+  clones: { bg_dark: 0.3, side_scale: 0.6, side_dark: 0.6, side_cx: [0.2, 0.8], side_top: 0.16, flip_left: true, side_mask: { h_feather: 0.18, v_top: 0.1, v_bottom: 0.25 }, lead_mask: { core: 0.14, ramp: 0.12 } },
+  captions: { fade_frames: 6, box_h: 120, shadow: { dy: 2, sigma: 3, opacity: 0.85 }, max_width: 0.92, char_w: 0.5 },
+};
+const SCENE_COLORS = ["#6b3d24", "#4c3a5e", "#7a4a1c", "#3b4b5e", "#5e3a3a", "#3a5c4a", "#5c4f2a", "#4a3358"];
+
+const S = {
+  edl: null, plan: null, timing: null, shots: null, cues: [], assets: [], presets: FALLBACK_PRESETS,
+  sel: 0, playing: false, scrubT: 0, mode: "live",
+  undo: [], redo: [], savedJSON: null, saveTimer: 0, saving: false, saveError: null,
+  rendering: false, receipt: null, renderedJSON: null, finalVersion: 0, notes: [],
+};
+const song = new Audio();
+song.preload = "auto";
+
+// ---------------------------------------------------------------------------------------------------------
+// boot (every fetch fails soft)
+// ---------------------------------------------------------------------------------------------------------
+async function getJSON(url) {
+  const res = await fetch(url, { cache: "no-store" });
+  let body = null;
+  try { body = await res.json(); } catch { /* not JSON */ }
+  return { ok: res.ok, status: res.status, body };
+}
+async function boot() {
+  const [presets, edl, timing, shots, status] = await Promise.all([
+    getJSON("/presets").catch(() => null), getJSON("/edl").catch((e) => ({ ok: false, body: { error: String(e) } })),
+    getJSON("/timing").catch(() => null), getJSON("/shots").catch(() => null), getJSON("/status").catch(() => null),
+  ]);
+  if (presets && presets.ok) S.presets = presets.body;
+  else note("presets: /presets unreachable, using built-in copies");
+  if (!edl.ok || !edl.body || !edl.body.scenes) {
+    $("inspector").innerHTML = `<h2>SCENE</h2><div class="callout">Could not load the EDL: ${esc((edl.body && edl.body.error) || edl.status)}</div>`;
+    setChip("chipSave", "no EDL", "bad");
+    return;
+  }
+  S.edl = edl.body;
+  S.savedJSON = JSON.stringify(S.edl);
+  setTiming(timing);
+  setShots(shots);
+  song.src = "/song";
+  $("clock").innerHTML = `${fmtT(0)} <span>/ ${fmtT(S.edl.duration_s)}</span>`;
+  if (status && status.ok && status.body.final) { S.finalVersion = status.body.final.mtime; $("modeRendered").disabled = false; }
+  replan();
+  setChip("chipSave", "saved", "ok");
+  renderSide();
+  layout();
+  await refreshAssets();
+  requestAnimationFrame(tick);
+}
+
+function setTiming(res) {
+  let t = null, approx = false, why = "";
+  if (res && res.ok && res.body && Array.isArray(res.body.beats)) t = res.body;
+  else if (res && res.body && res.body.fallback) { t = res.body.fallback; approx = true; why = res.body.error; }
+  if (!t) { t = { beats: [], downbeats: [], lines: [], approximate: true }; approx = true; why = "no timing and no fallback"; }
+  const nums = (a) => (Array.isArray(a) ? a.filter((x) => Number.isFinite(x)).sort((a, b) => a - b) : []);
+  S.timing = {
+    beats: nums(t.beats), downbeats: nums(t.downbeats), approximate: approx || !!t.approximate,
+    lines: (Array.isArray(t.lines) ? t.lines : []).filter((l) => l && typeof l.text === "string" && l.end > l.start),
+    source: approx ? "approximate" : "timing.json",
+  };
+  setChip("chipTiming", approx ? "timing ≈ approximate" : `timing ✓ ${S.timing.beats.length} beats`, approx ? "warn" : "ok");
+  if (approx) note(`timing: ${why}. Beats are synthesized and lyric times are approximate (dashed in the timeline).`);
+}
+function setShots(res) {
+  S.shots = res && res.ok ? res.body : null;
+  S.cues = [];
+  if (S.shots && Array.isArray(S.shots.takes)) {
+    const take = S.shots.takes.find((t) => t.id === "hero-1") || S.shots.takes.find((t) => t.song) || S.shots.takes[0];
+    const moves = S.shots.moves || {};
+    if (take && Array.isArray(take.cues)) S.cues = take.cues.filter((c) => Number.isFinite(c.t)).map((c) => ({
+      t: c.t, dur: Number.isFinite(c.dur) ? c.dur : 0.5, kind: c.kind, label: (c.move && moves[c.move] && moves[c.move].label) || c.text || c.move || c.kind,
+      icon: (c.move && moves[c.move] && moves[c.move].icon) || "", take: take.id,
+    }));
+  }
+  setChip("chipShots", S.shots ? `shots ✓ ${S.cues.length} cues` : "shots: none yet", S.shots ? "ok" : "");
+}
+async function refreshAssets() {
+  const r = await getJSON("/assets").catch(() => null);
+  if (r && r.ok) {
+    S.assets = r.body.assets || [];
+    if (r.body.errors && r.body.errors.length) S.assetErrors = r.body.errors;
+  } else note("assets: /assets failed; the source picker is empty");
+  renderSide();
+  drawTimeline();
+}
+function note(msg) { if (!S.notes.includes(msg)) { S.notes.push(msg); renderNotes(); } }
+function renderNotes() {
+  const extra = (S.assetErrors || []).map((e) => `assets: ${e}`);
+  const items = [...S.notes, ...extra];
+  $("notesBody").innerHTML = items.length ? `<ul class="warnlist">${items.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : "nothing to report";
+}
+function setChip(id, text, kind) { const el = $(id); el.textContent = text; el.className = "chip" + (kind ? " " + kind : ""); }
+
+// ---------------------------------------------------------------------------------------------------------
+// edits, undo/redo, autosave
+// ---------------------------------------------------------------------------------------------------------
+let lastEditKey = null, lastEditAt = 0;
+/** Mutate the EDL. coalesce: edits with the same key within 700 ms share one undo step (drags, sliders). */
+function edit(mutator, { coalesce = null, rebuild = true } = {}) {
+  const before = JSON.stringify(S.edl);
+  const now = performance.now();
+  if (!(coalesce && coalesce === lastEditKey && now - lastEditAt < 700)) { S.undo.push(before); if (S.undo.length > 300) S.undo.shift(); S.redo = []; }
+  lastEditKey = coalesce; lastEditAt = now;
+  mutator(S.edl);
+  normalize(S.edl);
+  replan();
+  if (rebuild) renderSide();
+  scheduleSave();
+}
+function normalize(edl) {
+  const sc = edl.scenes;
+  sc.forEach((s, i) => { if (i > 0) s.t0 = sc[i - 1].t1; });
+  sc[0].t0 = 0;
+  sc[sc.length - 1].t1 = edl.duration_s;
+  for (const s of sc) { s.t0 = r4(s.t0); s.t1 = r4(s.t1); s.punch_in_at = s.punch_in_at.filter((p) => p >= s.t0 && p < s.t1).sort((a, b) => a - b); }
+  edl.globals.flash.at.sort((a, b) => a - b);
+}
+function undo() {
+  if (!S.undo.length) return;
+  S.redo.push(JSON.stringify(S.edl));
+  S.edl = JSON.parse(S.undo.pop());
+  lastEditKey = null; replan(); renderSide(); scheduleSave(); toast("undo");
+}
+function redo() {
+  if (!S.redo.length) return;
+  S.undo.push(JSON.stringify(S.edl));
+  S.edl = JSON.parse(S.redo.pop());
+  lastEditKey = null; replan(); renderSide(); scheduleSave(); toast("redo");
+}
+function scheduleSave() {
+  clearTimeout(S.saveTimer);
+  const dirty = JSON.stringify(S.edl) !== S.savedJSON;
+  setChip("chipSave", dirty ? "unsaved…" : "saved", dirty ? "warn" : "ok");
+  $("undoBtn").disabled = !S.undo.length; $("redoBtn").disabled = !S.redo.length;
+  if (dirty) S.saveTimer = setTimeout(save, 800);
+  updateRenderedStale();
+}
+async function save() {
+  clearTimeout(S.saveTimer);
+  const body = JSON.stringify(S.edl);
+  if (body === S.savedJSON) return true;
+  S.saving = true;
+  setChip("chipSave", "saving…", "warn");
+  try {
+    const res = await fetch("/edl", { method: "PUT", headers: { "content-type": "application/json" }, body });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error((j.errors || [j.error || res.status]).join("; "));
+    S.savedJSON = body; S.saveError = null;
+    const stillDirty = JSON.stringify(S.edl) !== S.savedJSON;
+    setChip("chipSave", stillDirty ? "unsaved…" : `saved ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`, stillDirty ? "warn" : "ok");
+    if (stillDirty) scheduleSave();
+    if (j.warnings && j.warnings.length) note(j.warnings.join("; "));
+    return true;
+  } catch (e) {
+    S.saveError = String(e.message || e);
+    setChip("chipSave", "save failed", "bad");
+    toast("save failed: " + S.saveError, 5000);
+    return false;
+  } finally { S.saving = false; }
+}
+window.addEventListener("beforeunload", () => {
+  const body = JSON.stringify(S.edl);
+  if (S.edl && body !== S.savedJSON) fetch("/edl", { method: "PUT", headers: { "content-type": "application/json" }, body, keepalive: true });
+});
+
+// ---------------------------------------------------------------------------------------------------------
+// clock + transport
+// ---------------------------------------------------------------------------------------------------------
+const fps = () => S.edl.fps;
+const total = () => Math.round(S.edl.duration_s * S.edl.fps);
+function curT() { return S.playing ? song.currentTime + S.edl.sync_offset_s : S.scrubT; }
+function frameOf(t) { return C.clamp(Math.floor(t * fps() + 1e-4), 0, total() - 1); }
+function seek(t) {
+  t = C.clamp(t, 0, S.edl.duration_s - 1 / fps());
+  S.scrubT = t;
+  try { song.currentTime = Math.max(0, t - S.edl.sync_offset_s); } catch { /* not loaded yet */ }
+  dirty = true;
+}
+function play() {
+  if (S.mode !== "live") setMode("live");
+  if (curT() >= S.edl.duration_s - 2 / fps()) seek(0);
+  song.currentTime = Math.max(0, S.scrubT - S.edl.sync_offset_s);
+  song.play().then(() => { S.playing = true; updatePlayBtn(); }).catch((e) => toast("can't play the song: " + e.message, 4000));
+}
+function pause() {
+  if (S.playing) S.scrubT = curT();
+  S.playing = false;
+  song.pause();
+  updatePlayBtn();
+  dirty = true;
+}
+song.addEventListener("ended", () => { S.playing = false; S.scrubT = S.edl ? S.edl.duration_s - 1 / fps() : 0; updatePlayBtn(); dirty = true; });
+song.addEventListener("error", () => note("song: /song failed to load, so the preview has no clock. Is the mp3 there?"));
+function updatePlayBtn() { $("playBtn").textContent = S.playing ? "❚❚ PAUSE" : "▶ PLAY"; }
+function downbeatsV() { return S.timing.downbeats.map((d) => d + S.edl.sync_offset_s); }
+function beatsV() { return S.timing.beats.map((d) => d + S.edl.sync_offset_s); }
+function jumpBar(dir) {
+  const t = curT(), db = downbeatsV().filter((d) => d >= 0 && d < S.edl.duration_s);
+  const targets = [0, ...db];
+  const next = dir > 0 ? targets.find((d) => d > t + 0.02) : [...targets].reverse().find((d) => d < t - 0.05);
+  if (next === undefined) return;
+  const wasPlaying = S.playing;
+  seek(next);
+  if (wasPlaying) song.currentTime = Math.max(0, next - S.edl.sync_offset_s);
+}
+function stepFrame(dir) { pause(); const f = frameOf(curT()) + dir; seek(C.clamp(f, 0, total() - 1) / fps()); }
+
+// ---------------------------------------------------------------------------------------------------------
+// media pool: one element per scene (two scenes on the same file still need different times)
+// ---------------------------------------------------------------------------------------------------------
+const media = new Map();
+let dirty = true;
+function assetFor(path) { return S.assets.find((a) => a.path === path); }
+function ensureMedia(scene) {
+  let m = media.get(scene.id);
+  if (m && m.path === scene.source.path) return m;
+  if (m && m.el && m.kind === "video") { m.el.pause(); m.el.removeAttribute("src"); m.el.load(); m.el.remove(); }
+  const path = scene.source.path, url = "/media?path=" + encodeURIComponent(path);
+  const kind = /\.(png|jpe?g|webp)$/i.test(path) ? "image" : "video";
+  m = { path, kind, el: null, ready: false, w: 0, h: 0, dur: Infinity, error: null };
+  if (kind === "image") {
+    const img = new Image();
+    img.onload = () => { m.ready = true; m.w = img.naturalWidth; m.h = img.naturalHeight; dirty = true; };
+    img.onerror = () => { m.error = "could not load"; dirty = true; };
+    img.src = url;
+    m.el = img;
+  } else {
+    const v = document.createElement("video");
+    v.muted = true; v.playsInline = true; v.preload = "auto"; v.loop = scene.source.loop === "loop";
+    v.addEventListener("loadeddata", () => { m.ready = true; m.w = v.videoWidth; m.h = v.videoHeight; m.dur = v.duration; dirty = true; });
+    v.addEventListener("seeked", () => { dirty = true; });
+    v.addEventListener("error", () => { m.error = (v.error && v.error.message) || "could not load"; dirty = true; });
+    v.src = url;
+    $("pool").appendChild(v);
+    m.el = v;
+  }
+  media.set(scene.id, m);
+  return m;
+}
+function mediaDur(m) { const a = assetFor(m.path); return (a && a.duration_s) || (Number.isFinite(m.dur) ? m.dur : Infinity); }
+function syncMedia(t, f) {
+  const plan = S.plan, layers = C.layersAt(plan, f).map((l) => l.i);
+  const owner = layers[layers.length - 1];
+  for (const [i, sc] of S.edl.scenes.entries()) {
+    const m = ensureMedia(sc);
+    if (m.kind !== "video" || !m.ready) continue;
+    const v = m.el, D = mediaDur(m);
+    v.loop = sc.source.loop === "loop";
+    const seg = plan.segs[i];
+    const upcoming = !layers.includes(i) && i === owner + 1 && seg.start / fps() - t < 1.5;
+    if (layers.includes(i)) {
+      const st = C.sourceTime(sc, S.playing ? t : f / fps(), D);
+      const target = st.s;
+      if (S.playing && (st.state === "play" || st.state === "loop")) {
+        if (Math.abs(v.playbackRate - sc.source.rate) > 1e-3) v.playbackRate = sc.source.rate;
+        if (v.paused) v.play().catch(() => {});
+        let d = Math.abs(v.currentTime - target);
+        if (st.state === "loop" || v.loop) d = Math.min(d, Math.abs(D - d));
+        if (d > 0.08 && !v.seeking) v.currentTime = target;
+      } else {
+        if (!v.paused) v.pause();
+        if (Math.abs(v.currentTime - target) > 0.5 / 24 && !v.seeking) v.currentTime = target;
+      }
+    } else {
+      if (!v.paused) v.pause();
+      if (upcoming) { // pre-roll: park the next scene's video on its first frame
+        const st = C.sourceTime(sc, seg.start / fps(), D);
+        if (Math.abs(v.currentTime - st.s) > 0.04 && !v.seeking) v.currentTime = st.s;
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// stage drawing (geometry on canvas, color in CSS: same order as stitch: scene -> clones -> camera -> grade)
+// ---------------------------------------------------------------------------------------------------------
+const slots = ["slotA", "slotB"].map((id) => { const el = $(id); const cv = el.querySelector("canvas"); return { el, cv, ctx: cv.getContext("2d"), warm: el.querySelector(".warm"), grade: null }; });
+const off = { full: document.createElement("canvas"), side: document.createElement("canvas"), lead: document.createElement("canvas"), clo: document.createElement("canvas"), key: "" };
+function coverRect(mw, mh, W, H) { const k = Math.max(W / mw, H / mh); const sw = W / k, sh = H / k; return { sx: (mw - sw) / 2, sy: (mh - sh) / 2, sw, sh }; }
+function prepOffscreen(W, H) {
+  const K = S.presets.clones, key = `${W}x${H}|${JSON.stringify(K)}`;
+  if (off.key === key) return;
+  off.key = key;
+  const sw = 2 * Math.round((W * K.side_scale) / 2), sh = 2 * Math.round((H * K.side_scale) / 2);
+  for (const [c, w, h] of [[off.full, W, H], [off.lead, W, H], [off.clo, W, H], [off.side, sw, sh]]) { c.width = w; c.height = h; }
+  const g = (ctx, x0, y0, x1, y1, stops) => { const gr = ctx.createLinearGradient(x0, y0, x1, y1); for (const [p, a] of stops) gr.addColorStop(C.clamp(p, 0, 1), `rgba(0,0,0,${a})`); return gr; };
+  const m = K.side_mask, l = K.lead_mask, sctx = off.side.getContext("2d"), lctx = off.lead.getContext("2d");
+  off.sideH = g(sctx, 0, 0, sw, 0, [[0, 0], [m.h_feather, 1], [1 - m.h_feather, 1], [1, 0]]);
+  off.sideV = g(sctx, 0, 0, 0, sh, [[0, 0], [m.v_top, 1], [1 - m.v_bottom, 1], [1, 0]]);
+  off.leadH = g(lctx, 0, 0, W, 0, [[0.5 - l.core - l.ramp, 0], [0.5 - l.core, 1], [0.5 + l.core, 1], [0.5 + l.core + l.ramp, 0]]);
+  off.sw = sw; off.sh = sh;
+}
+function composeClones(el, cover, W, H) {
+  const K = S.presets.clones;
+  prepOffscreen(W, H);
+  const full = off.full.getContext("2d"), c = off.clo.getContext("2d"), s = off.side.getContext("2d"), l = off.lead.getContext("2d");
+  full.drawImage(el, cover.sx, cover.sy, cover.sw, cover.sh, 0, 0, W, H);
+  c.globalCompositeOperation = "source-over";
+  c.drawImage(off.full, 0, 0);
+  c.fillStyle = `rgba(0,0,0,${1 - K.bg_dark})`; c.fillRect(0, 0, W, H); // the dim stage behind them
+  const top = Math.round(H * K.side_top);
+  [0, 1].forEach((k) => {
+    s.globalCompositeOperation = "source-over";
+    s.clearRect(0, 0, off.sw, off.sh);
+    s.save();
+    if (k === 0 && K.flip_left) { s.translate(off.sw, 0); s.scale(-1, 1); }
+    s.drawImage(off.full, 0, 0, W, H, 0, 0, off.sw, off.sh);
+    s.restore();
+    s.globalCompositeOperation = "source-atop"; s.fillStyle = `rgba(0,0,0,${1 - K.side_dark})`; s.fillRect(0, 0, off.sw, off.sh);
+    s.globalCompositeOperation = "destination-in"; s.fillStyle = off.sideH; s.fillRect(0, 0, off.sw, off.sh); s.fillStyle = off.sideV; s.fillRect(0, 0, off.sw, off.sh);
+    s.globalCompositeOperation = "source-over";
+    c.drawImage(off.side, Math.round(W * K.side_cx[k] - off.sw / 2), top);
+  });
+  l.globalCompositeOperation = "source-over";
+  l.clearRect(0, 0, W, H);
+  l.drawImage(off.full, 0, 0);
+  l.globalCompositeOperation = "destination-in"; l.fillStyle = off.leadH; l.fillRect(0, 0, W, H);
+  l.globalCompositeOperation = "source-over";
+  c.drawImage(off.lead, 0, 0);
+}
+function drawSlate(ctx, sc, msg, W, H) {
+  ctx.fillStyle = "#101014"; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = "#2a2a33"; ctx.lineWidth = 2;
+  for (let x = -H; x < W; x += 48) { ctx.beginPath(); ctx.moveTo(x, H); ctx.lineTo(x + H, 0); ctx.stroke(); }
+  ctx.fillStyle = "#ff9f43"; ctx.font = `700 ${Math.round(H / 22)}px ui-monospace, Menlo, monospace`; ctx.textAlign = "center";
+  ctx.fillText(`${sc.id}: ${msg}`, W / 2, H / 2 - 10);
+  ctx.fillStyle = "#a39d94"; ctx.font = `${Math.round(H / 36)}px ui-monospace, Menlo, monospace`;
+  ctx.fillText(sc.source.path, W / 2, H / 2 + H / 20);
+}
+function drawScene(slot, i, T) {
+  const sc = S.edl.scenes[i], W = slot.cv.width, H = slot.cv.height, ctx = slot.ctx;
+  const m = ensureMedia(sc);
+  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
+  if (m.error) return drawSlate(ctx, sc, "source missing", W, H);
+  if (!m.ready || !m.w) return drawSlate(ctx, sc, "loading…", W, H);
+  const cover = coverRect(m.w, m.h, W, H);
+  const Sc = C.cameraScale(S.edl, sc, T, S.timing.beats);
+  const win = C.cameraWindow(S.edl, sc, T, Sc);
+  const kx = W / S.edl.size[0], ky = H / S.edl.size[1]; // canvas px per EDL px (equal at 1280x720)
+  if (!sc.clones.on) {
+    const fx = cover.sw / W, fy = cover.sh / H;
+    ctx.drawImage(m.el, cover.sx + win.x * kx * fx, cover.sy + win.y * ky * fy, win.w * kx * fx, win.h * ky * fy, 0, 0, W, H);
+  } else {
+    composeClones(m.el, cover, W, H);
+    ctx.drawImage(off.clo, win.x * kx, win.y * ky, win.w * kx, win.h * ky, 0, 0, W, H);
+  }
+}
+function gradeFor(sc) { const name = sc.grade_override || (S.edl.globals.grade.on ? S.edl.globals.grade.preset : "none"); return [name, S.presets.grade[name] || S.presets.grade.none || FALLBACK_PRESETS.grade.none]; }
+function applyGrade(slot, sc) {
+  const [name, g] = gradeFor(sc);
+  if (slot.grade === name) return;
+  slot.grade = name;
+  slot.cv.style.filter = `sepia(${g.sepia}) saturate(${g.saturate}) contrast(${g.contrast}) brightness(${g.brightness})`;
+  slot.warm.style.background = g.warm; slot.warm.style.opacity = g.warm_opacity;
+}
+let lastDrawn = -1;
+function drawStage(f) {
+  const T = f / fps(), g = S.edl.globals, plan = S.plan;
+  const layers = C.layersAt(plan, f);
+  slots.forEach((slot, k) => {
+    const l = layers[k];
+    if (!l) { slot.el.style.opacity = 0; return; }
+    drawScene(slot, l.i, T);
+    applyGrade(slot, S.edl.scenes[l.i]);
+    slot.el.style.opacity = l.alpha;
+  });
+  const fl = plan.flashes.find((x) => f >= x.start && f < x.start + x.frames);
+  $("flash").style.background = g.flash.color;
+  $("flash").style.opacity = fl ? g.flash.opacity : 0;
+  const P = C.letterboxP(g, T, S.edl.duration_s), barPct = ((plan.barH / plan.H) * 100 * P).toFixed(3) + "%";
+  $("barTop").style.height = barPct; $("barBot").style.height = barPct;
+  // caption: the lyric line on this frame
+  const cap = $("caption"), st = S.presets.captions;
+  let shown = null;
+  if (g.captions.on) for (const line of S.timing.lines) {
+    const sp = C.captionSpan(line, S.edl);
+    if (f >= sp.a && f < sp.b && sp.b - sp.a >= 2) { shown = { line, a: sp.a, b: sp.b }; break; }
+  }
+  if (shown) {
+    const H = S.edl.size[1], px = C.captionPx(shown.line.text.trim(), g.captions.size, S.edl.size[0], H, st);
+    if (cap.textContent !== shown.line.text.trim()) cap.textContent = shown.line.text.trim();
+    cap.style.fontSize = `calc(${px} * 100cqh / ${H})`;
+    cap.style.top = (g.captions.y * 100).toFixed(3) + "%";
+    cap.style.color = g.captions.color;
+    cap.style.textShadow = `0 calc(${st.shadow.dy} * 100cqh / 720) calc(${st.shadow.sigma * 2} * 100cqh / 720) rgba(0,0,0,${st.shadow.opacity})`;
+    cap.style.opacity = C.captionAlpha(f, shown.a, shown.b, st.fade_frames);
+  } else cap.style.opacity = 0;
+  // the placeholder badge (UI only, never rendered)
+  const top = layers[layers.length - 1], sc = S.edl.scenes[top.i], badge = $("phBadge");
+  if (sc.source.placeholder) { badge.style.display = "block"; badge.innerHTML = `<b>PLACEHOLDER</b>${esc(sc.id)} · ${esc(sc.source.path.split("/").pop())}`; }
+  else badge.style.display = "none";
+  lastDrawn = f;
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// the loop
+// ---------------------------------------------------------------------------------------------------------
+let lastClockF = -1;
+function tick() {
+  requestAnimationFrame(tick);
+  if (!S.edl || !S.plan) return;
+  if (S.mode !== "live") return;
+  const t = curT(), f = frameOf(t);
+  syncMedia(t, f);
+  if (f !== lastDrawn || dirty) { dirty = false; drawStage(f); }
+  if (f !== lastClockF) { lastClockF = f; updateClock(t, f); drawTimeline(); }
+}
+function updateClock(t, f) {
+  $("clock").innerHTML = `${fmtT(f / fps())} <span>/ ${fmtT(S.edl.duration_s)}</span>`;
+  const db = downbeatsV(), bt = beatsV();
+  const bar = db.filter((d) => d <= t + 1e-6).length;
+  const lastDb = bar ? db[bar - 1] : 0;
+  const beat = bt.filter((b) => b >= lastDb - 1e-6 && b <= t + 1e-6).length;
+  $("metaPos").innerHTML = `bar <b>${bar || "–"}</b>${bar ? `.${beat || 1}` : ""} · frame <b>${f}</b>`;
+  const L = C.layersAt(S.plan, f), sc = S.edl.scenes[L[L.length - 1].i];
+  $("metaScene").innerHTML = `<b>${esc(sc.id)}</b> ${L.length > 1 ? `· dissolve ${Math.round(L[1].alpha * 100)}%` : ""}`;
+}
+function replan() { S.plan = C.planEdl(S.edl); dirty = true; drawTimeline(); }
+
+// ---------------------------------------------------------------------------------------------------------
+// layout
+// ---------------------------------------------------------------------------------------------------------
+function layout() {
+  const wrap = $("stageWrap"), r = wrap.getBoundingClientRect();
+  let w = r.width, h = (w * 9) / 16;
+  if (h > r.height) { h = r.height; w = (h * 16) / 9; }
+  $("stage").style.width = Math.floor(w) + "px"; $("stage").style.height = Math.floor(h) + "px";
+  const tl = $("timeline"), dpr = window.devicePixelRatio || 1, tr = tl.getBoundingClientRect();
+  tl.width = Math.round(tr.width * dpr); tl.height = Math.round(tr.height * dpr);
+  drawTimeline();
+}
+window.addEventListener("resize", layout);
+
+// ---------------------------------------------------------------------------------------------------------
+// timeline
+// ---------------------------------------------------------------------------------------------------------
+const TL = { pad: 10, lanes: { ruler: [0, 18], grid: [18, 32], scenes: [32, 86], lyrics: [88, 112], cues: [114, 136], fx: [138, 160] }, drag: null, hover: null };
+const tl = $("timeline"), tctx = tl.getContext("2d");
+let hatch = null;
+function tx(t) { const w = tl.clientWidth; return TL.pad + (t / S.edl.duration_s) * (w - 2 * TL.pad); }
+function tAt(x) { const w = tl.clientWidth; return C.clamp(((x - TL.pad) / (w - 2 * TL.pad)) * S.edl.duration_s, 0, S.edl.duration_s); }
+function drawTimeline() {
+  if (!S.edl || !S.plan || !tl.width) return;
+  const dpr = window.devicePixelRatio || 1, W = tl.clientWidth, H = tl.clientHeight, ctx = tctx;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#0a0a0d"; ctx.fillRect(0, 0, W, H);
+  const L = TL.lanes, D = S.edl.duration_s, F = fps();
+  ctx.font = "10px ui-monospace, Menlo, monospace"; ctx.textBaseline = "middle";
+  // lane labels background
+  [["scenes", "#101015"], ["lyrics", "#0e0e12"], ["cues", "#0c0c10"], ["fx", "#0e0e12"]].forEach(([k, c]) => { ctx.fillStyle = c; ctx.fillRect(0, L[k][0], W, L[k][1] - L[k][0]); });
+  // ruler
+  for (let s = 0; s <= D + 1e-6; s += 1) {
+    const x = Math.round(tx(s)) + 0.5;
+    ctx.strokeStyle = s % 2 === 0 ? "#3a3a45" : "#24242c"; ctx.beginPath(); ctx.moveTo(x, s % 2 === 0 ? 4 : 10); ctx.lineTo(x, 18); ctx.stroke();
+    if (s % 2 === 0) { ctx.fillStyle = "#6c6760"; ctx.textAlign = s === 0 ? "left" : "center"; ctx.fillText(`${s}s`, x + (s === 0 ? 2 : 0), 8); }
+  }
+  // beat grid + bar lines (downbeats), drawn through all lanes faintly
+  const bt = beatsV(), db = downbeatsV();
+  for (const b of bt) { const x = Math.round(tx(b)) + 0.5; ctx.strokeStyle = "#2c2c36"; ctx.beginPath(); ctx.moveTo(x, L.grid[0] + 6); ctx.lineTo(x, L.grid[1]); ctx.stroke(); }
+  db.forEach((d, k) => {
+    const x = Math.round(tx(d)) + 0.5;
+    ctx.strokeStyle = "rgba(255,159,67,.16)"; ctx.beginPath(); ctx.moveTo(x, L.grid[0]); ctx.lineTo(x, L.fx[1]); ctx.stroke();
+    ctx.strokeStyle = "#8a6a44"; ctx.beginPath(); ctx.moveTo(x, L.grid[0]); ctx.lineTo(x, L.grid[1]); ctx.stroke();
+    ctx.fillStyle = "#8a6a44"; ctx.textAlign = "left"; ctx.fillText(String(k + 1), x + 3, L.grid[0] + 6);
+  });
+  // scenes
+  if (!hatch) { const p = document.createElement("canvas"); p.width = p.height = 8; const c = p.getContext("2d"); c.strokeStyle = "rgba(255,190,107,.22)"; c.lineWidth = 2; c.beginPath(); c.moveTo(0, 8); c.lineTo(8, 0); c.stroke(); hatch = ctx.createPattern(p, "repeat"); }
+  const [y0, y1] = L.scenes;
+  S.edl.scenes.forEach((sc, i) => {
+    const seg = S.plan.segs[i];
+    const xa = tx(seg.cut / F), xb = tx(seg.sceneEnd / F);
+    ctx.fillStyle = SCENE_COLORS[i % SCENE_COLORS.length]; ctx.fillRect(xa, y0 + 2, xb - xa, y1 - y0 - 4);
+    if (sc.source.placeholder) { ctx.fillStyle = hatch; ctx.fillRect(xa, y0 + 2, xb - xa, y1 - y0 - 4); }
+    if (i === S.sel) { ctx.strokeStyle = "#ff9f43"; ctx.lineWidth = 2; ctx.strokeRect(xa + 1, y0 + 3, xb - xa - 2, y1 - y0 - 6); ctx.lineWidth = 1; }
+    ctx.save(); ctx.beginPath(); ctx.rect(xa + 4, y0, xb - xa - 8, y1 - y0); ctx.clip();
+    ctx.textAlign = "left"; ctx.fillStyle = "#fff"; ctx.font = "700 11px ui-monospace, Menlo, monospace"; ctx.fillText(sc.id, xa + 6, y0 + 13);
+    ctx.font = "10px ui-monospace, Menlo, monospace"; ctx.fillStyle = "#d8d2c8"; ctx.fillText(sc.title || "", xa + 6, y0 + 26);
+    ctx.fillStyle = sc.source.placeholder ? "#ffbe6b" : "#8fd694";
+    ctx.fillText((sc.source.placeholder ? "PLACEHOLDER · " : "RENDER · ") + sc.source.path.split("/").pop() + (sc.clones.on ? " · clones" : ""), xa + 6, y0 + 39);
+    ctx.restore();
+    if (hasRealRender(sc)) { ctx.fillStyle = "#8fd694"; ctx.beginPath(); ctx.arc(xb - 8, y0 + 9, 4, 0, 7); ctx.fill(); }
+    // dissolve wedge
+    if (seg.xIn > 0) {
+      const da = tx(seg.xStart / F), dbx = tx((seg.xStart + seg.xIn) / F);
+      ctx.fillStyle = "rgba(255,255,255,.18)"; ctx.beginPath(); ctx.moveTo(da, y1 - 2); ctx.lineTo(dbx, y0 + 2); ctx.lineTo(dbx, y1 - 2); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#cfc8bd"; ctx.textAlign = "center"; ctx.fillText(`×${seg.xIn}`, (da + dbx) / 2, y1 - 8);
+    }
+    if (i > 0) { // cut handle
+      const x = Math.round(xa) + 0.5, hot = TL.hover === i || (TL.drag && TL.drag.i === i);
+      ctx.strokeStyle = hot ? "#ff9f43" : "#000"; ctx.lineWidth = hot ? 3 : 2; ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke(); ctx.lineWidth = 1;
+    }
+  });
+  // lyrics
+  const [ly0, ly1] = L.lyrics;
+  S.timing.lines.forEach((line) => {
+    const sp = C.captionSpan(line, S.edl), xa = tx(sp.a / F), xb = tx(sp.b / F);
+    const approx = S.timing.approximate || /low|approx/.test(line.confidence || "");
+    ctx.fillStyle = approx ? "rgba(255,190,107,.10)" : "rgba(255,190,107,.22)"; ctx.fillRect(xa, ly0 + 2, xb - xa, ly1 - ly0 - 4);
+    ctx.strokeStyle = approx ? "rgba(255,190,107,.45)" : "rgba(255,190,107,.7)"; ctx.setLineDash(approx ? [3, 3] : []); ctx.strokeRect(xa + 0.5, ly0 + 2.5, xb - xa - 1, ly1 - ly0 - 5); ctx.setLineDash([]);
+    ctx.save(); ctx.beginPath(); ctx.rect(xa + 3, ly0, xb - xa - 6, ly1 - ly0); ctx.clip();
+    ctx.fillStyle = approx ? "#bfa27a" : "#ffd7a0"; ctx.font = "italic 11px Georgia, serif"; ctx.textAlign = "left"; ctx.fillText(line.text, xa + 4, (ly0 + ly1) / 2);
+    ctx.restore();
+  });
+  if (!S.timing.lines.length) { ctx.fillStyle = "#6c6760"; ctx.textAlign = "left"; ctx.fillText("no lyric lines", TL.pad + 4, (ly0 + ly1) / 2); }
+  // cues (hero-1 take)
+  const [cy0, cy1] = L.cues;
+  if (S.cues.length) S.cues.forEach((c) => {
+    const xa = tx(c.t + S.edl.sync_offset_s), xb = tx(c.t + S.edl.sync_offset_s + c.dur);
+    const isMove = c.kind === "move";
+    ctx.fillStyle = isMove ? "rgba(217,98,43,.5)" : "rgba(160,150,140,.22)"; ctx.fillRect(xa, cy0 + 3, Math.max(2, xb - xa), cy1 - cy0 - 6);
+    ctx.save(); ctx.beginPath(); ctx.rect(xa, cy0, Math.max(40, xb - xa + 60), cy1 - cy0); ctx.clip();
+    ctx.fillStyle = isMove ? "#ffd2b0" : "#a39d94"; ctx.textAlign = "left"; ctx.fillText(`${c.icon ? c.icon + " " : ""}${c.label}`, xa + 3, (cy0 + cy1) / 2);
+    ctx.restore();
+  });
+  else { ctx.fillStyle = "#4a4640"; ctx.textAlign = "left"; ctx.fillText("move cues appear here when shots/<song>.json has a hero-1 take", TL.pad + 4, (cy0 + cy1) / 2); }
+  // fx: letterbox ramps, flash, punch-ins, beat punches
+  const [fy0, fy1] = L.fx, g = S.edl.globals;
+  if (g.letterbox.on) {
+    ctx.strokeStyle = "#6c6760"; ctx.beginPath();
+    for (let k = 0; k <= 200; k++) { const t = (k / 200) * D, x = tx(t), y = fy1 - 3 - C.letterboxP(g, t, D) * (fy1 - fy0 - 8); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.stroke();
+    ctx.fillStyle = "#6c6760"; ctx.textAlign = "left"; ctx.fillText("2.39", tx(Math.min(D - 2, g.letterbox.wipe_in_s + g.letterbox.wipe_dur_s)) + 4, fy0 + 7);
+  }
+  S.plan.flashes.forEach((fl) => { const x = tx(fl.start / F); ctx.fillStyle = g.flash.color; ctx.beginPath(); ctx.moveTo(x, fy0 + 2); ctx.lineTo(x + 6, (fy0 + fy1) / 2); ctx.lineTo(x, fy1 - 2); ctx.lineTo(x - 6, (fy0 + fy1) / 2); ctx.fill(); ctx.fillStyle = "#ffd9a0"; ctx.fillText("flash", x + 8, (fy0 + fy1) / 2); });
+  S.edl.scenes.forEach((sc) => sc.punch_in_at.forEach((p) => { const x = tx(C.leadTime(p, S.edl)); ctx.fillStyle = "#ff9f43"; ctx.beginPath(); ctx.moveTo(x, fy0 + 3); ctx.lineTo(x + 5, fy1 - 3); ctx.lineTo(x - 5, fy1 - 3); ctx.fill(); ctx.fillText("punch", x + 7, fy1 - 6); }));
+  if (g.beat_punch.on) for (const b of bt) { const x = tx(b); ctx.fillStyle = "#d9622b"; ctx.fillRect(x - 1, fy0 + 3, 2, 4); }
+  // snap guide while dragging
+  if (TL.drag && TL.drag.snap != null) { const x = Math.round(tx(TL.drag.snap)) + 0.5; ctx.strokeStyle = "#ffbe6b"; ctx.setLineDash([2, 2]); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); ctx.setLineDash([]); }
+  // playhead
+  const ph = Math.round(tx(frameOf(curT()) / F)) + 0.5;
+  ctx.strokeStyle = "#ff9f43"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(ph, 0); ctx.lineTo(ph, H); ctx.stroke(); ctx.lineWidth = 1;
+  ctx.fillStyle = "#ff9f43"; ctx.beginPath(); ctx.moveTo(ph - 5, 0); ctx.lineTo(ph + 5, 0); ctx.lineTo(ph, 6); ctx.fill();
+  // lane labels
+  ctx.fillStyle = "#4a4640"; ctx.textAlign = "right"; ctx.font = "9px ui-monospace, Menlo, monospace";
+  [["lyrics", "LYRICS"], ["cues", "MOVES"], ["fx", "FX"]].forEach(([k, lbl]) => ctx.fillText(lbl, W - 4, L[k][0] + 7));
+}
+function hitBoundary(x, y) {
+  const [y0, y1] = TL.lanes.scenes;
+  if (y < y0 || y > y1) return null;
+  for (let i = 1; i < S.edl.scenes.length; i++) if (Math.abs(tx(S.plan.segs[i].cut / fps()) - x) <= 6) return i;
+  return null;
+}
+function sceneAt(t) { const f = frameOf(t); let i = S.plan.segs.length - 1; while (i > 0 && f < S.plan.segs[i].cut) i--; return i; }
+function showTip(x, y, text) { const tip = $("tip"); tip.style.display = "block"; tip.textContent = text; tip.style.left = Math.min(x + 12, tl.clientWidth - 160) + "px"; tip.style.top = Math.max(0, y - 22) + "px"; }
+function hideTip() { $("tip").style.display = "none"; }
+tl.addEventListener("pointerdown", (e) => {
+  if (!S.edl) return;
+  const r = tl.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  tl.setPointerCapture(e.pointerId);
+  const b = hitBoundary(x, y);
+  if (b != null) { TL.drag = { kind: "cut", i: b, snap: null, moved: false }; return; }
+  const [y0, y1] = TL.lanes.scenes;
+  if (y >= y0 && y <= y1) { TL.drag = { kind: "select", x0: x, i: sceneAt(tAt(x)) }; return; }
+  TL.drag = { kind: "scrub" };
+  scrubTo(tAt(x));
+});
+tl.addEventListener("pointermove", (e) => {
+  if (!S.edl) return;
+  const r = tl.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  const d = TL.drag;
+  if (!d) { const h = hitBoundary(x, y); if (h !== TL.hover) { TL.hover = h; drawTimeline(); } tl.style.cursor = h != null ? "col-resize" : "crosshair"; return; }
+  if (d.kind === "select" && Math.abs(x - d.x0) > 4) d.kind = "scrub";
+  if (d.kind === "scrub") { scrubTo(tAt(x)); return; }
+  if (d.kind === "cut") {
+    const sc = S.edl.scenes, i = d.i, lo = sc[i - 1].t0 + 0.5, hi = sc[i].t1 - 0.5;
+    let t = tAt(x), snapLabel = "free";
+    if (!e.shiftKey) {
+      const pool = e.altKey ? beatsV() : downbeatsV();
+      const cand = pool.filter((p) => p > lo && p < hi);
+      if (cand.length) { const near = cand.reduce((a, b) => (Math.abs(b - t) < Math.abs(a - t) ? b : a)); t = near; snapLabel = e.altKey ? "beat" : `bar ${downbeatsV().indexOf(near) + 1}`; }
+    } else t = Math.round(t * fps()) / fps();
+    t = C.clamp(t, lo, hi);
+    d.snap = snapLabel === "free" ? null : t;
+    if (Math.abs(t - sc[i].t0) > 1e-6) {
+      edit((edl) => { edl.scenes[i - 1].t1 = r4(t); edl.scenes[i].t0 = r4(t); }, { coalesce: `cut${i}-${d.startedAt || (d.startedAt = performance.now())}`, rebuild: false });
+      d.moved = true;
+    }
+    showTip(x, y, `${sc[i].id} cuts in at ${fmtS(t)} · frame ${C.leadFrame(t, fps(), S.edl.globals.cut_lead_frames, total())} · ${snapLabel}  (alt: beats, shift: free)`);
+    drawTimeline();
+  }
+});
+tl.addEventListener("pointerup", () => {
+  const d = TL.drag;
+  TL.drag = null; hideTip();
+  if (!d) return;
+  if (d.kind === "select") { S.sel = d.i; renderSide(); }
+  if (d.kind === "cut" && d.moved) { renderSide(); toast(`cut moved: ${S.edl.scenes[d.i].id} now starts at ${fmtS(S.edl.scenes[d.i].t0)}`); }
+  drawTimeline();
+});
+tl.addEventListener("pointerleave", () => { if (!TL.drag && TL.hover != null) { TL.hover = null; drawTimeline(); } });
+tl.addEventListener("dblclick", (e) => { const r = tl.getBoundingClientRect(), y = e.clientY - r.top; if (y >= TL.lanes.scenes[0] && y <= TL.lanes.scenes[1]) { const i = sceneAt(tAt(e.clientX - r.left)); seek(S.plan.segs[i].cut / fps()); } });
+function scrubTo(t) { const wasPlaying = S.playing; seek(t); if (wasPlaying) song.currentTime = Math.max(0, t - S.edl.sync_offset_s); drawTimeline(); }
+
+// ---------------------------------------------------------------------------------------------------------
+// inspector + globals
+// ---------------------------------------------------------------------------------------------------------
+function hasRealRender(sc) { const a = S.assets.find((x) => x.group === "scenes" && x.path.replace(/^.*\//, "").replace(/\.[^.]+$/, "") === sc.id); return a && a.path !== sc.source.path ? a : null; }
+function num(key, value, { step = 0.01, min = null, max = null, w = 78 } = {}) {
+  return `<input type="number" data-k="${key}" value="${value}" step="${step}"${min != null ? ` min="${min}"` : ""}${max != null ? ` max="${max}"` : ""} style="width:${w}px">`;
+}
+function check(key, on) { return `<input type="checkbox" data-k="${key}"${on ? " checked" : ""}>`; }
+function renderSide() {
+  if (!S.edl) return;
+  const active = document.activeElement, focusKey = active && active.dataset ? active.dataset.k : null;
+  renderInspector(); renderGlobals(); renderNotes();
+  $("undoBtn").disabled = !S.undo.length; $("redoBtn").disabled = !S.redo.length;
+  if (focusKey) { const el = document.querySelector(`[data-k="${focusKey}"]`); if (el) el.focus(); }
+}
+function renderInspector() {
+  const sc = S.edl.scenes[S.sel] || S.edl.scenes[0], i = S.edl.scenes.indexOf(sc), seg = S.plan.segs[i];
+  const a = assetFor(sc.source.path), real = hasRealRender(sc);
+  const bars = S.timing.downbeats.filter((d) => d + S.edl.sync_offset_s >= sc.t0 - 0.05 && d + S.edl.sync_offset_s < sc.t1 - 0.05).length;
+  const phCount = S.edl.scenes.filter((s) => s.source.placeholder).length;
+  const meta = a ? (a.kind === "video" ? `${a.duration_s}s · ${a.width}×${a.height} · ${a.fps}fps` : `still · ${a.width}×${a.height}`) : "not in the asset list";
+  const thumb = a ? `<img src="/thumb?path=${encodeURIComponent(sc.source.path)}&v=${a.mtime}" alt="">` : `<div class="noimg"></div>`;
+  const presets = Object.entries(S.presets.grade);
+  $("inspector").innerHTML = `
+    <h2>SCENE ${i + 1}/${S.edl.scenes.length} ${sc.source.placeholder ? '<span class="badge-ph">PLACEHOLDER</span>' : '<span class="badge-real">REAL RENDER</span>'}</h2>
+    <div class="row" style="gap:6px">${S.edl.scenes.map((s, k) => `<button data-sel="${k}" style="${k === i ? "border-color:var(--amber);color:#fff" : ""}">${esc(s.id)}</button>`).join("")}</div>
+    <div class="scene-title">${esc(sc.title)}</div>
+    <div class="hint">${fmtS(sc.t0)} → ${fmtS(sc.t1)} · ${(sc.t1 - sc.t0).toFixed(2)}s · ~${bars} bar${bars === 1 ? "" : "s"} · frames ${seg.cut}–${seg.sceneEnd - 1}</div>
+    ${real ? `<div class="callout">A real render landed: <b>${esc(real.path)}</b> <button data-act="use-real">use it</button></div>` : ""}
+    ${phCount ? `<div class="hint" style="margin-top:4px">${phCount}/${S.edl.scenes.length} scenes are placeholders. Real renders show up when they land in outputs/scenes/&lt;scene&gt;.mp4.</div>` : ""}
+    <h3>SOURCE</h3>
+    <div class="src">${thumb}<div><div class="path">${esc(sc.source.path)}</div><div class="hint">${esc(meta)}</div><div class="row"><button data-act="pick">change source…</button></div></div></div>
+    <div class="row"><label>in_s</label>${num("source.in_s", sc.source.in_s, { step: 1 / 24, min: 0 })}<span class="hint">source second at t0</span></div>
+    <div class="row"><label>rate</label>${num("source.rate", sc.source.rate, { step: 0.05, min: 0.1, max: 4 })}
+      <button data-rate="0.5">½×</button><button data-rate="1">1×</button><button data-rate="2">2×</button></div>
+    <div class="row"><label>past the end</label><div class="seg"><button data-loop="loop" class="${sc.source.loop === "loop" ? "on" : ""}">loop</button><button data-loop="hold" class="${sc.source.loop === "hold" ? "on" : ""}">hold</button></div>
+      ${a && a.kind === "video" ? `<span class="hint">${(((sc.t1 - sc.t0) * sc.source.rate) + sc.source.in_s > a.duration_s) ? "the scene outlasts the clip" : "the clip covers the scene"}</span>` : ""}</div>
+    <h3>CAMERA (POST)</h3>
+    <div class="row"><label>move</label><select data-k="camera_post.fx">${["slow_push", "drift", "none"].map((v) => `<option${sc.camera_post.fx === v ? " selected" : ""}>${v}</option>`).join("")}</select></div>
+    <div class="row"><label>scale</label>${num("camera_post.from", sc.camera_post.from, { step: 0.01, min: 1, max: 3, w: 64 })} → ${num("camera_post.to", sc.camera_post.to, { step: 0.01, min: 1, max: 3, w: 64 })}</div>
+    <div class="row"><label>punch-ins</label><div class="chips">${sc.punch_in_at.map((p, k) => `<span class="tchip">${fmtS(p)}<button data-punch-del="${k}" title="remove">×</button></span>`).join("") || '<span class="hint">none</span>'}</div></div>
+    <div class="row"><label></label><button data-act="punch">+ punch-in at playhead beat</button></div>
+    <h3>TRANSITION IN</h3>
+    <div class="row"><label>type</label><div class="seg"><button data-tr="cut" class="${sc.transition_in.type === "cut" ? "on" : ""}">cut</button><button data-tr="dissolve" class="${sc.transition_in.type === "dissolve" ? "on" : ""}">dissolve</button></div>
+      ${sc.transition_in.type === "dissolve" ? num("transition_in.frames", sc.transition_in.frames, { step: 1, min: 1, max: 48, w: 56 }) + '<span class="hint">frames</span>' : ""}</div>
+    ${i === 0 && sc.transition_in.type === "dissolve" ? '<div class="hint">into the first scene = a fade up from black</div>' : ""}
+    ${seg.xIn !== (sc.transition_in.type === "dissolve" ? sc.transition_in.frames : 0) ? `<div class="hint">clamped to ${seg.xIn} frames (the scenes are short)</div>` : ""}
+    <h3>LOOK</h3>
+    <div class="row"><label>clones</label>${check("clones.on", sc.clones.on)}<span class="hint">triptych: girl group of me</span></div>
+    <div class="row"><label>grade</label><select data-k="grade_override"><option value=""${sc.grade_override == null ? " selected" : ""}>(global: ${esc(S.edl.globals.grade.on ? S.edl.globals.grade.preset : "off")})</option>${presets.map(([k, g]) => `<option value="${k}"${sc.grade_override === k ? " selected" : ""}>${esc(g.label || k)}</option>`).join("")}</select></div>
+    <div class="row"><label>title</label><input type="text" data-k="title" value="${esc(sc.title)}" style="flex:1"></div>
+    ${sc.note ? `<div class="note">${esc(sc.note)}</div>` : ""}`;
+}
+function renderGlobals() {
+  const g = S.edl.globals, presets = Object.entries(S.presets.grade);
+  const lastBeat = [...beatsV()].filter((b) => b < S.edl.duration_s - 0.05).pop();
+  $("globals").innerHTML = `
+    <h2>GLOBALS</h2>
+    <h3>LETTERBOX ${check("g.letterbox.on", g.letterbox.on)}</h3>
+    <div class="row"><label>ratio</label>${num("g.letterbox.ratio", g.letterbox.ratio, { step: 0.01, min: 1, max: 4, w: 64 })}<span class="hint">bars ${S.plan.barH}px</span></div>
+    <div class="row"><label>wipe in at</label>${num("g.letterbox.wipe_in_s", g.letterbox.wipe_in_s, { step: 0.05, min: 0 })}<label style="width:auto;color:var(--dim)">over</label>${num("g.letterbox.wipe_dur_s", g.letterbox.wipe_dur_s, { step: 0.05, min: 0, max: 10, w: 60 })}</div>
+    <div class="row"><label>wipe out at</label>${num("g.letterbox.wipe_out_s", g.letterbox.wipe_out_s, { step: 0.05, min: 0 })}${lastBeat != null ? `<button data-act="lastbeat" title="${fmtS(lastBeat)}">last beat</button>` : ""}</div>
+    <h3>CAPTIONS ${check("g.captions.on", g.captions.on)}</h3>
+    <div class="row"><label>height</label><input type="range" data-k="g.captions.y" min="0.5" max="0.98" step="0.005" value="${g.captions.y}"><span class="hint">${(g.captions.y * 100).toFixed(1)}%</span></div>
+    <div class="row"><label>size</label>${num("g.captions.size", g.captions.size, { step: 1, min: 10, max: 120, w: 60 })}<label style="width:auto;color:var(--dim)">color</label><input type="color" data-k="g.captions.color" value="${g.captions.color}"></div>
+    <h3>GRADE ${check("g.grade.on", g.grade.on)}</h3>
+    <div class="row"><label>preset</label><select data-k="g.grade.preset">${presets.filter(([k]) => k !== "none").map(([k, p]) => `<option value="${k}"${g.grade.preset === k ? " selected" : ""}>${esc(p.label || k)}</option>`).join("")}</select></div>
+    <h3>FLASH ${check("g.flash.on", g.flash.on)}</h3>
+    <div class="row"><label>at</label><div class="chips">${g.flash.at.map((t, k) => `<span class="tchip">${fmtS(t)}<button data-flash-del="${k}" title="remove">×</button></span>`).join("") || '<span class="hint">none</span>'}</div></div>
+    <div class="row"><label></label><button data-act="flash-add">+ at playhead downbeat</button></div>
+    <div class="row"><label>frames</label>${num("g.flash.frames", g.flash.frames, { step: 1, min: 1, max: 24, w: 56 })}<label style="width:auto;color:var(--dim)">opacity</label>${num("g.flash.opacity", g.flash.opacity, { step: 0.05, min: 0, max: 1, w: 60 })}<input type="color" data-k="g.flash.color" value="${g.flash.color}"></div>
+    <h3>BEAT PUNCH ${check("g.beat_punch.on", g.beat_punch.on)}</h3>
+    <div class="row"><label>amount</label>${num("g.beat_punch.amount", g.beat_punch.amount, { step: 0.01, min: 0, max: 0.5, w: 64 })}<span class="hint">zoom bump on every beat</span></div>
+    <div class="row"><label>punch-in</label>${num("g.punch.amount", g.punch.amount, { step: 0.01, min: 0, max: 1, w: 64 })}<label style="width:auto;color:var(--dim)">decay</label>${num("g.punch.decay_s", g.punch.decay_s, { step: 0.05, min: 0.05, max: 5, w: 60 })}</div>
+    <h3>SYNC + CUTS</h3>
+    <div class="row"><label>audio offset</label>${num("sync_offset_s", S.edl.sync_offset_s, { step: 1 / 24, min: -5, max: 5 })}<span class="hint">+ = song later</span></div>
+    <div class="row"><label>cut lead</label>${num("g.cut_lead_frames", g.cut_lead_frames, { step: 1, min: 0, max: 3, w: 56 })}<span class="hint">frames before the downbeat</span></div>
+    <div class="row" style="margin-top:12px"><button data-act="reseed" title="Replace the edit with the canonical seed (undoable)">start over from the seed</button></div>`;
+}
+// One delegated handler for every inspector/global control.
+function setPath(obj, path, val) { const ks = path.split("."); let o = obj; for (const k of ks.slice(0, -1)) o = o[k]; o[ks[ks.length - 1]] = val; }
+function onControl(e) {
+  const el = e.target;
+  const k = el.dataset && el.dataset.k;
+  if (!k) return;
+  const isG = k.startsWith("g."), path = isG ? k.slice(2) : k;
+  let val;
+  if (el.type === "checkbox") val = el.checked;
+  else if (el.type === "number" || el.type === "range") { val = Number(el.value); if (!Number.isFinite(val)) return; const mn = el.min !== "" ? Number(el.min) : -Infinity, mx = el.max !== "" ? Number(el.max) : Infinity; val = r4(C.clamp(val, mn, mx)); }
+  else val = el.value;
+  if (k === "grade_override" && val === "") val = null;
+  if (k === "transition_in.frames" || k === "g.flash.frames" || k === "g.cut_lead_frames" || k === "g.captions.size") val = Math.round(val);
+  const live = e.type === "input";
+  edit((edl) => {
+    if (isG) setPath(edl.globals, path, val);
+    else if (path === "sync_offset_s") edl.sync_offset_s = val;
+    else setPath(edl.scenes[S.sel], path, val);
+    if (k === "camera_post.fx" && val !== "none") { const cp = edl.scenes[S.sel].camera_post; if (cp.from === 1 && cp.to === 1) cp.to = 1.08; }
+  }, { coalesce: live ? `ctl:${k}` : null, rebuild: !live });
+  if (k === "source.loop") ensureMedia(S.edl.scenes[S.sel]);
+}
+function onClick(e) {
+  const b = e.target.closest("button");
+  if (!b || !S.edl) return;
+  const d = b.dataset, sc = S.edl.scenes[S.sel];
+  if (d.sel != null) { S.sel = Number(d.sel); renderSide(); drawTimeline(); return; }
+  if (d.rate) return edit((edl) => { edl.scenes[S.sel].source.rate = Number(d.rate); });
+  if (d.loop) return edit((edl) => { edl.scenes[S.sel].source.loop = d.loop; });
+  if (d.tr) return edit((edl) => { const t = edl.scenes[S.sel].transition_in; t.type = d.tr; if (d.tr === "dissolve" && !t.frames) t.frames = 10; if (d.tr === "cut") t.frames = 0; });
+  if (d.punchDel != null) return edit((edl) => { edl.scenes[S.sel].punch_in_at.splice(Number(d.punchDel), 1); });
+  if (d.flashDel != null) return edit((edl) => { edl.globals.flash.at.splice(Number(d.flashDel), 1); });
+  switch (d.act) {
+    case "pick": return openPicker();
+    case "use-real": { const a = hasRealRender(sc); if (a) applySource(a); return; }
+    case "punch": {
+      const t = curT(), pool = beatsV().filter((p) => p >= sc.t0 && p < sc.t1);
+      const at = pool.length ? pool.reduce((a, b) => (Math.abs(b - t) < Math.abs(a - t) ? b : a)) : C.clamp(t, sc.t0, sc.t1 - 1 / fps());
+      if (sc.punch_in_at.some((p) => Math.abs(p - at) < 1e-3)) return toast("there's already a punch-in on that beat");
+      edit((edl) => { edl.scenes[S.sel].punch_in_at.push(r4(at)); });
+      return toast(`punch-in at ${fmtS(at)}${pool.length ? " (nearest beat)" : ""}`);
+    }
+    case "flash-add": {
+      const t = curT(), pool = downbeatsV();
+      const at = pool.length ? pool.reduce((a, b) => (Math.abs(b - t) < Math.abs(a - t) ? b : a)) : t;
+      if (S.edl.globals.flash.at.some((p) => Math.abs(p - at) < 1e-3)) return toast("there's already a flash on that downbeat");
+      edit((edl) => { edl.globals.flash.at.push(r4(at)); });
+      return toast(`flash at ${fmtS(at)}`);
+    }
+    case "lastbeat": { const lb = [...beatsV()].filter((b) => b < S.edl.duration_s - 0.05).pop(); if (lb != null) edit((edl) => { edl.globals.letterbox.wipe_out_s = r4(lb); }); return; }
+    case "reseed": {
+      if (!confirm("Replace the whole edit with the canonical seed? (Undo brings it back.)")) return;
+      return getJSON("/edl/seed").then((r) => { if (r.ok) { edit((edl) => { Object.assign(edl, r.body); }); S.sel = 0; renderSide(); toast("seed loaded"); } else toast("seed failed"); });
+    }
+  }
+}
+for (const id of ["inspector", "globals"]) {
+  $(id).addEventListener("change", onControl);
+  $(id).addEventListener("input", (e) => { if (e.target.type === "range" || e.target.type === "color") onControl(e); });
+  $(id).addEventListener("click", onClick);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// source picker
+// ---------------------------------------------------------------------------------------------------------
+const GROUP_LABEL = { scenes: "SCENES · real renders (outputs/scenes)", previs: "PREVIS", lipsync: "LIPSYNC TESTS", restyles: "RESTYLES", looks: "LOOKS · stills", clips: "CLIPS · raw takes" };
+function openPicker() {
+  const sc = S.edl.scenes[S.sel];
+  $("pickerTitle").textContent = `SOURCE FOR ${sc.id.toUpperCase()}`;
+  $("pickerHint").textContent = `${fmtS(sc.t0)} → ${fmtS(sc.t1)} · song-aligned clips get their in_s set for you`;
+  const groups = {};
+  for (const a of S.assets) (groups[a.group] = groups[a.group] || []).push(a);
+  const order = ["scenes", "previs", "lipsync", "restyles", "looks", "clips"];
+  $("pickerGrid").innerHTML = order.filter((g) => groups[g]).map((g) => `<h4>${GROUP_LABEL[g] || g}</h4><div class="tiles">${groups[g].map((a) => `
+      <button class="tile${a.path === sc.source.path ? " cur" : ""}" data-path="${esc(a.path)}">
+        <img loading="lazy" src="/thumb?path=${encodeURIComponent(a.path)}&v=${a.mtime}" alt="">
+        <div class="nm">${esc(a.label)}</div>
+        <div class="mt">${a.kind === "video" ? `${a.duration_s}s · ${a.width}×${a.height}` : `still · ${a.width}×${a.height}`}${a.song_t0_s != null ? ` · song@${a.song_t0_s}s` : ""}${a.placeholder ? "" : " · REAL"}</div>
+      </button>`).join("")}</div>`).join("") || '<div class="hint">No assets found in outputs/, clips/ or reference-master/.</div>';
+  $("picker").style.display = "block";
+}
+function closePicker() { $("picker").style.display = "none"; }
+function applySource(a) {
+  const sc = S.edl.scenes[S.sel];
+  let inS = 0, why = "";
+  if (a.song_t0_s != null) { inS = Math.max(0, r4(sc.t0 - a.song_t0_s)); why = ` · in_s ${fmtS(inS)} keeps it on the song`; }
+  const needs = (sc.t1 - sc.t0) + inS;
+  const loop = a.kind === "video" && a.duration_s < needs ? "loop" : "hold";
+  edit((edl) => { const s = edl.scenes[S.sel]; s.source = { path: a.path, in_s: inS, rate: 1, placeholder: !!a.placeholder, loop }; });
+  ensureMedia(S.edl.scenes[S.sel]);
+  closePicker();
+  toast(`${sc.id} ← ${a.label}${why}${a.placeholder ? "" : " · real render"}`);
+}
+$("pickerGrid").addEventListener("click", (e) => { const t = e.target.closest(".tile"); if (!t) return; const a = assetFor(t.dataset.path); if (a) applySource(a); });
+$("pickerClose").addEventListener("click", closePicker);
+$("pickerRefresh").addEventListener("click", async () => { await refreshAssets(); openPicker(); });
+$("picker").addEventListener("click", (e) => { if (e.target.id === "picker") closePicker(); });
+
+// ---------------------------------------------------------------------------------------------------------
+// render final
+// ---------------------------------------------------------------------------------------------------------
+async function renderFinal() {
+  if (S.rendering || !S.edl) return;
+  pause();
+  if (!(await save())) return toast("fix the save error before rendering", 4000);
+  S.rendering = true;
+  $("renderBtn").disabled = true; $("renderBtn").textContent = "Rendering…";
+  setMode("live");
+  const ov = $("renderOverlay"), log = $("renderLog"), bar = $("renderBar");
+  ov.style.display = "flex"; log.textContent = ""; bar.style.width = "2%";
+  const lines = [];
+  const push = (l) => { lines.push(l); log.textContent = lines.slice(-9).join("\n"); };
+  const renderedJSON = JSON.stringify(S.edl);
+  let receipt = null, code = null;
+  try {
+    const res = await fetch("/render", { method: "POST" });
+    if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error || res.status); }
+    const reader = res.body.getReader(), dec = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let k;
+      while ((k = buf.indexOf("\n")) >= 0) {
+        const raw = buf.slice(0, k); buf = buf.slice(k + 1);
+        if (!raw.trim()) continue;
+        let m; try { m = JSON.parse(raw); } catch { continue; }
+        if (m.type === "progress") { bar.style.width = Math.round(m.p * 100) + "%"; push(`${Math.round(m.p * 100)}% ${m.label}`); }
+        else if (m.type === "log") push(m.line);
+        else if (m.type === "receipt") receipt = m.receipt;
+        else if (m.type === "done") { code = m.code; receipt = receipt || m.receipt; }
+      }
+    }
+    if (code !== 0 || !receipt) throw new Error(lines.filter((l) => /ERROR|failed|rejected/i.test(l)).slice(-3).join(" · ") || `stitch exited ${code}`);
+    S.receipt = receipt; S.renderedJSON = renderedJSON; S.finalVersion = Date.now();
+    $("modeRendered").disabled = false;
+    ov.style.display = "none";
+    showReceipt();
+    setMode("rendered");
+    $("finalVideo").play().catch(() => {});
+    toast("rendered ✓ outputs/final.mp4");
+  } catch (e) {
+    push("✗ " + (e.message || e));
+    bar.style.width = "100%"; bar.style.background = "var(--bad)";
+    setTimeout(() => { ov.style.display = "none"; bar.style.background = ""; }, 6000);
+    toast("render failed: " + (e.message || e), 8000);
+  } finally {
+    S.rendering = false;
+    $("renderBtn").disabled = false; $("renderBtn").textContent = "Render final";
+  }
+}
+function showReceipt() {
+  const r = S.receipt, el = $("receiptBar");
+  if (!r) { el.style.display = "none"; return; }
+  const okDur = Math.abs(r.duration_s - S.edl.duration_s) <= 0.1;
+  el.style.display = "flex";
+  el.innerHTML = `<span class="chip ${okDur ? "ok" : "bad"}">${r.duration_s}s</span><span class="chip ok">${r.fps} fps</span><span class="chip ok">${r.width}×${r.height}</span>
+    <span class="chip ${r.has_audio ? "ok" : "bad"}">audio ${r.has_audio ? "✓" : "✗"}</span><span class="chip">${(r.bytes / 1e6).toFixed(2)} MB</span><span class="chip">${r.frames} frames</span>
+    <span class="chip">captions: ${esc(r.captions)}</span><span class="chip">md5 ${esc(r.md5.slice(0, 8))}</span><span class="chip">${r.elapsed_s}s</span>
+    <span id="staleChip" class="chip warn" style="display:none">the edit changed since this render</span>
+    <a href="/final?download=1">download final.mp4</a>${r.warnings && r.warnings.length ? `<span class="hint">⚠ ${esc(r.warnings.join(" · "))}</span>` : ""}`;
+  updateRenderedStale();
+}
+function updateRenderedStale() { const c = document.getElementById("staleChip"); if (c) c.style.display = S.renderedJSON && JSON.stringify(S.edl) !== S.renderedJSON ? "inline-block" : "none"; }
+function setMode(mode) {
+  S.mode = mode;
+  $("modeLive").classList.toggle("on", mode === "live");
+  $("modeRendered").classList.toggle("on", mode === "rendered");
+  const fv = $("finalVideo");
+  if (mode === "rendered") {
+    pause();
+    fv.style.display = "block";
+    const want = `/final?v=${S.finalVersion}`;
+    if (!fv.src.endsWith(want)) { fv.src = want; fv.currentTime = curT(); }
+    $("phBadge").style.display = "none";
+  } else {
+    fv.pause(); fv.style.display = "none"; dirty = true;
+  }
+}
+$("modeLive").addEventListener("click", () => setMode("live"));
+$("modeRendered").addEventListener("click", () => { if (!$("modeRendered").disabled) setMode("rendered"); });
+$("renderBtn").addEventListener("click", renderFinal);
+$("playBtn").addEventListener("click", () => (S.playing ? pause() : play()));
+$("undoBtn").addEventListener("click", undo);
+$("redoBtn").addEventListener("click", redo);
+
+// ---------------------------------------------------------------------------------------------------------
+// keys
+// ---------------------------------------------------------------------------------------------------------
+window.addEventListener("keydown", (e) => {
+  if (!S.edl) return;
+  if (e.key === "Escape") { closePicker(); return; }
+  const mod = e.metaKey || e.ctrlKey;
+  if (mod && (e.key === "z" || e.key === "Z")) { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if (mod && (e.key === "y" || e.key === "Y")) { e.preventDefault(); redo(); return; }
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (tag === "input" || tag === "select" || tag === "textarea" || e.target.isContentEditable) return;
+  if ($("picker").style.display === "block") return;
+  if (e.key === " ") { e.preventDefault(); S.playing ? pause() : play(); }
+  else if (e.key === "j" || e.key === "J") jumpBar(-1);
+  else if (e.key === "l" || e.key === "L") jumpBar(1);
+  else if (e.key === "k" || e.key === "K") pause();
+  else if (e.key === "ArrowLeft") { e.preventDefault(); stepFrame(-1); }
+  else if (e.key === "ArrowRight") { e.preventDefault(); stepFrame(1); }
+  else if (e.key === "Home") { seek(0); }
+  else if (e.key === "End") { seek(S.edl.duration_s); }
+});
+let toastTimer = 0;
+function toast(msg, ms = 2200) { const t = $("toast"); t.textContent = msg; t.style.display = "block"; clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.style.display = "none"), ms); }
+window.addEventListener("focus", () => { if (S.edl) refreshAssets(); });
+setInterval(() => { if (S.edl && !document.hidden && !S.rendering) refreshAssets(); }, 15000);
+
+boot().catch((e) => { console.error(e); $("stageMsg").style.display = "block"; $("stageMsg").textContent = "boot failed: " + e.message; });
+</script>
+</body>
+</html>

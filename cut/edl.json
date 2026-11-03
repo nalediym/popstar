@@ -1,0 +1,169 @@
+{
+  "version": 1,
+  "song": "songs/in-the-loop-devagar.mp3",
+  "duration_s": 32,
+  "fps": 24,
+  "size": [
+    1280,
+    720
+  ],
+  "sync_offset_s": 0,
+  "globals": {
+    "cut_lead_frames": 1,
+    "letterbox": {
+      "on": true,
+      "ratio": 2.39,
+      "wipe_in_s": 0,
+      "wipe_out_s": 31.048,
+      "wipe_dur_s": 1
+    },
+    "captions": {
+      "on": true,
+      "y": 0.935,
+      "size": 34,
+      "color": "#ffbe6b"
+    },
+    "grade": {
+      "preset": "amber_soft",
+      "on": true
+    },
+    "flash": {
+      "on": true,
+      "at": [
+        17.34
+      ],
+      "frames": 2,
+      "color": "#ffd9a0",
+      "opacity": 0.85
+    },
+    "beat_punch": {
+      "on": false,
+      "amount": 0.04,
+      "decay_s": 0.15
+    },
+    "punch": {
+      "amount": 0.1,
+      "decay_s": 0.35
+    }
+  },
+  "scenes": [
+    {
+      "id": "s1-intro",
+      "title": "Intro: couch at night",
+      "t0": 0,
+      "t1": 6.9,
+      "source": {
+        "path": "reference-master/tests/wardrobe_chorus-stage.png",
+        "in_s": 0,
+        "rate": 1,
+        "placeholder": true,
+        "loop": "hold"
+      },
+      "camera_post": {
+        "fx": "slow_push",
+        "from": 1,
+        "to": 1.08
+      },
+      "punch_in_at": [],
+      "transition_in": {
+        "type": "cut",
+        "frames": 0
+      },
+      "clones": {
+        "on": false,
+        "mode": "triptych"
+      },
+      "grade_override": null,
+      "note": "Look still (chorus-stage wardrobe) until outputs/scenes/s1-intro.mp4 lands. The letterbox wipes in over it."
+    },
+    {
+      "id": "s2-verse",
+      "title": "Verse: living room, laptop glow",
+      "t0": 6.9,
+      "t1": 17.34,
+      "source": {
+        "path": "outputs/chunk-02_claymation_pose.mp4",
+        "in_s": 0,
+        "rate": 0.5,
+        "placeholder": true,
+        "loop": "loop"
+      },
+      "camera_post": {
+        "fx": "drift",
+        "from": 1.04,
+        "to": 1.08
+      },
+      "punch_in_at": [],
+      "transition_in": {
+        "type": "dissolve",
+        "frames": 10
+      },
+      "clones": {
+        "on": false,
+        "mode": "triptych"
+      },
+      "grade_override": null,
+      "note": "3 s claymation restyle at half speed, looping. Stand-in for the handheld float."
+    },
+    {
+      "id": "s3-chorus",
+      "title": "Chorus lift: the glow-up",
+      "t0": 17.34,
+      "t1": 25.16,
+      "source": {
+        "path": "outputs/chorus_lipsync_ia2v.mp4",
+        "in_s": 0.34,
+        "rate": 1,
+        "placeholder": true,
+        "loop": "hold"
+      },
+      "camera_post": {
+        "fx": "slow_push",
+        "from": 1,
+        "to": 1.12
+      },
+      "punch_in_at": [
+        22.56
+      ],
+      "transition_in": {
+        "type": "cut",
+        "frames": 0
+      },
+      "clones": {
+        "on": false,
+        "mode": "triptych"
+      },
+      "grade_override": null,
+      "note": "ia2v lipsync of the song's 17-25 s window: in_s = t0 - 17.0 keeps her mouth on the song. Hard cut plus the warm flash."
+    },
+    {
+      "id": "s4-harmony",
+      "title": "Harmonies: girl group of me",
+      "t0": 25.16,
+      "t1": 32,
+      "source": {
+        "path": "outputs/chorus_lipsync_infinitetalk.mp4",
+        "in_s": 0,
+        "rate": 1,
+        "placeholder": true,
+        "loop": "hold"
+      },
+      "camera_post": {
+        "fx": "drift",
+        "from": 1.06,
+        "to": 1.1
+      },
+      "punch_in_at": [],
+      "transition_in": {
+        "type": "dissolve",
+        "frames": 10
+      },
+      "clones": {
+        "on": true,
+        "mode": "triptych"
+      },
+      "grade_override": null,
+      "note": "infinitetalk lipsync (17-25 s window, so the mouth is not on these lines yet), as an ffmpeg triptych."
+    }
+  ]
+}
