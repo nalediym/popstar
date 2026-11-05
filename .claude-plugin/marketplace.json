@@ -1,0 +1,12 @@
+{
+  "name": "popstar-market",
+  "description": "The popstar music-video pipeline, packaged as a Claude Code plugin.",
+  "owner": { "name": "Naledi" },
+  "plugins": [
+    {
+      "name": "popstar",
+      "source": "./plugins/popstar",
+      "description": "Make anyone a pop star in a '90s R&B music video: the director, looks and pipeline skills, the popstar CLI, the pinned open-weights Comfy Cloud graphs and a render-verify workflow."
+    }
+  ]
+}

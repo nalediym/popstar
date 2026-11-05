@@ -25,8 +25,37 @@ export type Manifest = {
 export const MANIFEST_FILE = "popstar.json";
 export const DEFAULT_SLUG = "in-the-loop-devagar";
 
-/** The repo root: tools/popstar/ -> tools/ -> root. POPSTAR_ROOT overrides it (bundles, tests). */
-export const REPO_ROOT = process.env.POPSTAR_ROOT ? resolve(process.env.POPSTAR_ROOT) : resolve(import.meta.dir, "..", "..");
+/** Where this copy of the tools lives (tools/popstar/ -> tools/ -> here): the repo root, or the plugin root when the
+ *  tools run from the popstar Claude Code plugin (plugins/popstar/). Bundled files live here; project data never does. */
+export const BUNDLE_ROOT = resolve(import.meta.dir, "..", "..");
+
+/** The nearest directory at or above `from` that holds popstar.json, else null. */
+export function findProjectRoot(from: string): string | null {
+  let dir = resolve(from);
+  for (;;) {
+    if (existsSync(join(dir, MANIFEST_FILE))) return dir;
+    const up = dirname(dir);
+    if (up === dir) return null;
+    dir = up;
+  }
+}
+
+/** The project root: the directory that holds popstar.json and the song, shots, looks, clips and outputs (R3).
+ *  In order: `explicit` (--project), POPSTAR_ROOT, the nearest popstar.json at or above the working directory, the
+ *  bundle root when it is itself a project (a checkout of the repo), else the working directory. `preferCwd` skips
+ *  the bundle fallback so that `popstar new` creates the project where it is run, never inside the repo or plugin. */
+export function resolveRoot(explicit?: string, preferCwd = false): string {
+  if (explicit) return resolve(explicit);
+  if (process.env.POPSTAR_ROOT) return resolve(process.env.POPSTAR_ROOT);
+  const cwd = process.cwd();
+  const found = findProjectRoot(cwd);
+  if (found) return found;
+  if (!preferCwd && existsSync(join(BUNDLE_ROOT, MANIFEST_FILE))) return BUNDLE_ROOT;
+  return cwd;
+}
+
+/** The project root for this process (resolveRoot with no overrides), for callers that want a constant. */
+export const REPO_ROOT = resolveRoot();
 
 export const IDENTITY_LOCK_DEFAULT =
   "a young Black woman with rich deep brown skin, warm undertones and a luminous dewy sheen, copper-red hair pulled back, small white earbuds";
