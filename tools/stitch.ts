@@ -656,14 +656,73 @@ function segmentJob(edl: Edl, plan: Plan, seg: SegPlan, src: Probed, beats: numb
   return { args, graph: graph.join(";"), len, preset };
 }
 
-function captionPng(text: string, size: number, color: string, W: number, boxH: number, font: string, out: string) {
-  const fitted = Math.max(10, Math.min(size, Math.floor((W * CAPTION_STYLE.max_width) / Math.max(1, text.length * CAPTION_STYLE.char_w))));
+/** Caption strips, one transparent PNG per lyric line, cached in build/cut/captions/ by content hash. The page draws
+ *  the same text with CSS from the same numbers (CAPTION_STYLE + globals.captions), so preview and render match.
+ *  Renderer: Pillow (system python3, else `uv run --with pillow`), falling back to ImageMagick. */
+const CAPTION_PY = String.raw`# Director's Cut caption strips: {text,size,color,w,h,font,shadow,out}[] -> transparent PNGs.
+import json, os, sys
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
+spec = json.load(open(sys.argv[1]))
+for c in spec["lines"]:
+    W, H, sh = c["w"], c["h"], c["shadow"]
+    font = ImageFont.truetype(c["font"], c["size"])
+    img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    shadow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).text((W / 2, H / 2 + sh["dy"]), c["text"], font=font, fill=(0, 0, 0, round(255 * sh["opacity"])), anchor="mm")
+    img.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(sh["sigma"])))
+    ImageDraw.Draw(img).text((W / 2, H / 2), c["text"], font=font, fill=c["color"], anchor="mm")
+    img.save(c["out"] + ".tmp.png", "PNG")
+    os.replace(c["out"] + ".tmp.png", c["out"])
+print(len(spec["lines"]))
+`;
+export const CAPTION_CACHE = join(ROOT, "build", "cut", "captions");
+
+/** Fitted font px for a line: long lines shrink (same estimate as the page's captionPx). */
+const fitCaption = (text: string, size: number, W: number) =>
+  Math.max(10, Math.min(size, Math.floor((W * CAPTION_STYLE.max_width) / Math.max(1, text.length * CAPTION_STYLE.char_w))));
+
+function captionMagick(text: string, size: number, color: string, W: number, boxH: number, font: string, out: string) {
   // ImageMagick treats % as an escape and a leading @ as "read a file". Neutralize both.
   const safe = text.replace(/\\/g, "\\\\").replace(/%/g, "%%").replace(/^@/, "\\@");
   const sh = CAPTION_STYLE.shadow;
-  return ["magick", "-size", `${W}x${boxH}`, "xc:none", "-font", font, "-pointsize", String(fitted), "-gravity", "center",
+  return ["magick", "-size", `${W}x${boxH}`, "xc:none", "-font", font, "-pointsize", String(size), "-gravity", "center",
     "(", "+clone", "-fill", `rgba(0,0,0,${sh.opacity})`, "-annotate", `+0+${sh.dy}`, safe, "-blur", `0x${sh.sigma}`, ")",
     "-composite", "-fill", color, "-annotate", "+0+0", safe, `PNG32:${out}`];
+}
+
+type Cap = { text: string; a: number; b: number; png?: string };
+/** Renders the missing strips. Returns the renderer used ("pillow" | "magick"), or throws with every failure listed. */
+async function renderCaptionPngs(caps: Cap[], size: number, color: string, W: number, boxH: number, font: string, scratch: string,
+  log: (l: string) => void): Promise<"pillow" | "magick"> {
+  mkdirSync(CAPTION_CACHE, { recursive: true });
+  const style = JSON.stringify(CAPTION_STYLE.shadow);
+  const lines = caps.map((c) => {
+    const fitted = fitCaption(c.text, size, W);
+    const key = new Bun.CryptoHasher("sha1").update([c.text, fitted, color, W, boxH, font, style, "v1"].join("|")).digest("hex").slice(0, 20);
+    c.png = join(CAPTION_CACHE, `${key}.png`);
+    return { text: c.text, size: fitted, color, w: W, h: boxH, font, shadow: CAPTION_STYLE.shadow, out: c.png };
+  }).filter((l) => !existsSync(l.out));
+  if (!lines.length) return "pillow";
+  const failures: string[] = [];
+  const script = join(scratch, "captions.py"), spec = join(scratch, "captions.json");
+  await Bun.write(script, CAPTION_PY);
+  await Bun.write(spec, JSON.stringify({ lines }));
+  const attempts: string[][] = [];
+  if (has("python3")) attempts.push(["python3", "-I", script, spec]);
+  if (has("uv")) attempts.push(["uv", "run", "--quiet", "--python", "3.12", "--with", "pillow", "python", "-I", script, spec]);
+  for (const cmd of attempts) {
+    const r = await run(cmd);
+    if (r.code === 0 && lines.every((l) => existsSync(l.out))) { log(`captions: ${lines.length} strip${lines.length === 1 ? "" : "s"} rendered with Pillow (${cmd[0]})`); return "pillow"; }
+    failures.push(`${cmd[0]}: ${tail(r.stderr, 3) || `exit ${r.code}`}`);
+  }
+  if (has("magick")) {
+    for (const l of lines) {
+      const r = await run(captionMagick(l.text, l.size, color, W, boxH, font, l.out));
+      if (r.code !== 0) { failures.push(`magick (${l.text}): ${tail(r.stderr, 3)}`); break; }
+    }
+    if (lines.every((l) => existsSync(l.out))) { log(`captions: ${lines.length} strips rendered with ImageMagick (Pillow unavailable: ${failures.join(" / ")})`); return "magick"; }
+  } else failures.push("magick: not installed");
+  throw new Error("caption strips failed:\n  - " + failures.join("\n  - "));
 }
 
 async function run(cmd: string[], onStdoutLine?: (l: string) => void): Promise<{ code: number; stderr: string }> {
@@ -776,35 +835,32 @@ export async function render(opts: { edlPath: string; outPath: string; captions?
     }
   }
 
-  // 5. Captions
+  // 5. Captions: PNG strips (Pillow, else ImageMagick) overlaid per line; drawtext only on builds that have it.
   const capCfg = edl.globals.captions;
-  let capMode = (opts.captions ?? "auto").toLowerCase();
+  const capMode = (opts.captions ?? "auto").toLowerCase(); // auto | png | drawtext | off
   const font = CAPTION_STYLE.font_files.find((f) => existsSync(f));
-  if (!capCfg.on) capMode = "off";
-  if (capMode === "auto") capMode = has("magick") && font ? "png" : filters.has("drawtext") && font ? "drawtext" : "off";
-  if (capMode === "drawtext" && !filters.has("drawtext")) { warnings.push("captions: this ffmpeg has no drawtext filter (no libfreetype); used PNG captions instead"); capMode = has("magick") ? "png" : "off"; }
-  if (capMode === "png" && !has("magick")) { warnings.push("captions: ImageMagick (magick) not found; captions skipped"); capMode = "off"; }
-  if (capMode !== "off" && !font) { warnings.push("captions: no italic serif font file found; captions skipped"); capMode = "off"; }
-  if (capCfg.on && capMode === "off" && !warnings.some((w) => w.startsWith("captions"))) warnings.push("captions: skipped");
+  let capRenderer: "pillow" | "magick" | "drawtext" | "off" = "off";
   const fd = CAPTION_STYLE.fade_frames;
   const boxH = 2 * Math.round((CAPTION_STYLE.box_h * H) / 720 / 2);
   const capSize = Math.round((capCfg.size * H) / 720);
   const capY = clamp(Math.round(capCfg.y * H - boxH / 2), 0, H - boxH);
-  const caps = capMode === "off" ? [] : timing.lines
+  const caps: Cap[] = !capCfg.on || capMode === "off" ? [] : timing.lines
     .map((l) => ({ text: l.text.trim(), a: Math.round((l.start + edl.sync_offset_s) * F), b: Math.round((l.end + edl.sync_offset_s) * F) }))
     .map((c) => ({ ...c, a: clamp(c.a, 0, plan.total), b: clamp(c.b, 0, plan.total) }))
     .filter((c) => c.text && c.b - c.a >= 2);
-  if (capMode === "png") {
-    await Promise.all(caps.map(async (c, k) => {
-      const out = join(scratch, `cap_${String(k).padStart(2, "0")}.png`);
-      const r = await run(captionPng(c.text, capSize, capCfg.color, W, boxH, font!, out));
-      if (r.code !== 0) throw new Error(`caption ${k} (${c.text}) failed:\n` + tail(r.stderr));
-      (c as typeof c & { png?: string }).png = out;
-    }));
-  } else if (capMode === "drawtext") {
+  if (caps.length && !font) warnings.push("captions: no italic serif font file found (Georgia Italic / Times Italic); captions skipped");
+  else if (caps.length && capMode === "drawtext" && !filters.has("drawtext")) warnings.push("captions: this ffmpeg has no drawtext filter (no libfreetype); use --captions png");
+  else if (caps.length && capMode === "drawtext") {
     await Promise.all(caps.map((c, k) => Bun.write(join(scratch, `cap_${String(k).padStart(2, "0")}.txt`), c.text)));
+    capRenderer = "drawtext";
+  } else if (caps.length) {
+    try { capRenderer = await renderCaptionPngs(caps, capSize, capCfg.color, W, boxH, font!, scratch, log); }
+    catch (e) { if (capMode === "png") throw e; warnings.push(`captions skipped: ${(e as Error).message.replace(/\n\s*/g, " ")}`); }
   }
-  step(0.1, `captions: ${capMode}${caps.length ? ` (${caps.length} lines)` : ""}`);
+  if (capRenderer === "off") caps.length = 0;
+  if (capCfg.on && capRenderer === "off" && !warnings.some((w) => w.startsWith("captions"))) warnings.push("captions: skipped");
+  const capPng = capRenderer === "pillow" || capRenderer === "magick";
+  step(0.1, `captions: ${capRenderer}${caps.length ? ` (${caps.length} lines)` : ""}`);
 
   // 6. Segments
   const segFiles: string[] = [];
@@ -831,7 +887,7 @@ export async function render(opts: { edlPath: string; outPath: string; captions?
   segFiles.forEach((f) => args.push("-i", f));
   let idx = segFiles.length;
   const capInputs: number[] = [];
-  if (capMode === "png") for (const c of caps) { args.push("-loop", "1", "-framerate", String(F), "-t", fx(c.b / F + 0.5), "-i", (c as typeof c & { png: string }).png); capInputs.push(idx++); }
+  if (capPng) for (const c of caps) { args.push("-loop", "1", "-framerate", String(F), "-t", fx(c.b / F + 0.5), "-i", c.png!); capInputs.push(idx++); }
   const songIdx = idx++;
   args.push("-i", songAbs);
   const gph: string[] = segFiles.map((_, i) => `[${i}:v]fps=${F},setsar=1,format=yuv420p[s${i}]`);
@@ -860,7 +916,7 @@ export async function render(opts: { edlPath: string; outPath: string; captions?
   caps.forEach((c, k) => {
     const a = c.a / F, b = c.b / F, d = fd / F;
     const en = `enable='between(t,${fx(a - half)},${fx(b - 1 / F + half)})'`;
-    if (capMode === "png") {
+    if (capPng) {
       gph.push(`[${capInputs[k]}:v]format=rgba,fade=t=in:st=${fx(a)}:d=${fx(d)}:alpha=1,fade=t=out:st=${fx(b - d)}:d=${fx(d)}:alpha=1[c${k}]`,
         `[${cur}][c${k}]overlay=x=0:y=${capY}:eof_action=pass:${en}[v${k}]`);
     } else {
@@ -912,7 +968,7 @@ export async function render(opts: { edlPath: string; outPath: string; captions?
     width: Number(vs.width), height: Number(vs.height), has_audio: !!as, bytes: statSync(opts.outPath).size,
     frames: Number(vs.nb_frames), video_codec: String(vs.codec_name), pix_fmt: String(vs.pix_fmt),
     audio: as ? { codec: String(as.codec_name), sample_rate: Number(as.sample_rate), channels: Number(as.channels), duration_s: r4(Number(as.duration)) } : null,
-    md5: hasher.digest("hex"), elapsed_s: r4((performance.now() - t0) / 1000), captions: capMode,
+    md5: hasher.digest("hex"), elapsed_s: r4((performance.now() - t0) / 1000), captions: capRenderer,
     timing: timing.approximate ? `approximate (${timing.warning})` : timing.source,
     placeholders: edl.scenes.filter((s) => s.source.placeholder).map((s) => s.id), warnings,
     stitch_version: STITCH_VERSION, ffmpeg: ffver,

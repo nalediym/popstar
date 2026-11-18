@@ -17,7 +17,8 @@ Checks (the three recurring defects of the pose-restyle pipeline, in order of ho
   2. IDENTITY  SSIM of equalised 96x96 grayscale face crops (box-centre aligned; eye-line aligned with
                MediaPipe), averaged over frames, plus face-box scale/aspect drift. A 0-1 PROXY for
                "same face, same framing", NOT face recognition. Calibrated: same face + wardrobe edit 0.30,
-               claymation restyle 0.20, anime restyle 0.13. PASS >= 0.25, WARN >= 0.10, FAIL below.
+               claymation restyle 0.20, anime restyle 0.13, non-face crops 0.05-0.16. PASS >= 0.25, else WARN
+               (FAIL only if --id-fail is set): the proxy flags "look at the FACE row", it never blocks alone.
   3. MOTION    face-centre trajectories (normalised coords) in both files: Pearson r on each axis the source
                actually moves on, mean distance after removing the median framing offset, and "spurious"
                motion (render moves on an axis where the source is still). Dense optical-flow magnitude
@@ -684,7 +685,7 @@ def render_sheet(path: Path, R: dict, rows: list, src_name: str, ren_name: str, 
     W = max(GUT + N * COL + PAD * 2, 1380)
     f_title, f_chip, f_small, f_tiny = _font(20), _font(16), _font(13), _font(12)
     header_h, row_gap = 92, 10
-    H = (PAD + header_h + (TH + 16 + row_gap) * 2 + (CROP + 18 + row_gap) + (64 + 18 + row_gap) + 84 + PAD)
+    H = (PAD + header_h + (TH + 16 + row_gap) * 2 + (CROP + 18 + row_gap) + (64 + 18 + row_gap) + 108 + PAD)
     im = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(im)
 
@@ -733,7 +734,7 @@ def render_sheet(path: Path, R: dict, rows: list, src_name: str, ren_name: str, 
             t = _thumb(r["ren_frame"], r["ren_box"], COL - 8, TH, r.get("outlier_box"))
             im.paste(t, (x, y + (TH - t.height) // 2))
         how = r["ren_box"].how if r["ren_box"] else "no face"
-        tag = "outlier→inherited" if r.get("outlier_box") is not None else how
+        tag = "rejected" if r.get("outlier_box") is not None else how
         d.text((x, y + TH + 2), f"t={r['t_ren']:.2f}s  f{r['ren_idx']}  {tag}", font=f_tiny,
                fill=BOX_COLORS.get(how, COLORS[WARN]))
     y += TH + 16 + row_gap
@@ -787,8 +788,9 @@ def render_sheet(path: Path, R: dict, rows: list, src_name: str, ren_name: str, 
         f"PROXY: equalised-crop SSIM, not face recognition",
         f"motion ({mo['basis']}): n={tr.get('n')} r {_fmt(tr.get('r'), '.2f')} (x {_axis(tr, 'x')}, y {_axis(tr, 'y')})  "
         f"dist centred {_fmt(tr.get('dist_centered'), '.3f')} raw {_fmt(tr.get('dist_raw'), '.3f')} offset {_off(tr)}  "
-        f"flow {_fmt(fl.get('score'), '.2f')} (series {_fmt(fl.get('corr'), '.2f')}, spatial {_fmt(fl.get('spatial_corr'), '.2f')})  "
-        f"boxes {mo['render_box_sources']}  [pass r ≥ {t['motion_r']:g}, dist ≤ {t['motion_dist']:g}, flow ≥ {t['flow_pass']:g}]",
+        f"[pass r ≥ {t['motion_r']:g}, dist ≤ {t['motion_dist']:g}]",
+        f"        flow score {_fmt(fl.get('score'), '.2f')} (series {_fmt(fl.get('corr'), '.2f')}, spatial {_fmt(fl.get('spatial_corr'), '.2f')}, "
+        f"{fl.get('step')} frames apart)  [pass ≥ {t['flow_pass']:g}]   render boxes {mo['render_box_sources']}",
     ]
     if mo.get("reasons"):
         foot.append("motion reasons: " + "; ".join(mo["reasons"]))
@@ -827,8 +829,9 @@ def build_parser():
     g.add_argument("--skin-warn", type=float, default=6.0, help="skin ΔL* above this is WARN (default +6)")
     g.add_argument("--skin-fail", type=float, default=12.0, help="skin ΔL* above this is FAIL (default +12)")
     g.add_argument("--skin-dark-warn", type=float, default=0.0, help="ΔL* below -this is WARN; 0 disables (default: off, dark styles are fine)")
-    g.add_argument("--id-warn", type=float, default=0.25, help="identity proxy below this is WARN")
-    g.add_argument("--id-fail", type=float, default=0.10, help="identity proxy below this is FAIL")
+    g.add_argument("--id-warn", type=float, default=0.25, help="identity proxy below this is WARN (look at the FACE row)")
+    g.add_argument("--id-fail", type=float, default=0.0, help="identity proxy below this is FAIL; 0 disables (default: the proxy "
+                   "cannot separate a stylised face from background, so it never blocks on its own)")
     g.add_argument("--motion-r", type=float, default=0.7, help="trajectory correlation needed to PASS")
     g.add_argument("--motion-r-warn", type=float, default=0.4, help="correlation needed to stay at WARN (below: FAIL)")
     g.add_argument("--motion-dist", type=float, default=0.02, help="mean centred face distance (frame units) allowed to PASS")

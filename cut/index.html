@@ -298,7 +298,7 @@ const S = {
   edl: null, plan: null, timing: null, shots: null, cues: [], assets: [], presets: FALLBACK_PRESETS,
   sel: 0, playing: false, scrubT: 0, mode: "live",
   undo: [], redo: [], savedJSON: null, saveTimer: 0, saving: false, saveError: null,
-  rendering: false, receipt: null, renderedJSON: null, finalVersion: 0, notes: [],
+  rendering: false, receipt: null, renderedJSON: null, finalVersion: 0, notes: [], edlVersion: null,
 };
 const song = new Audio();
 song.preload = "auto";
@@ -310,7 +310,7 @@ async function getJSON(url) {
   const res = await fetch(url, { cache: "no-store" });
   let body = null;
   try { body = await res.json(); } catch { /* not JSON */ }
-  return { ok: res.ok, status: res.status, body };
+  return { ok: res.ok, status: res.status, body, version: res.headers.get("x-edl-version") };
 }
 async function boot() {
   const [presets, edl, timing, shots, status] = await Promise.all([
@@ -325,6 +325,7 @@ async function boot() {
     return;
   }
   S.edl = edl.body;
+  S.edlVersion = edl.version || null;
   S.savedJSON = JSON.stringify(S.edl);
   setTiming(timing);
   setShots(shots);
@@ -434,9 +435,16 @@ async function save() {
   S.saving = true;
   setChip("chipSave", "saving…", "warn");
   try {
-    const res = await fetch("/edl", { method: "PUT", headers: { "content-type": "application/json" }, body });
+    const headers = { "content-type": "application/json" };
+    if (S.edlVersion) headers["x-edl-base"] = S.edlVersion;
+    const res = await fetch("/edl", { method: "PUT", headers, body });
     const j = await res.json().catch(() => ({}));
+    if (res.status === 409 && j.edl) {
+      adoptOutside(j.edl, j.version, "cut/edl.json changed elsewhere (another window, or an edit on disk): loaded that version. Your change is in undo (⌘Z).");
+      return false;
+    }
     if (!res.ok) throw new Error((j.errors || [j.error || res.status]).join("; "));
+    if (j.version) S.edlVersion = j.version;
     S.savedJSON = body; S.saveError = null;
     const stillDirty = JSON.stringify(S.edl) !== S.savedJSON;
     setChip("chipSave", stillDirty ? "unsaved…" : `saved ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`, stillDirty ? "warn" : "ok");
@@ -452,8 +460,33 @@ async function save() {
 }
 window.addEventListener("beforeunload", () => {
   const body = JSON.stringify(S.edl);
-  if (S.edl && body !== S.savedJSON) fetch("/edl", { method: "PUT", headers: { "content-type": "application/json" }, body, keepalive: true });
+  const headers = { "content-type": "application/json" };
+  if (S.edlVersion) headers["x-edl-base"] = S.edlVersion;
+  if (S.edl && body !== S.savedJSON) fetch("/edl", { method: "PUT", headers, body, keepalive: true });
 });
+/** Replace the edit with a version that changed outside this page. The local copy goes into undo. */
+function adoptOutside(edl, version, why) {
+  const local = JSON.stringify(S.edl), incoming = JSON.stringify(edl);
+  if (local !== incoming) { S.undo.push(local); S.redo = []; }
+  S.edl = edl; S.edlVersion = version || null; S.savedJSON = incoming; lastEditKey = null;
+  if (S.sel >= S.edl.scenes.length) S.sel = 0;
+  for (const sc of S.edl.scenes) ensureMedia(sc);
+  replan(); renderSide();
+  setChip("chipSave", "reloaded from disk", "warn");
+  $("undoBtn").disabled = !S.undo.length; $("redoBtn").disabled = !S.redo.length;
+  updateRenderedStale();
+  toast(why, 6000);
+}
+// Another window, or Claude editing cut/edl.json by hand, may change the file: pick it up while this page is clean.
+// With unsaved edits here, the next save reports the conflict instead (PUT answers 409).
+setInterval(async () => {
+  if (!S.edl || S.saving || S.rendering || document.hidden) return;
+  const r = await getJSON("/edl/version").catch(() => null);
+  if (!r || !r.ok || !r.body.version || r.body.version === S.edlVersion) return;
+  if (JSON.stringify(S.edl) !== S.savedJSON) return;
+  const e = await getJSON("/edl").catch(() => null);
+  if (e && e.ok && e.body && e.body.scenes) adoptOutside(e.body, e.version, "cut/edl.json changed on disk: reloaded it");
+}, 4000);
 
 // ---------------------------------------------------------------------------------------------------------
 // clock + transport
