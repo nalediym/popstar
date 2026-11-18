@@ -9,8 +9,12 @@
 // < --inputs (JSON object of slot -> value) < --set. The compiled API graph goes to stdout (or --out), a one-line
 // summary to stderr. Submit it with the comfy-cloud MCP: submit_workflow({ workflow: <compiled JSON> }).
 // No dependencies. See workflows/README.md.
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+//
+// Where the graphs are read from (first directory that holds a slots.json): POPSTAR_WORKFLOWS_DIR, then the copy bundled
+// next to this file (tools/workflows/ inside the Claude Code plugin, ../workflows/ in the repo), then <project>/workflows/
+// (project = POPSTAR_ROOT, else the nearest popstar.json at or above the working directory, else the working directory).
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 
 export type SlotType = "string" | "integer" | "number" | "boolean";
 export type Target = { node: string; input: string };
@@ -35,7 +39,33 @@ export type GraphEntry = {
 export type ApiNode = { class_type: string; inputs: Record<string, unknown>; _meta?: { title?: string } };
 export type ApiGraph = Record<string, ApiNode>;
 
-export const WORKFLOWS_DIR = join(import.meta.dir, "..", "workflows");
+/** The project root without importing the CLI: POPSTAR_ROOT, else the nearest popstar.json above cwd, else cwd. */
+function projectRoot(): string {
+  if (process.env.POPSTAR_ROOT) return resolve(process.env.POPSTAR_ROOT);
+  let dir = process.cwd();
+  for (;;) {
+    if (existsSync(join(dir, "popstar.json"))) return dir;
+    const up = dirname(dir);
+    if (up === dir) return process.cwd();
+    dir = up;
+  }
+}
+
+/** The directories the pinned graphs may live in, in priority order (see the header). */
+export const workflowsCandidates = (): string[] => [
+  ...(process.env.POPSTAR_WORKFLOWS_DIR ? [resolve(process.env.POPSTAR_WORKFLOWS_DIR)] : []),
+  join(import.meta.dir, "workflows"), // the plugin layout: plugins/popstar/tools/workflows/
+  join(import.meta.dir, "..", "workflows"), // the repo layout: workflows/
+  join(projectRoot(), "workflows"), // the project's own copy (a checkout of the repo)
+];
+
+/** The first candidate that holds a slots.json; the repo layout when none does, so the error names a real path. */
+export function findWorkflowsDir(): string {
+  const dirs = workflowsCandidates();
+  return dirs.find((d) => existsSync(join(d, "slots.json"))) ?? join(import.meta.dir, "..", "workflows");
+}
+
+export const WORKFLOWS_DIR = findWorkflowsDir();
 export class CompileError extends Error {}
 
 const USAGE = `usage: bun tools/comfy_compile.ts <graph> [--set slot=value ...] [--inputs inputs.json] [--preset name] [--out file.json] [--list]

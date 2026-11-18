@@ -1,0 +1,134 @@
+{
+  "3": {
+    "_meta": {
+      "title": "KSampler"
+    },
+    "class_type": "KSampler",
+    "inputs": {
+      "cfg": 1,
+      "denoise": 1,
+      "latent_image": ["98", 0],
+      "model": ["78", 0],
+      "negative": ["47", 0],
+      "positive": ["94", 0],
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "seed": ["109", 0],
+      "steps": 8
+    }
+  },
+  "18": {
+    "_meta": {
+      "title": "VAE Decode Audio"
+    },
+    "class_type": "VAEDecodeAudio",
+    "inputs": {
+      "samples": ["3", 0],
+      "vae": ["106", 0]
+    }
+  },
+  "47": {
+    "_meta": {
+      "title": "Conditioning Zero Out"
+    },
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": ["94", 0]
+    }
+  },
+  "78": {
+    "_meta": {
+      "title": "ModelSamplingAuraFlow"
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "model": ["104", 0],
+      "shift": 3
+    }
+  },
+  "94": {
+    "_meta": {
+      "title": "TextEncodeAceStepAudio1.5"
+    },
+    "class_type": "TextEncodeAceStepAudio1.5",
+    "inputs": {
+      "bpm": 92,
+      "cfg_scale": 2,
+      "clip": ["105", 0],
+      "duration": 32,
+      "generate_audio_codes": true,
+      "keyscale": "Bb major",
+      "language": "en",
+      "lyrics": "[Intro]\n(Devagar, devagar)\n\n[Verse]\nTea is warm, the logs are scrolling slow\nGave my agent tools and let it go\nHooks before the commit, tests before the run\nLittle harness holding everything I've done\n\n[Chorus]\nI'm in the loop, devagar\nEvery step, eu sei onde está\nPlan it, run it, check it, back again\nKeep me in the loop, meu bem",
+      "min_p": 0,
+      "seed": ["109", 0],
+      "tags": "Brazilian pagode meets 1990s R&B, cavaquinho strums, pandeiro, tantan, surdo, warm Rhodes electric piano, smooth round bassline, soulful female lead vocal, lush stacked R&B harmonies, cozy intimate holiday warmth, sunset living-room jam, 92 BPM",
+      "temperature": 0.85,
+      "timesignature": "4",
+      "top_k": 0,
+      "top_p": 0.9
+    }
+  },
+  "98": {
+    "_meta": {
+      "title": "Empty Ace Step 1.5 Latent Audio"
+    },
+    "class_type": "EmptyAceStep1.5LatentAudio",
+    "inputs": {
+      "batch_size": 1,
+      "seconds": 32
+    }
+  },
+  "104": {
+    "_meta": {
+      "title": "Load Diffusion Model"
+    },
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "acestep_v1.5_xl_turbo_bf16.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "105": {
+    "_meta": {
+      "title": "Load CLIP (Dual)"
+    },
+    "class_type": "DualCLIPLoader",
+    "inputs": {
+      "clip_name1": "qwen_0.6b_ace15.safetensors",
+      "clip_name2": "qwen_4b_ace15.safetensors",
+      "device": "default",
+      "type": "ace"
+    }
+  },
+  "106": {
+    "_meta": {
+      "title": "Load VAE"
+    },
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ace_1.5_vae.safetensors"
+    }
+  },
+  "109": {
+    "_meta": {
+      "title": "Int (Seed)"
+    },
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 11
+    }
+  },
+  "111": {
+    "_meta": {
+      "title": "Save Audio (Advanced)"
+    },
+    "class_type": "SaveAudioAdvanced",
+    "inputs": {
+      "audio": ["18", 0],
+      "filename_prefix": "audio/ACE_Step1.5_xl_turbo",
+      "format": "mp3",
+      "format.quality": "V0"
+    }
+  }
+}

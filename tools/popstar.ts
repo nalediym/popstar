@@ -1,14 +1,17 @@
 #!/usr/bin/env bun
 // popstar: the one command that runs the "make me a pop star in an R&B music video" pipeline.
 //   bin/popstar status [--json] [--song <slug>]     stages, receipts, the ONE next step (bun tools/popstar.ts works too)
-//   bin/popstar doctor | new | timing | studio | render | qa | open | --help      (docs/cli.md)
+//   bin/popstar next | doctor | new | timing | studio | render | qa | open | --help      (docs/cli.md)
+//   bin/popstar --project <dir> <command>           act on another project (default: the nearest popstar.json above cwd)
 // Every command reads popstar.json (the project manifest); without one it falls back to the built-in defaults and says so.
+// The same file runs unchanged from the popstar Claude Code plugin (plugins/popstar/tools/): the project is the directory
+// the command runs in, and the pinned graphs are read from the bundle first (tools/comfy_compile.ts).
 import { existsSync } from "node:fs";
 import { paint } from "./popstar/ansi.ts";
 import { printDoctor, realDeps, requiredFailures, runDoctor } from "./popstar/doctor.ts";
 import { helpText } from "./popstar/help.ts";
 import { openTool } from "./popstar/open.ts";
-import { abs, defaultManifest, loadManifest, MANIFEST_FILE, pinnedNegative, REPO_ROOT, slugOk, writeManifest, type LoadedManifest } from "./popstar/project.ts";
+import { abs, defaultManifest, loadManifest, MANIFEST_FILE, pinnedNegative, resolveRoot, slugOk, writeManifest, type LoadedManifest } from "./popstar/project.ts";
 import { qa } from "./popstar/qa.ts";
 import { render, type Fit } from "./popstar/render.ts";
 import { computeStatus, printStatus } from "./popstar/status.ts";
@@ -19,7 +22,8 @@ export type Args = { cmd: string; pos: string[]; flags: Record<string, string | 
 const LIST_FLAGS = new Set(["scene", "uploaded"]);
 const BOOL_FLAGS = new Set(["json", "fast", "dry-run", "submit", "no-open", "force", "help"]);
 
-/** `popstar [cmd] [--flag [value]] [positional] [-- rest]`. --scene/--uploaded take every value up to the next flag. */
+/** `popstar [--flag [value]] [cmd] [positional] [-- rest]`: the first bare word is the command (default status), so global
+ *  flags like --project may come first. --scene/--uploaded take every value up to the next flag. */
 export function parseArgs(argv: string[]): Args {
   const flags: Args["flags"] = {};
   const pos: string[] = [];
@@ -30,13 +34,8 @@ export function parseArgs(argv: string[]): Args {
       flags[key] = Array.isArray(cur) ? [...cur, v] : [v];
     } else flags[key] = v;
   };
-  let cmd = "status";
-  let i = 0;
-  if (argv.length && !argv[0]!.startsWith("-")) {
-    cmd = argv[0]!;
-    i = 1;
-  }
-  for (; i < argv.length; i++) {
+  let cmd: string | undefined;
+  for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     if (a === "--") {
       rest = argv.slice(i + 1);
@@ -47,7 +46,8 @@ export function parseArgs(argv: string[]): Args {
       continue;
     }
     if (!a.startsWith("--")) {
-      pos.push(a);
+      if (cmd === undefined) cmd = a;
+      else pos.push(a);
       continue;
     }
     const eq = a.indexOf("=");
@@ -75,7 +75,7 @@ export function parseArgs(argv: string[]): Args {
       i++;
     } else flags[key] = true;
   }
-  return { cmd, pos, flags, rest };
+  return { cmd: cmd ?? "status", pos, flags, rest };
 }
 
 const fitOf = (s: string | undefined): Fit => {
@@ -87,8 +87,8 @@ const fitOf = (s: string | undefined): Fit => {
 export async function main(argv: string[]): Promise<number> {
   const p = paint;
   const args = parseArgs(argv);
-  const root = REPO_ROOT;
   const str = (k: string): string | undefined => (typeof args.flags[k] === "string" ? (args.flags[k] as string) : undefined);
+  const root = resolveRoot(str("project"), args.cmd === "new");
   const list = (k: string): string[] => (Array.isArray(args.flags[k]) ? (args.flags[k] as string[]) : typeof args.flags[k] === "string" ? [args.flags[k] as string] : []);
   const bool = (k: string): boolean => args.flags[k] === true;
   const fail = (msg: string, code = 2): number => {
@@ -143,6 +143,15 @@ export async function main(argv: string[]): Promise<number> {
     case "status": {
       const song = str("song") ?? m.slug;
       printStatus(computeStatus(root, song, m), bool("json"));
+      return 0;
+    }
+    case "next": {
+      // The one next action only (status, abridged): what a skill or a person asks for most.
+      const song = str("song") ?? m.slug;
+      const r = computeStatus(root, song, m);
+      if (bool("json")) console.log(JSON.stringify({ song: r.song, root, next: r.next }, null, 2));
+      else if (r.next) console.log(`${p.amber(`NEXT · ${r.song} · stage ${r.next.n} ${r.next.name}`)} ${p.dim(`(${r.next.detail})`)}\n  ${r.next.next}`);
+      else console.log(`${p.amber("DONE.")} Every stage has its receipt. Watch ${m.paths.outputs}/final.mp4 🎤`);
       return 0;
     }
     case "doctor": {

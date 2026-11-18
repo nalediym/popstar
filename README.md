@@ -43,12 +43,44 @@ bun tools/popstar.ts studio     # starts the recorder, Reference Master and Dire
 ```
 Then follow `templates/music-video/README.md` for a new song and performer.
 
+## Install as a plugin
+The skills, the CLI, the pinned graphs and a render-verify workflow also ship as a Claude Code plugin, so a new machine
+needs no copy-paste. In Claude Code:
+
+```
+/plugin marketplace add nalediym/popstar
+/plugin install popstar@popstar-market
+```
+or in one step: `/plugin install popstar --marketplace nalediym/popstar`. In a session the install command opens the
+plugin's details so you pick a scope (user, project or local); from a shell, `claude plugin install popstar --marketplace
+nalediym/popstar` installs straight away at user scope.
+
+Then connect Comfy Cloud: add the `comfy-cloud` MCP server to Claude Code and sign in with `/mcp`. The MCP is not bundled
+with the plugin on purpose (a bundled copy would rename its tools, and a user-scope entry wins over it anyway).
+
+What you get:
+- `/popstar [status|next|doctor|new <slug> --song <mp3>]` runs the bundled CLI against the current project: every stage
+  and its receipts, the one next step, dependency and Comfy Cloud checks with exact fixes, or a new `popstar.json`.
+  `/popstar` alone is `status`.
+- `/popstar:rnb-director`, `/popstar:reference-master`, `/popstar:popstar-pipeline`: the director, the looks department
+  and the orchestrator, triggered by what you ask ("direct this", "make a look", "what's next").
+- `/popstar:render-verify`: a workflow that checks every rendered scene (identity kept, skin tone not lightened, motion
+  follows the take) with one verifier agent per scene and returns a verdict table; pass `{"scenes": ["s3-chorus"]}` to
+  check one scene.
+
+The plugin lives in `plugins/popstar/` (`plugins/popstar/README.md` has the layout and how the copies stay in sync); the
+marketplace file is `.claude-plugin/marketplace.json`. The studio tools (recorder, Reference Master, Director's Cut,
+previs, the Python scripts) stay in this repo: clone it as your project to get the whole pipeline. In this checkout the
+skills still load without the plugin (`.claude/skills/` symlinks into the plugin); with the plugin installed here each
+skill shows twice, as `/rnb-director` and `/popstar:rnb-director`, pointing at the same files.
+
 ## Repo map
 `PLAN.md` vision and locked decisions · `HANDOFF.md` state, job ids, gotchas · `docs/` research (R&B video language,
-orchestration, Hermes/NousCon), architecture review, licenses, capture list, taste profile · `.claude/skills/` the
-director, looks and pipeline skills · `workflows/` pinned Comfy graphs + slot map · `tools/` CLI, compiler, timing,
-QA, stitch · `recorder/` `reference-master/` `cut/` `previs/` `storyboards/` the studio tools · `templates/` the
-reusable recipe and shot-list schema · `songs/` the locked song and its recipe.
+orchestration, Hermes/NousCon), architecture review, licenses, capture list, taste profile · `plugins/popstar/` the
+Claude Code plugin: the director, looks and pipeline skills (`.claude/skills/` symlinks into it), `/popstar`, a copy of
+the CLI and the pinned graphs, the render-verify workflow · `workflows/` pinned Comfy graphs + slot map · `tools/` CLI,
+compiler, timing, QA, stitch · `recorder/` `reference-master/` `cut/` `previs/` `storyboards/` the studio tools ·
+`templates/` the reusable recipe and shot-list schema · `songs/` the locked song and its recipe.
 
 Personal media (takes, renders of the performer, reference pins) is gitignored by default.
 
